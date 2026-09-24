@@ -40,7 +40,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="card" style="margin-bottom:11px"><div class="field"><label>فلتر مقدم الخدمة</label><select id="dashboardProviderFilter" onchange="renderDashboard()"><option value="all">كل مقدمي الخدمة</option></select></div></div>
 <div id="dashboardProviders" class="providerGrid"></div>
 <div class="section"><h2>آخر العمليات</h2><button class="btn soft" onclick="showPage('cases')">عرض الكل</button></div>
-<div class="table"><table><thead><tr><th>رقم</th><th>العميل</th><th>المقدم</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق المقدم</th><th>دفع العميل</th></tr></thead><tbody id="recent"></tbody></table></div>
+<div class="table"><table><thead><tr><th>رقم</th><th>العميل</th><th>الحيوان</th><th>التطعيم</th><th>المقدم</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق المقدم</th><th>دفع العميل</th></tr></thead><tbody id="recent"></tbody></table></div>
 </section>
 
 <section id="newcase" class="page">
@@ -49,6 +49,15 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="grid2">
 <div class="field"><label>اسم العميل *</label><input id="cClient" placeholder="مثال: نورة أحمد"></div>
 <div class="field"><label>رقم العميل</label><input id="cPhone" inputmode="tel" placeholder="5xxxxxxx"></div>
+<div class="field"><label>المنطقة / الموقع</label><input id="cLocation" placeholder="مثال: حولي"></div>
+<div class="field"><label>نوع الحيوان *</label><select id="cPetType"><option value="">اختاري</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>
+<div class="field"><label>السلالة</label><input id="cBreed" placeholder="مثال: Pomeranian"></div>
+<div class="field"><label>العمر</label><input id="cPetAge" placeholder="مثال: 4 سنوات"></div>
+<div class="field"><label>سهل التعامل؟</label><select id="cPetFriendly"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field"><label>مطعّم؟</label><select id="cVaccinated"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field"><label>عنده Microchip؟</label><select id="cMicrochipped"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field"><label>عنده Pet ID؟</label><select id="cHasPetId"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field full"><label>سبب الطلب / الحالة</label><textarea id="cReason" rows="2" placeholder="مثال: فحص، تطعيم، مشكلة صحية..."></textarea></div>
 <div class="field"><label>الموظف المسؤول *</label><select id="cStaff"></select><div class="hint">هذا اسم موظف PawApp اللي استلم وسجّل الطلب. إذا الاسم مو موجود أضيفيه من صفحة الموظفون.</div></div>
 <div class="field"><label>التاريخ *</label><input id="cDate" type="date"></div>
 <div class="field"><label>مقدم الخدمة *</label><select id="cProvider" onchange="providerChanged()"></select><div class="hint">العيادة / الشركة / الدكتور أو الفريلانسر اللي راح ينفذ الخدمة.</div></div>
@@ -89,7 +98,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field"><label>فلتر الحالة</label><select id="caseStatusFilter" onchange="renderCases()"><option value="all">كل الحالات</option><option value="pending">مستحق للمقدم</option><option value="partial">مسدد جزئي</option><option value="paid">مسدد للمقدم</option><option value="unpaid">العميل لم يدفع</option></select></div>
 <div class="field"><label>فلتر مقدم الخدمة</label><select id="caseProviderFilter" onchange="renderCases()"><option value="all">كل مقدمي الخدمة</option></select></div>
 </div>
-<div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th>العميل</th><th>المقدم</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق المقدم</th><th>دفع العميل</th><th>دفع المقدم</th><th>الموظف</th><th>إجراء العميل</th><th>إجراء المقدم</th></tr></thead><tbody id="caseRows"></tbody></table></div>
+<div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th>العميل</th><th>الحيوان</th><th>السلالة</th><th>مطعّم</th><th>Microchip</th><th>المقدم</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق المقدم</th><th>دفع العميل</th><th>دفع المقدم</th><th>الموظف</th><th>إجراء العميل</th><th>إجراء المقدم</th></tr></thead><tbody id="caseRows"></tbody></table></div>
 </section>
 </main>
 

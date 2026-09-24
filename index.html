@@ -72,7 +72,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="providers" class="page">
-<div class="title"><div><h1>مقدمو الخدمة</h1><p>Company أو Freelancer، مع الخدمات والنسبة</p></div><button class="btn primary" onclick="openProvider()">+ إضافة مقدم</button></div>
+<div class="title"><div><h1>مقدمو الخدمة</h1><p>سجلي العيادة أو الدكتور مرة واحدة، وبعدها أضيفي كل خدماته تحته</p></div><button class="btn primary" onclick="openProvider()">+ إضافة مقدم</button></div>
 <input id="providerSearch" class="search" placeholder="بحث..." oninput="renderProviders()">
 <div id="providerList" class="providerGrid" style="margin-top:11px"></div>
 </section>
@@ -111,9 +111,20 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field"><label>رقم التواصل</label><input id="pPhone"></div>
 <div class="field"><label>طريقة حصة PawApp الافتراضية</label><select id="pFeeType" onchange="toggleProviderPricing()"><option value="percent">نسبة %</option><option value="fixed">سعر ثابت د.ك</option></select></div>
 <div class="field"><label id="pCommissionLabel">نسبة PawApp الافتراضية %</label><input id="pCommission" type="number" value="7" min="0" step="0.001"></div>
-<div class="field full"><label>الخدمات التي يقدمها هذا المقدم *</label><input id="pServices" placeholder="مثال: كشف، عملية، تطعيم أو Grooming، Training"><div class="hint">اكتبي كل خدمة وبينهم فاصلة. هذي هي الخدمات اللي راح تظهر بعدين عند إضافة العميل.</div></div>
+<div class="field full"><div class="hint">احفظي مقدم الخدمة أولاً، وبعدها أضيفي خدماته من زر «إدارة الخدمات» تحت اسمه.</div></div>
 </div>
 <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveProvider()">حفظ مقدم الخدمة</button>
+</div></div>
+
+<div id="serviceModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3 id="serviceModalTitle">إدارة الخدمات</h3><button class="close" onclick="closeModal('serviceModal')">×</button></div>
+<input id="serviceProviderId" type="hidden">
+<div class="card" style="box-shadow:none;margin-bottom:12px">
+<div class="field"><label>إضافة خدمة جديدة</label><input id="serviceName" placeholder="مثال: كشف، أشعة، تطعيم، عملية"></div>
+<button class="btn primary" style="width:100%;margin-top:10px" onclick="addProviderService()">+ إضافة الخدمة</button>
+</div>
+<div class="section" style="margin-top:10px"><h2>الخدمات الحالية</h2></div>
+<div id="serviceList"></div>
 </div></div>
 
 <div id="staffModal" class="modalBg"><div class="modal">

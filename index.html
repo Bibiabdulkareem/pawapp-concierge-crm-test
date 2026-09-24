@@ -22,26 +22,25 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 
 <main class="main">
 <section id="dashboard" class="page active">
-<div class="title"><div><h1>لوحة التحكم</h1><p>المبالغ، عمولة PawApp، ومستحقات مقدمي الخدمة</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
+<div class="title"><div><h1>لوحة التحكم</h1><p>واضح وبسيط: ما يدفعه العميل، حصة PawApp، ومستحق مقدم الخدمة</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
 <div class="cards">
-<div class="card stat"><span>إجمالي الخدمات</span><b id="kSales" class="blue">0.000 د.ك</b></div>
-<div class="card stat"><span>حصة PawApp</span><b id="kPaw" class="green">0.000 د.ك</b></div>
+<div class="card stat"><span>إجمالي ما يدفعه العملاء</span><b id="kSales" class="blue">0.000 د.ك</b></div>
+<div class="card stat"><span>حصة PawApp من العملاء</span><b id="kPaw" class="green">0.000 د.ك</b></div>
 <div class="card stat"><span>مستحق للمقدمين</span><b id="kDue">0.000 د.ك</b></div>
-<div class="card stat"><span>تم دفعه</span><b id="kPaid" class="green">0.000 د.ك</b></div>
-<div class="card stat"><span>متبقي علينا</span><b id="kRemain" class="red">0.000 د.ك</b></div>
+<div class="card stat"><span>دفعناه للمقدمين</span><b id="kPaid" class="green">0.000 د.ك</b></div>
+<div class="card stat"><span>متبقي للمقدمين</span><b id="kRemain" class="red">0.000 د.ك</b></div>
 </div>
 <div class="cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
 <div class="card stat"><span>إجمالي على العملاء</span><b id="kClientDue" class="blue">0.000 د.ك</b></div>
 <div class="card stat"><span>استلمنا من العملاء</span><b id="kClientPaid" class="green">0.000 د.ك</b></div>
 <div class="card stat"><span>متبقي على العملاء</span><b id="kClientRemain" class="red">0.000 د.ك</b></div>
 </div>
-<div class="section"><h2>الأقساط القادمة من العملاء</h2></div>
-<div id="upcomingInstallments" class="providerGrid"></div>
+<div id="upcomingInstallments" style="display:none"></div>
 <div class="section"><h2>مستحقات حسب مقدم الخدمة</h2><button class="btn soft" onclick="showPage('providers')">كل المقدمين</button></div>
 <div class="card" style="margin-bottom:11px"><div class="field"><label>فلتر مقدم الخدمة</label><select id="dashboardProviderFilter" onchange="renderDashboard()"><option value="all">كل مقدمي الخدمة</option></select></div></div>
 <div id="dashboardProviders" class="providerGrid"></div>
 <div class="section"><h2>آخر العمليات</h2><button class="btn soft" onclick="showPage('cases')">عرض الكل</button></div>
-<div class="table"><table><thead><tr><th>رقم</th><th>العميل</th><th>المقدم</th><th>الخدمة</th><th>المبلغ</th><th>PawApp</th><th>الموظف</th><th>الحالة</th></tr></thead><tbody id="recent"></tbody></table></div>
+<div class="table"><table><thead><tr><th>رقم</th><th>العميل</th><th>المقدم</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق المقدم</th><th>دفع العميل</th></tr></thead><tbody id="recent"></tbody></table></div>
 </section>
 
 <section id="newcase" class="page">
@@ -57,19 +56,16 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field"><label>طريقة حصة PawApp *</label><select id="cFeeType" onchange="toggleCasePricing()"><option value="percent">نسبة %</option><option value="fixed">سعر ثابت د.ك</option></select></div>
 <div class="field"><label id="cAmountLabel">إجمالي ما يدفعه العميل (د.ك) *</label><input id="cAmount" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcCase()"></div>
 <div class="field"><label id="cCommissionLabel">نسبة PawApp % *</label><input id="cCommission" type="number" min="0" step="0.001" oninput="calcCase()"></div>
-<div class="field"><label>خطة سداد العميل</label><select id="cPaymentPlan" onchange="togglePaymentPlan()"><option value="full">دفع كامل</option><option value="installment">أقساط</option><option value="later">يدفع لاحقًا</option></select></div>
-<div class="field" id="installmentsWrap" style="display:none"><label>عدد الأقساط</label><input id="cInstallments" type="number" min="2" step="1" placeholder="مثال: 3" oninput="buildInstallmentRows()"></div>
-<div class="field full" id="installmentScheduleWrap" style="display:none">
-<label>جدول الأقساط المتفق عليه</label>
-<div class="hint">هذي مواعيد مستقبلية فقط، ما تنحسب مدفوعة إلا لما تسجلين دفعة فعلية.</div>
-<div id="installmentRows"></div>
-</div>
-<div class="field"><label>استلمنا منه مبلغ الآن؟</label><select id="cClientPaid"><option value="unpaid">لا</option><option value="paid">نعم - دفع كامل الآن</option></select><div class="hint" id="payNowHint">إذا اخترتي أقساط، سجلي مواعيد الأقساط هنا، وبعد حفظ العملية سجلي أي دفعة فعلية من زر «دفعة عميل».</div></div>
+<input type="hidden" id="cPaymentPlan" value="full">
+<input type="hidden" id="cInstallments" value="">
+<div id="installmentsWrap" style="display:none"></div>
+<div id="installmentScheduleWrap" style="display:none"><div id="installmentRows"></div></div>
+<div class="field"><label>حالة دفع العميل *</label><select id="cClientPaid"><option value="unpaid">لم يتم الدفع</option><option value="paid">تم الدفع بالكامل</option></select><div class="hint" id="payNowHint">بس نحدد: تم الدفع أو لم يتم الدفع. ما في أقساط في نسخة التست الحالية.</div></div>
 <div class="field"><label>طريقة دفع العميل</label><select id="cPayMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/المقدم مباشرة</option></select></div>
 <div class="field full"><label>ملاحظة السداد</label><input id="cPaymentNote" placeholder="مثال: يدفع نهاية الشهر / أول قسط 20 د.ك"></div>
 <div class="field full"><label>ملاحظات</label><textarea id="cNotes" rows="3" placeholder="أي تفاصيل مهمة عن الحالة"></textarea></div>
 </div>
-<div class="calc" style="grid-template-columns:repeat(4,1fr)"><div><span>إجمالي العميل</span><b id="calcTotal">0.000 د.ك</b></div><div><span>حصة PawApp</span><b id="calcPaw">0.000 د.ك</b></div><div><span>مستحق مقدم الخدمة</span><b id="calcDue">0.000 د.ك</b></div><div><span>المتبقي بعد التسوية</span><b id="calcRemain">0.000 د.ك</b></div></div>
+<div class="calc" style="grid-template-columns:repeat(3,1fr)"><div><span>إجمالي ما يدفعه العميل</span><b id="calcTotal">0.000 د.ك</b></div><div><span>حصة PawApp من العميل</span><b id="calcPaw">0.000 د.ك</b></div><div><span>مستحق مقدم الخدمة</span><b id="calcDue">0.000 د.ك</b></div><b id="calcRemain" style="display:none">0.000 د.ك</b></div>
 <button class="btn primary" style="width:100%;margin-top:13px" onclick="saveCase()">حفظ العملية</button>
 <p class="hint">كل عملية تأخذ Case ID تلقائي، واسم الموظف يبقى مسجل عليها.</p>
 </div>
@@ -93,7 +89,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field"><label>فلتر الحالة</label><select id="caseStatusFilter" onchange="renderCases()"><option value="all">كل الحالات</option><option value="pending">مستحق للمقدم</option><option value="partial">مسدد جزئي</option><option value="paid">مسدد للمقدم</option><option value="unpaid">العميل لم يدفع</option></select></div>
 <div class="field"><label>فلتر مقدم الخدمة</label><select id="caseProviderFilter" onchange="renderCases()"><option value="all">كل مقدمي الخدمة</option></select></div>
 </div>
-<div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th>التاريخ</th><th>العميل</th><th>سداد العميل</th><th>دفع فعلي</th><th>متبقي عليه</th><th>القسط القادم</th><th>المقدم</th><th>الخدمة</th><th>السعر</th><th>PawApp</th><th>للمقدم</th><th>دفعنا</th><th>متبقي للمقدم</th><th>الموظف</th><th>الحالة</th><th>دفعة عميل</th><th>دفعة للمقدم</th></tr></thead><tbody id="caseRows"></tbody></table></div>
+<div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th>العميل</th><th>المقدم</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق المقدم</th><th>دفع العميل</th><th>دفع المقدم</th><th>الموظف</th><th>إجراء العميل</th><th>إجراء المقدم</th></tr></thead><tbody id="caseRows"></tbody></table></div>
 </section>
 </main>
 

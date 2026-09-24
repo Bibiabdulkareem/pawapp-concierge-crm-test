@@ -37,12 +37,13 @@
       let h='';
       db.cases.slice().reverse().forEach(c=>{
         const pr=byProvider(c.providerId);
-        const hay=['PAW-'+String(c.id).padStart(4,'0'),c.client_name,c.client_phone,c.staff,pr.name,c.service,c.pet_type,c.breed].join(' ').toLowerCase();
+        const hay=['PAW-'+String(c.id).padStart(4,'0'),c.client_name,c.client_phone,c.staff,pr.name,c.service,c.pet_type,c.breed,sourceLabel(c.source)].join(' ').toLowerCase();
         if(q&&!hay.includes(q))return;
         if(pf!=='all'&&c.providerId!==pf)return;
         const clientPaid=clientRem(c)<=0.0001;
         const providerPaid=rem(c)<=0.0001;
         const yesNo=v=>v===true?'نعم':v===false?'لا':'—';
+        const missing=!c.pet_type||!c.breed||c.vaccinated===null||c.vaccinated===undefined||!c.location;
         h+=`<tr>
           <td>PAW-${String(c.id).padStart(4,'0')}</td>
           <td>${esc(c.client_name)}</td>
@@ -57,12 +58,13 @@
           <td>${money(due(c))}</td>
           <td><span class="status ${clientPaid?'paid':'unpaid'}">${clientPaid?'تم الدفع':'لم يتم الدفع'}</span></td>
           <td><span class="status ${providerPaid?'paid':'pending'}">${providerPaid?'تم الدفع للمقدم':'لم يتم الدفع للمقدم'}</span></td>
-          <td>${esc(c.staff)}</td>
+          <td>${esc(c.staff||'—')}<br><span class="status partial" style="margin-top:4px">${esc(sourceLabel(c.source))}</span></td>
+          <td><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">${missing?'استكمال البيانات':'عرض / تعديل'}</button></td>
           <td><button class="btn soft" style="padding:7px" onclick="openClientPayment('${c.id}')">${clientPaid?'عرض':'تسجيل دفع'}</button></td>
           <td><button class="btn soft" style="padding:7px" onclick="openSettlement('${c.id}')">${providerPaid?'عرض':'دفع للمقدم'}</button></td>
         </tr>`;
       });
-      document.getElementById('caseRows').innerHTML=h||'<tr><td colspan="16">لا توجد عمليات</td></tr>';
+      document.getElementById('caseRows').innerHTML=h||'<tr><td colspan="17">لا توجد عمليات</td></tr>';
     };
 
     const originalRenderDashboard = window.renderDashboard;
@@ -172,6 +174,7 @@
       ['cClient','cPhone','cLocation','cBreed','cPetAge','cReason','cAmount','cNotes','cPaymentNote'].forEach(id=>{const e=document.getElementById(id); if(e)e.value=''});
       ['cPetType','cPetFriendly','cVaccinated','cMicrochipped','cHasPetId'].forEach(id=>{const e=document.getElementById(id); if(e)e.value=''});
       document.getElementById('cClientPaid').value='unpaid';
+      const src=document.getElementById('cSource'); if(src) src.value='whatsapp_quick';
     };
 
     window.saveCase = async function(){
@@ -212,7 +215,7 @@
             client_payment_plan:'full',
             client_payment_note:document.getElementById('cPaymentNote').value.trim()||null,
             notes:document.getElementById('cNotes').value.trim()||null,
-            source:'manual_test',
+            source:document.getElementById('cSource')?.value||'manual_test',
             workflow_status:'new_request',
             requested_service:service,
             location:document.getElementById('cLocation').value.trim()||null,
@@ -252,6 +255,61 @@
         console.error(e);
         alert('تعذر حفظ العملية');
       }
+    };
+
+    window.sourceLabel = function(src){
+      const map={
+        booking_form_test:'فورم واتساب',
+        whatsapp_quick:'واتساب سريع',
+        phone_call:'مكالمة',
+        manual_test:'إدخال داخلي',
+        instagram:'Instagram',
+        referral:'تحويل / توصية'
+      };
+      return map[src]||'غير محدد';
+    };
+
+    window.openCaseDetails = function(id){
+      const c=db.cases.find(x=>String(x.id)===String(id)); if(!c)return;
+      const tri=v=>v===true?'yes':v===false?'no':'';
+      document.getElementById('editCaseId').value=id;
+      document.getElementById('ePhone').value=c.client_phone||'';
+      document.getElementById('eLocation').value=c.location||'';
+      document.getElementById('ePetType').value=c.pet_type||'';
+      document.getElementById('eBreed').value=c.breed||'';
+      document.getElementById('ePetAge').value=c.pet_age||'';
+      document.getElementById('ePetFriendly').value=tri(c.pet_friendly);
+      document.getElementById('eVaccinated').value=tri(c.vaccinated);
+      document.getElementById('eMicrochipped').value=tri(c.microchipped);
+      document.getElementById('eHasPetId').value=tri(c.has_pet_id);
+      document.getElementById('eReason').value=c.reason||'';
+      document.getElementById('completeCaseModal').classList.add('show');
+    };
+
+    window.saveCaseDetails = async function(){
+      const id=document.getElementById('editCaseId').value;
+      const tri=v=>v==='yes'?true:v==='no'?false:null;
+      try{
+        await api('cases?id=eq.'+encodeURIComponent(id),{
+          method:'PATCH',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify({
+            client_phone:document.getElementById('ePhone').value.trim(),
+            location:document.getElementById('eLocation').value.trim()||null,
+            pet_type:document.getElementById('ePetType').value||null,
+            breed:document.getElementById('eBreed').value.trim()||null,
+            pet_age:document.getElementById('ePetAge').value.trim()||null,
+            pet_friendly:tri(document.getElementById('ePetFriendly').value),
+            vaccinated:tri(document.getElementById('eVaccinated').value),
+            microchipped:tri(document.getElementById('eMicrochipped').value),
+            has_pet_id:tri(document.getElementById('eHasPetId').value),
+            reason:document.getElementById('eReason').value.trim()||null
+          })
+        });
+        closeModal('completeCaseModal');
+        await loadData();
+        toast('تم استكمال بيانات العميل');
+      }catch(e){console.error(e);alert('تعذر حفظ البيانات')}
     };
 
     renderAll();

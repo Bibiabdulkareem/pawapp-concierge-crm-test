@@ -91,6 +91,71 @@
       const paid=document.getElementById('cClientPaid'); if(paid) paid.disabled=false;
     };
 
+    window.renderProviders = function(){
+      const q=(document.getElementById('providerSearch').value||'').toLowerCase();
+      let h='';
+      db.providers.filter(p=>!q||p.name.toLowerCase().includes(q)).forEach(p=>{
+        const cs=db.cases.filter(c=>c.providerId===p.id);
+        let sales=0,r=0; cs.forEach(x=>{sales+=x.amount;r+=rem(x)});
+        const typ=p.type==='freelancer'?'Freelancer':(p.category==='veterinary'?'Company - Veterinary':'Company - Services');
+        const feeTxt=p.feeType==='fixed'?money(p.feeValue)+' ثابت':p.feeValue+'%';
+        const services=p.services.length?p.services.map(x=>'<span class="status partial" style="margin:3px">'+esc(x)+'</span>').join(''):'<span class="hint">ما في خدمات مضافة</span>';
+        h+='<div class="card provider"><h3>'+esc(p.name)+'</h3><p>'+typ+' • '+feeTxt+'</p><div style="margin-top:8px">'+services+'</div><div class="miniGrid"><div class="mini"><span>العمليات</span><b>'+cs.length+'</b></div><div class="mini"><span>الإجمالي</span><b>'+money(sales)+'</b></div><div class="mini"><span>متبقي</span><b>'+money(r)+'</b></div></div><div class="actions"><button class="btn primary" onclick="openServiceManager(\''+p.id+'\')">إدارة الخدمات</button><button class="btn soft" onclick="providerCases(\''+p.id+'\')">العمليات</button><button class="btn danger" onclick="deleteProvider(\''+p.id+'\')">حذف</button></div></div>';
+      });
+      document.getElementById('providerList').innerHTML=h||'<div class="card">لا توجد نتائج</div>';
+    };
+
+    window.openServiceManager = async function(providerId){
+      const p=db.providers.find(x=>x.id===providerId); if(!p)return;
+      document.getElementById('serviceProviderId').value=providerId;
+      document.getElementById('serviceModalTitle').textContent='خدمات '+p.name;
+      document.getElementById('serviceName').value='';
+      const rows=await api('services?select=*&provider_id=eq.'+encodeURIComponent(providerId)+'&order=created_at.asc');
+      document.getElementById('serviceList').innerHTML=(rows||[]).map(s=>'<div class="card" style="box-shadow:none;margin-bottom:8px;display:flex;align-items:center;gap:8px"><b style="flex:1">'+esc(s.name)+'</b><button class="btn danger" onclick="deleteProviderService(\''+s.id+'\',\''+providerId+'\')">حذف</button></div>').join('')||'<div class="card" style="box-shadow:none">ما في خدمات مضافة.</div>';
+      document.getElementById('serviceModal').classList.add('show');
+    };
+
+    window.addProviderService = async function(){
+      const providerId=document.getElementById('serviceProviderId').value;
+      const name=document.getElementById('serviceName').value.trim();
+      if(!providerId||!name){alert('اكتبي اسم الخدمة');return}
+      try{
+        await api('services',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({provider_id:providerId,name})});
+        await loadData();
+        await openServiceManager(providerId);
+        toast('تمت إضافة الخدمة');
+      }catch(e){console.error(e);alert('تعذر إضافة الخدمة أو الخدمة موجودة من قبل')}
+    };
+
+    window.deleteProviderService = async function(serviceId,providerId){
+      if(!confirm('حذف الخدمة؟'))return;
+      try{
+        await api('services?id=eq.'+encodeURIComponent(serviceId),{method:'DELETE'});
+        await loadData();
+        await openServiceManager(providerId);
+      }catch(e){console.error(e);alert('تعذر حذف الخدمة')}
+    };
+
+    window.saveProvider = async function(){
+      const name=document.getElementById('pName').value.trim();
+      if(!name){alert('اكتبي اسم مقدم الخدمة');return}
+      try{
+        await api('providers',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+          name:name,
+          provider_type:document.getElementById('pType').value,
+          category:document.getElementById('pType').value==='company'?document.getElementById('pCategory').value:null,
+          phone:document.getElementById('pPhone').value.trim(),
+          default_fee_type:document.getElementById('pFeeType').value,
+          default_fee_value:Number(document.getElementById('pCommission').value||0)
+        })});
+        document.getElementById('pName').value='';
+        document.getElementById('pPhone').value='';
+        closeModal('providerModal');
+        await loadData();
+        toast('تمت إضافة مقدم الخدمة — الحين أضيفي خدماته');
+      }catch(e){console.error(e);alert('تعذر إضافة مقدم الخدمة')}
+    };
+
     renderAll();
   };
   document.head.appendChild(script);

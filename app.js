@@ -37,14 +37,19 @@
       let h='';
       db.cases.slice().reverse().forEach(c=>{
         const pr=byProvider(c.providerId);
-        const hay=['PAW-'+String(c.id).padStart(4,'0'),c.client_name,c.client_phone,c.staff,pr.name,c.service].join(' ').toLowerCase();
+        const hay=['PAW-'+String(c.id).padStart(4,'0'),c.client_name,c.client_phone,c.staff,pr.name,c.service,c.pet_type,c.breed].join(' ').toLowerCase();
         if(q&&!hay.includes(q))return;
         if(pf!=='all'&&c.providerId!==pf)return;
         const clientPaid=clientRem(c)<=0.0001;
         const providerPaid=rem(c)<=0.0001;
+        const yesNo=v=>v===true?'نعم':v===false?'لا':'—';
         h+=`<tr>
           <td>PAW-${String(c.id).padStart(4,'0')}</td>
           <td>${esc(c.client_name)}</td>
+          <td>${esc(c.pet_type||'—')}</td>
+          <td>${esc(c.breed||'—')}</td>
+          <td>${yesNo(c.vaccinated)}</td>
+          <td>${yesNo(c.microchipped)}</td>
           <td>${esc(pr.name)}</td>
           <td>${esc(c.service)}</td>
           <td>${money(c.amount)}</td>
@@ -57,7 +62,7 @@
           <td><button class="btn soft" style="padding:7px" onclick="openSettlement('${c.id}')">${providerPaid?'عرض':'دفع للمقدم'}</button></td>
         </tr>`;
       });
-      document.getElementById('caseRows').innerHTML=h||'<tr><td colspan="12">لا توجد عمليات</td></tr>';
+      document.getElementById('caseRows').innerHTML=h||'<tr><td colspan="16">لا توجد عمليات</td></tr>';
     };
 
     const originalRenderDashboard = window.renderDashboard;
@@ -69,9 +74,12 @@
       db.cases.slice().reverse().slice(0,6).forEach(c=>{
         const pr=byProvider(c.providerId);
         const clientPaid=clientRem(c)<=0.0001;
+        const vacc=c.vaccinated===true?'نعم':c.vaccinated===false?'لا':'—';
         h+=`<tr>
           <td>PAW-${String(c.id).padStart(4,'0')}</td>
           <td>${esc(c.client_name)}</td>
+          <td>${esc(c.pet_type||'—')}${c.breed?'<br><span class="hint">'+esc(c.breed)+'</span>':''}</td>
+          <td>${vacc}</td>
           <td>${esc(pr.name)}</td>
           <td>${esc(c.service)}</td>
           <td>${money(c.amount)}</td>
@@ -80,7 +88,7 @@
           <td><span class="status ${clientPaid?'paid':'unpaid'}">${clientPaid?'تم الدفع':'لم يتم الدفع'}</span></td>
         </tr>`;
       });
-      document.getElementById('recent').innerHTML=h||'<tr><td colspan="8">لا توجد عمليات</td></tr>';
+      document.getElementById('recent').innerHTML=h||'<tr><td colspan="10">لا توجد عمليات</td></tr>';
     };
 
     window.togglePaymentPlan = function(){
@@ -154,6 +162,96 @@
         await loadData();
         toast('تمت إضافة مقدم الخدمة — الحين أضيفي خدماته');
       }catch(e){console.error(e);alert('تعذر إضافة مقدم الخدمة')}
+    };
+
+    window.openNewCase = function(){
+      showPage('newcase');
+      fillProviders();
+      fillStaff();
+      document.getElementById('cDate').value=new Date().toISOString().slice(0,10);
+      ['cClient','cPhone','cLocation','cBreed','cPetAge','cReason','cAmount','cNotes','cPaymentNote'].forEach(id=>{const e=document.getElementById(id); if(e)e.value=''});
+      ['cPetType','cPetFriendly','cVaccinated','cMicrochipped','cHasPetId'].forEach(id=>{const e=document.getElementById(id); if(e)e.value=''});
+      document.getElementById('cClientPaid').value='unpaid';
+    };
+
+    window.saveCase = async function(){
+      const client=document.getElementById('cClient').value.trim();
+      const employeeId=document.getElementById('cStaff').value;
+      const providerId=document.getElementById('cProvider').value;
+      const service=document.getElementById('cService').value;
+      const petType=document.getElementById('cPetType').value;
+      const base=Number(document.getElementById('cAmount').value||0);
+      const feeType=document.getElementById('cFeeType').value;
+      const feeValue=Number(document.getElementById('cCommission').value||0);
+      if(!client||!employeeId||!providerId||!service||!petType||base<=0){
+        alert('كملي اسم العميل، نوع الحيوان، الموظف، مقدم الخدمة، الخدمة والمبلغ.');
+        return;
+      }
+      const total=feeType==='fixed'?base+feeValue:base;
+      const pw=feeType==='fixed'?feeValue:total*feeValue/100;
+      const providerAmount=total-pw;
+      const tri=v=>v==='yes'?true:v==='no'?false:null;
+      try{
+        const inserted=await api('cases',{
+          method:'POST',
+          headers:{Prefer:'return=representation'},
+          body:JSON.stringify({
+            service_date:document.getElementById('cDate').value||new Date().toISOString().slice(0,10),
+            client_name:client,
+            client_phone:document.getElementById('cPhone').value.trim(),
+            employee_id:employeeId,
+            provider_id:providerId,
+            service_name:service,
+            fee_type:feeType,
+            fee_value:feeValue,
+            total_amount:total,
+            pawapp_amount:pw,
+            provider_amount:providerAmount,
+            client_paid:false,
+            payment_method:document.getElementById('cPayMethod').value,
+            client_payment_plan:'full',
+            client_payment_note:document.getElementById('cPaymentNote').value.trim()||null,
+            notes:document.getElementById('cNotes').value.trim()||null,
+            source:'manual_test',
+            workflow_status:'new_request',
+            requested_service:service,
+            location:document.getElementById('cLocation').value.trim()||null,
+            pet_type:petType,
+            breed:document.getElementById('cBreed').value.trim()||null,
+            pet_age:document.getElementById('cPetAge').value.trim()||null,
+            pet_friendly:tri(document.getElementById('cPetFriendly').value),
+            reason:document.getElementById('cReason').value.trim()||null,
+            vaccinated:tri(document.getElementById('cVaccinated').value),
+            microchipped:tri(document.getElementById('cMicrochipped').value),
+            has_pet_id:tri(document.getElementById('cHasPetId').value),
+            preferred_date:document.getElementById('cDate').value||new Date().toISOString().slice(0,10)
+          })
+        });
+        if(document.getElementById('cClientPaid').value==='paid'){
+          await api('client_payments',{
+            method:'POST',
+            headers:{Prefer:'return=minimal'},
+            body:JSON.stringify({
+              case_id:inserted[0].id,
+              amount:total,
+              paid_at:document.getElementById('cDate').value||new Date().toISOString().slice(0,10),
+              method:document.getElementById('cPayMethod').value,
+              note:document.getElementById('cPaymentNote').value.trim()||null
+            })
+          });
+          await api('cases?id=eq.'+encodeURIComponent(inserted[0].id),{
+            method:'PATCH',
+            headers:{Prefer:'return=minimal'},
+            body:JSON.stringify({client_paid:true})
+          });
+        }
+        await loadData();
+        showPage('cases');
+        toast('تم حفظ العميل والحيوان والعملية');
+      }catch(e){
+        console.error(e);
+        alert('تعذر حفظ العملية');
+      }
     };
 
     renderAll();

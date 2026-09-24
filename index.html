@@ -58,7 +58,8 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field"><label>عنده Microchip؟</label><select id="cMicrochipped"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
 <div class="field"><label>عنده Pet ID؟</label><select id="cHasPetId"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
 <div class="field full"><label>سبب الطلب / الحالة</label><textarea id="cReason" rows="2" placeholder="مثال: فحص، تطعيم، مشكلة صحية..."></textarea></div>
-<div class="field"><label>الموظف المسؤول *</label><select id="cStaff"></select><div class="hint">هذا اسم موظف PawApp اللي استلم وسجّل الطلب. إذا الاسم مو موجود أضيفيه من صفحة الموظفون.</div></div>
+<div class="field"><label>الموظف المسؤول *</label><select id="cStaff"></select><div class="hint">هذا اسم موظف PawApp اللي استلم وسجّل الطلب.</div></div>
+<div class="field"><label>مصدر الطلب *</label><select id="cSource"><option value="whatsapp_quick">واتساب سريع</option><option value="phone_call">مكالمة</option><option value="manual_test">إدخال داخلي</option><option value="instagram">Instagram</option><option value="referral">تحويل / توصية</option></select><div class="hint">يفيدنا نعرف العميل عبّى الفورم ولا فضّل واتساب سريع أو مكالمة.</div></div>
 <div class="field"><label>التاريخ *</label><input id="cDate" type="date"></div>
 <div class="field"><label>مقدم الخدمة *</label><select id="cProvider" onchange="providerChanged()"></select><div class="hint">العيادة / الشركة / الدكتور أو الفريلانسر اللي راح ينفذ الخدمة.</div></div>
 <div class="field"><label>الخدمة *</label><select id="cService"></select><div class="hint">الخدمات هنا تجي تلقائي من الخدمات المسجلة داخل مقدم الخدمة.</div></div>
@@ -98,7 +99,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field"><label>فلتر الحالة</label><select id="caseStatusFilter" onchange="renderCases()"><option value="all">كل الحالات</option><option value="pending">مستحق للمقدم</option><option value="partial">مسدد جزئي</option><option value="paid">مسدد للمقدم</option><option value="unpaid">العميل لم يدفع</option></select></div>
 <div class="field"><label>فلتر مقدم الخدمة</label><select id="caseProviderFilter" onchange="renderCases()"><option value="all">كل مقدمي الخدمة</option></select></div>
 </div>
-<div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th>العميل</th><th>الحيوان</th><th>السلالة</th><th>مطعّم</th><th>Microchip</th><th>المقدم</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق المقدم</th><th>دفع العميل</th><th>دفع المقدم</th><th>الموظف</th><th>إجراء العميل</th><th>إجراء المقدم</th></tr></thead><tbody id="caseRows"></tbody></table></div>
+<div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th>العميل</th><th>الحيوان</th><th>السلالة</th><th>مطعّم</th><th>Microchip</th><th>المقدم</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق المقدم</th><th>دفع العميل</th><th>دفع المقدم</th><th>الموظف / المصدر</th><th>بيانات العميل</th><th>إجراء العميل</th><th>إجراء المقدم</th></tr></thead><tbody id="caseRows"></tbody></table></div>
 </section>
 </main>
 
@@ -140,6 +141,24 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="modalHead"><h3>إضافة موظف PawApp</h3><button class="close" onclick="closeModal('staffModal')">×</button></div>
 <div class="field"><label>اسم الموظف *</label><input id="staffName" placeholder="مثال: هبة"></div>
 <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveStaff()">حفظ الموظف</button>
+</div></div>
+
+<div id="completeCaseModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3>استكمال بيانات العميل والحيوان</h3><button class="close" onclick="closeModal('completeCaseModal')">×</button></div>
+<input id="editCaseId" type="hidden">
+<div class="grid2">
+<div class="field"><label>رقم العميل</label><input id="ePhone" inputmode="tel"></div>
+<div class="field"><label>المنطقة / الموقع</label><input id="eLocation"></div>
+<div class="field"><label>نوع الحيوان</label><select id="ePetType"><option value="">غير محدد</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>
+<div class="field"><label>السلالة</label><input id="eBreed"></div>
+<div class="field"><label>العمر</label><input id="ePetAge"></div>
+<div class="field"><label>سهل التعامل؟</label><select id="ePetFriendly"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field"><label>مطعّم؟</label><select id="eVaccinated"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field"><label>Microchip؟</label><select id="eMicrochipped"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field"><label>Pet ID؟</label><select id="eHasPetId"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field full"><label>سبب الطلب / الحالة</label><textarea id="eReason" rows="2"></textarea></div>
+</div>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCaseDetails()">حفظ البيانات</button>
 </div></div>
 
 <div id="clientPayModal" class="modalBg"><div class="modal">

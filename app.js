@@ -209,56 +209,6 @@
       }catch(e){console.error(e);alert('تعذر إضافة مقدم الخدمة')}
     };
 
-    window.openQuickWhatsApp = function(){
-      const s=document.getElementById('qStaff');
-      s.innerHTML='<option value="">اختاري الموظف</option>';
-      db.staff.forEach(e=>s.innerHTML+='<option value="'+e.id+'">'+esc(e.name)+'</option>');
-      ['qClient','qPhone','qRequest','qNote'].forEach(id=>document.getElementById(id).value='');
-      document.getElementById('qPetType').value='';
-      document.getElementById('quickWhatsAppModal').classList.add('show');
-    };
-
-    window.saveQuickWhatsApp = async function(){
-      const client=document.getElementById('qClient').value.trim();
-      const phone=document.getElementById('qPhone').value.trim();
-      const staff=document.getElementById('qStaff').value;
-      if(!client||!phone||!staff){alert('اكتبي اسم العميل، الرقم، والموظف المسؤول.');return}
-      try{
-        await api('cases',{
-          method:'POST',
-          headers:{Prefer:'return=minimal'},
-          body:JSON.stringify({
-            service_date:new Date().toISOString().slice(0,10),
-            client_name:client,
-            client_phone:phone,
-            employee_id:staff,
-            provider_id:null,
-            service_id:null,
-            service_name:null,
-            fee_type:'percent',
-            fee_value:0,
-            total_amount:0,
-            pawapp_amount:0,
-            provider_amount:0,
-            client_paid:false,
-            payment_method:null,
-            notes:document.getElementById('qNote').value.trim()||null,
-            client_payment_plan:'later',
-            source:'whatsapp_quick',
-            workflow_status:'new_request',
-            requested_service:document.getElementById('qRequest').value.trim()||null,
-            pet_type:document.getElementById('qPetType').value||null,
-            reason:document.getElementById('qRequest').value.trim()||null,
-            preferred_date:new Date().toISOString().slice(0,10)
-          })
-        });
-        closeModal('quickWhatsAppModal');
-        await loadData();
-        showPage('cases');
-        toast('تمت إضافة عميل الواتساب السريع');
-      }catch(e){console.error(e);alert('تعذر حفظ العميل')}
-    };
-
     window.openNewCase = function(){
       showPage('newcase');
       fillProviders();
@@ -267,7 +217,44 @@
       ['cClient','cPhone','cLocation','cBreed','cPetAge','cReason','cAmount','cNotes','cPaymentNote'].forEach(id=>{const e=document.getElementById(id); if(e)e.value=''});
       ['cPetType','cPetFriendly','cVaccinated','cMicrochipped','cHasPetId'].forEach(id=>{const e=document.getElementById(id); if(e)e.value=''});
       document.getElementById('cClientPaid').value='unpaid';
-      const src=document.getElementById('cSource'); if(src) src.value='whatsapp_quick';
+      const src=document.getElementById('cSource'); if(src) src.value='manual_test';
+      const qs=document.getElementById('existingCustomerSearch'); if(qs) qs.value='';
+      const qr=document.getElementById('existingCustomerResults'); if(qr) qr.innerHTML='';
+    };
+
+    window.searchExistingCustomer = function(){
+      const q=(document.getElementById('existingCustomerSearch').value||'').trim().toLowerCase();
+      const out=document.getElementById('existingCustomerResults');
+      if(!q){out.innerHTML='<div class="hint">اكتبي رقم التلفون أو اسم العميل.</div>';return}
+      const seen=new Set();
+      const matches=[];
+      db.cases.slice().reverse().forEach(x=>{
+        const key=(x.client_phone||'')+'|'+(x.client_name||'')+'|'+(x.pet_type||'')+'|'+(x.breed||'');
+        const hay=[x.client_phone,x.client_name,'PAW-'+String(x.id).padStart(4,'0')].join(' ').toLowerCase();
+        if(hay.includes(q)&&!seen.has(key)){seen.add(key);matches.push(x)}
+      });
+      out.innerHTML=matches.length?matches.slice(0,8).map(x=>{
+        const pet=[x.pet_type||'غير محدد',x.breed||''].filter(Boolean).join(' - ');
+        return '<button type="button" class="card" style="width:100%;text-align:right;box-shadow:none;margin-bottom:7px;cursor:pointer" onclick="selectExistingCustomer(\''+x.id+'\')"><b>'+esc(x.client_name)+'</b><div class="hint">'+esc(x.client_phone||'بدون رقم')+' • '+esc(pet)+'</div></button>';
+      }).join(''):'<div class="hint">ما لقيت عميل سابق. كملي كعميل جديد.</div>';
+    };
+
+    window.selectExistingCustomer = function(id){
+      const x=db.cases.find(v=>String(v.id)===String(id)); if(!x)return;
+      const tri=v=>v===true?'yes':v===false?'no':'';
+      document.getElementById('cClient').value=x.client_name||'';
+      document.getElementById('cPhone').value=x.client_phone||'';
+      document.getElementById('cLocation').value=x.location||'';
+      document.getElementById('cPetType').value=x.pet_type||'';
+      document.getElementById('cBreed').value=x.breed||'';
+      document.getElementById('cPetAge').value=x.pet_age||'';
+      document.getElementById('cPetFriendly').value=tri(x.pet_friendly);
+      document.getElementById('cVaccinated').value=tri(x.vaccinated);
+      document.getElementById('cMicrochipped').value=tri(x.microchipped);
+      document.getElementById('cHasPetId').value=tri(x.has_pet_id);
+      document.getElementById('cReason').value='';
+      document.getElementById('existingCustomerResults').innerHTML='<div class="status paid">تم تحميل بيانات العميل والحيوان</div>';
+      const src=document.getElementById('cSource'); if(src) src.value='manual_test';
     };
 
     window.saveCase = async function(){

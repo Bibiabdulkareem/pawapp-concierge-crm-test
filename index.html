@@ -22,7 +22,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 
 <main class="main">
 <section id="dashboard" class="page active">
-<div class="title"><div><h1>لوحة التحكم</h1><p>واضح وبسيط: ما يدفعه العميل، حصة PawApp، وحسابات الشركات / الفريلانسر</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="openQuickWhatsApp()">+ واتساب سريع</button><button class="btn yellow" onclick="openNewCase()">+ عميل كامل</button></div></div>
+<div class="title"><div><h1>لوحة التحكم</h1><p>واضح وبسيط: ما يدفعه العميل، حصة PawApp، وحسابات الشركات / الفريلانسر</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
 <div class="cards">
 <div class="card stat"><span>إجمالي ما يدفعه العملاء</span><b id="kSales" class="blue">0.000 د.ك</b></div>
 <div class="card stat"><span>حصة PawApp من العملاء</span><b id="kPaw" class="green">0.000 د.ك</b></div>
@@ -47,6 +47,13 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <section id="newcase" class="page">
 <div class="title"><div><h1>إضافة عميل / عملية</h1><p>عبّي البيانات، والحسابات تطلع تلقائي</p></div><button class="btn soft" onclick="showPage('dashboard')">رجوع</button></div>
 <div class="card">
+<div class="card" style="box-shadow:none;margin-bottom:14px;background:#f8fafc">
+<div class="section" style="margin:0 0 8px"><h2>عميل سابق؟</h2></div>
+<div class="grid2">
+<div class="field full"><label>ابحثي برقم التلفون أو اسم العميل</label><div style="display:flex;gap:8px"><input id="existingCustomerSearch" style="flex:1" placeholder="مثال: 99993407 أو Bibi"><button class="btn soft" type="button" onclick="searchExistingCustomer()">بحث</button></div><div class="hint">إذا العميل موجود من قبل، اختاريه وراح تتعبى بياناته وبيانات الحيوان تلقائيًا. بعدها بس اختاري الشركة / الفريلانسر، الخدمة والسعر.</div></div>
+</div>
+<div id="existingCustomerResults" style="margin-top:10px"></div>
+</div>
 <div class="grid2">
 <div class="field"><label>اسم العميل *</label><input id="cClient" placeholder="مثال: نورة أحمد"></div>
 <div class="field"><label>رقم العميل</label><input id="cPhone" inputmode="tel" placeholder="5xxxxxxx"></div>
@@ -94,7 +101,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="cases" class="page">
-<div class="title"><div><h1>العمليات والعملاء</h1><p>كل الحالات المسجلة وحالة التسوية</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="openQuickWhatsApp()">+ واتساب سريع</button><button class="btn yellow" onclick="openNewCase()">+ عميل كامل</button></div></div>
+<div class="title"><div><h1>العمليات والعملاء</h1><p>كل الحالات المسجلة وحالة التسوية</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
 <input id="caseSearch" class="search" placeholder="بحث باسم العميل، الشركة، الموظف أو Case ID..." oninput="renderCases()">
 <div class="grid2" style="margin-top:10px">
 <div class="field"><label>فلتر الحالة</label><select id="caseStatusFilter" onchange="renderCases()"><option value="all">كل الحالات</option><option value="client_unpaid">العميل لم يسدد</option><option value="client_paid">العميل سدد</option><option value="vendor_unpaid">لم ندفع للشركة / الفريلانسر</option><option value="vendor_paid">تم الدفع للشركة / الفريلانسر</option></select></div>
@@ -112,20 +119,6 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <button class="nav" data-p="staff" onclick="showPage('staff')"><b>♟</b>الموظفون</button>
 <button class="nav" data-p="newcase" onclick="openNewCase()"><b>＋</b>عميل جديد</button>
 </nav>
-
-<div id="quickWhatsAppModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3>إضافة عميل واتساب سريع</h3><button class="close" onclick="closeModal('quickWhatsAppModal')">×</button></div>
-<p class="hint">لما العميل يكتب لنا واتساب بدون ما يعبي الفورم. اكتبي أقل معلومات تعرفينها، وبعدين كملي الباقي من «استكمال البيانات».</p>
-<div class="grid2">
-<div class="field"><label>اسم العميل *</label><input id="qClient" placeholder="مثال: سارة"></div>
-<div class="field"><label>رقم الهاتف *</label><input id="qPhone" inputmode="tel" placeholder="5xxxxxxx"></div>
-<div class="field"><label>الموظف المسؤول *</label><select id="qStaff"></select></div>
-<div class="field"><label>نوع الحيوان</label><select id="qPetType"><option value="">غير محدد</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>
-<div class="field full"><label>شنو طلب العميل؟</label><textarea id="qRequest" rows="2" placeholder="مثال: يبي كشف منزلي لكلب / يبي Grooming"></textarea></div>
-<div class="field full"><label>ملاحظة سريعة</label><textarea id="qNote" rows="2" placeholder="أي كلام مهم من محادثة الواتساب"></textarea></div>
-</div>
-<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveQuickWhatsApp()">حفظ كحالة جديدة</button>
-</div></div>
 
 <div id="providerModal" class="modalBg"><div class="modal">
 <div class="modalHead"><h3>إضافة مقدم خدمة</h3><button class="close" onclick="closeModal('providerModal')">×</button></div>

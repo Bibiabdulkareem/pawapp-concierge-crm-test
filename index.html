@@ -26,9 +26,9 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="cards">
 <div class="card stat"><span>إجمالي ما يدفعه العملاء</span><b id="kSales" class="blue">0.000 د.ك</b></div>
 <div class="card stat"><span>حصة PawApp من العملاء</span><b id="kPaw" class="green">0.000 د.ك</b></div>
-<div class="card stat"><span>مستحق للمقدمين</span><b id="kDue">0.000 د.ك</b></div>
-<div class="card stat"><span>دفعناه للمقدمين</span><b id="kPaid" class="green">0.000 د.ك</b></div>
-<div class="card stat"><span>متبقي للمقدمين</span><b id="kRemain" class="red">0.000 د.ك</b></div>
+<div class="card stat"><span>مستحق للشركات / الفريلانسر</span><b id="kDue">0.000 د.ك</b></div>
+<div class="card stat"><span>تم دفعه للشركات / الفريلانسر</span><b id="kPaid" class="green">0.000 د.ك</b></div>
+<div class="card stat"><span>متبقي للشركات / الفريلانسر</span><b id="kRemain" class="red">0.000 د.ك</b></div>
 </div>
 <div class="cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
 <div class="card stat"><span>إجمالي على العملاء</span><b id="kClientDue" class="blue">0.000 د.ك</b></div>
@@ -36,13 +36,12 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="card stat"><span>متبقي على العملاء</span><b id="kClientRemain" class="red">0.000 د.ك</b></div>
 </div>
 <div id="upcomingInstallments" style="display:none"></div>
-<div class="section"><h2>مواعيد سداد العملاء</h2></div>
-<div id="clientDueReminders" class="providerGrid"></div>
-<div class="section"><h2>مستحقات حسب مقدم الخدمة</h2><button class="btn soft" onclick="showPage('providers')">كل المقدمين</button></div>
-<div class="card" style="margin-bottom:11px"><div class="field"><label>فلتر مقدم الخدمة</label><select id="dashboardProviderFilter" onchange="renderDashboard()"><option value="all">كل مقدمي الخدمة</option></select></div></div>
+<div id="clientDueSection" style="display:none"><div class="section"><h2>تذكيرات سداد العملاء</h2></div><div id="clientDueReminders" class="providerGrid"></div></div>
+<div class="section"><h2>حسابات الشركات / الفريلانسر</h2><button class="btn soft" onclick="showPage('providers')">كل الشركات / الفريلانسر</button></div>
+<div class="card" style="margin-bottom:11px"><div class="grid2"><div class="field"><label>الشركة / الفريلانسر</label><select id="dashboardProviderFilter" onchange="renderDashboard()"><option value="all">كل الشركات / الفريلانسر</option></select></div><div class="field"><label>حالة الدفع</label><select id="dashboardVendorStatusFilter" onchange="renderDashboard()"><option value="all">الكل</option><option value="unpaid">عليهم مبالغ غير مدفوعة</option><option value="paid">تم دفع مستحقاتهم بالكامل</option></select></div></div></div>
 <div id="dashboardProviders" class="providerGrid"></div>
 <div class="section"><h2>آخر العمليات</h2><button class="btn soft" onclick="showPage('cases')">عرض الكل</button></div>
-<div class="table"><table><thead><tr><th>رقم</th><th>العميل</th><th>الحيوان</th><th>التطعيم</th><th>المقدم</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق المقدم</th><th>دفع العميل</th></tr></thead><tbody id="recent"></tbody></table></div>
+<div class="table"><table><thead><tr><th>رقم</th><th>العميل</th><th>الحيوان</th><th>التطعيم</th><th>الشركة / الفريلانسر</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق الشركة / الفريلانسر</th><th>دفع العميل</th></tr></thead><tbody id="recent"></tbody></table></div>
 </section>
 
 <section id="newcase" class="page">

@@ -77,17 +77,44 @@
     const originalRenderDashboard = window.renderDashboard;
     window.renderDashboard = function(){
       originalRenderDashboard();
+
       const upcoming=document.getElementById('upcomingInstallments');
       if(upcoming) upcoming.innerHTML='';
+
       const today=new Date().toISOString().slice(0,10);
-      const reminders=db.cases.filter(c=>clientRem(c)>0.0001&&c.client_due_date).sort((a,b)=>String(a.client_due_date).localeCompare(String(b.client_due_date)));
+      const reminders=db.cases
+        .filter(c=>clientRem(c)>0.0001&&c.client_due_date)
+        .sort((a,b)=>String(a.client_due_date).localeCompare(String(b.client_due_date)));
+      const dueSection=document.getElementById('clientDueSection');
       const remEl=document.getElementById('clientDueReminders');
+      if(dueSection) dueSection.style.display=reminders.length?'block':'none';
       if(remEl){
-        remEl.innerHTML=reminders.length?reminders.map(c=>{
+        remEl.innerHTML=reminders.map(c=>{
           const overdue=String(c.client_due_date)<today;
-          return '<div class="card provider"><h3>'+esc(c.client_name)+'</h3><p>PAW-'+String(c.id).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span>المبلغ</span><b>'+money(clientRem(c))+'</b></div><div class="mini"><span>موعد السداد</span><b>'+c.client_due_date+'</b></div><div class="mini"><span>الحالة</span><b class="'+(overdue?'red':'blue')+'">'+(overdue?'متأخر':'قادم')+'</b></div></div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح الحالة</button></div></div>';
-        }).join(''):'<div class="card">ما في مواعيد سداد مسجلة.</div>';
+          return '<div class="card provider"><h3>'+esc(c.client_name)+'</h3><p>PAW-'+String(c.id).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span>المبلغ المتبقي</span><b>'+money(clientRem(c))+'</b></div><div class="mini"><span>موعد السداد</span><b>'+c.client_due_date+'</b></div><div class="mini"><span>الحالة</span><b class="'+(overdue?'red':'blue')+'">'+(overdue?'متأخر':'قادم')+'</b></div></div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح الحالة</button></div></div>';
+        }).join('');
       }
+
+      const pf=document.getElementById('dashboardProviderFilter')?.value||'all';
+      const vf=document.getElementById('dashboardVendorStatusFilter')?.value||'all';
+      let ph='';
+      db.providers.forEach(pr=>{
+        if(pf!=='all'&&pr.id!==pf)return;
+        const cs=db.cases.filter(x=>x.providerId===pr.id);
+        if(!cs.length)return;
+        let totalDue=0,totalPaid=0,totalRemain=0;
+        cs.forEach(x=>{
+          totalDue+=due(x);
+          totalPaid+=Number(x.providerPaid||0);
+          totalRemain+=rem(x);
+        });
+        const fullyPaid=totalDue>0 && totalRemain<=0.0001;
+        if(vf==='paid'&&!fullyPaid)return;
+        if(vf==='unpaid'&&fullyPaid)return;
+        ph+='<div class="card provider"><h3>'+esc(pr.name)+'</h3><div class="miniGrid"><div class="mini"><span>العمليات</span><b>'+cs.length+'</b></div><div class="mini"><span>إجمالي المستحق</span><b>'+money(totalDue)+'</b></div><div class="mini"><span>تم دفعه</span><b class="green">'+money(totalPaid)+'</b></div></div><div class="miniGrid"><div class="mini"><span>المتبقي</span><b class="'+(totalRemain>0?'red':'green')+'">'+money(totalRemain)+'</b></div><div class="mini"><span>حالة الحساب</span><b>'+(fullyPaid?'مسدد':'عليه مستحق')+'</b></div><div class="mini"><span>الجهة</span><b>'+esc(pr.name)+'</b></div></div><div class="actions"><button class="btn soft" onclick="providerCases(\''+pr.id+'\')">التفاصيل</button><button class="btn soft" onclick="exportProviderReport(\''+pr.id+'\')">تقرير CSV</button></div></div>';
+      });
+      document.getElementById('dashboardProviders').innerHTML=ph||'<div class="card">ما في نتائج على الفلتر الحالي.</div>';
+
       let h='';
       db.cases.slice().reverse().slice(0,6).forEach(c=>{
         const pr=byProvider(c.providerId);
@@ -409,6 +436,25 @@
         await loadData();
         toast('تم حفظ بيانات الحالة');
       }catch(e){console.error(e);alert('تعذر حفظ البيانات')}
+    };
+
+    window.exportProviderReport = function(id){
+      const p=byProvider(id),rows=db.cases.filter(c=>c.providerId===id);
+      if(!rows.length){alert('ما في عمليات لهذه الشركة / الفريلانسر');return}
+      let totalDue=0,totalPaid=0,totalRemain=0;
+      let csv='Case ID,Date,Client,Phone,Service,Client Total KD,PawApp KD,Company/Freelancer Due KD,Paid KD,Remaining KD,Client Payment Status,Staff,Source\n';
+      rows.forEach(c=>{
+        totalDue+=due(c); totalPaid+=Number(c.providerPaid||0); totalRemain+=rem(c);
+        const clientStatus=(clientRem(c)<=0.0001&&Number(c.total_amount||0)>0)?'Paid':'Unpaid';
+        csv+=[c.id,c.service_date,c.client_name,c.client_phone||'',c.service||c.requested_service||'',Number(c.total_amount||0).toFixed(3),paw(c).toFixed(3),due(c).toFixed(3),Number(c.providerPaid||0).toFixed(3),rem(c).toFixed(3),clientStatus,c.staff||'',sourceLabel(c.source)].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')+'\n';
+      });
+      csv+='\nSUMMARY,,,,,,,'+totalDue.toFixed(3)+','+totalPaid.toFixed(3)+','+totalRemain.toFixed(3)+'\n';
+      const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;
+      a.download=('PawApp-'+p.name+'-report.csv').replace(/\s+/g,'-');
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
     };
 
     renderAll();

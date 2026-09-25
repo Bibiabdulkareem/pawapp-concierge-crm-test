@@ -36,6 +36,8 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="card stat"><span>متبقي على العملاء</span><b id="kClientRemain" class="red">0.000 د.ك</b></div>
 </div>
 <div id="upcomingInstallments" style="display:none"></div>
+<div class="section"><h2>مواعيد سداد العملاء</h2></div>
+<div id="clientDueReminders" class="providerGrid"></div>
 <div class="section"><h2>مستحقات حسب مقدم الخدمة</h2><button class="btn soft" onclick="showPage('providers')">كل المقدمين</button></div>
 <div class="card" style="margin-bottom:11px"><div class="field"><label>فلتر مقدم الخدمة</label><select id="dashboardProviderFilter" onchange="renderDashboard()"><option value="all">كل مقدمي الخدمة</option></select></div></div>
 <div id="dashboardProviders" class="providerGrid"></div>
@@ -96,10 +98,10 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="title"><div><h1>العمليات والعملاء</h1><p>كل الحالات المسجلة وحالة التسوية</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
 <input id="caseSearch" class="search" placeholder="بحث باسم العميل، الشركة، الموظف أو Case ID..." oninput="renderCases()">
 <div class="grid2" style="margin-top:10px">
-<div class="field"><label>فلتر الحالة</label><select id="caseStatusFilter" onchange="renderCases()"><option value="all">كل الحالات</option><option value="pending">مستحق للمقدم</option><option value="partial">مسدد جزئي</option><option value="paid">مسدد للمقدم</option><option value="unpaid">العميل لم يدفع</option></select></div>
-<div class="field"><label>فلتر مقدم الخدمة</label><select id="caseProviderFilter" onchange="renderCases()"><option value="all">كل مقدمي الخدمة</option></select></div>
+<div class="field"><label>فلتر الحالة</label><select id="caseStatusFilter" onchange="renderCases()"><option value="all">كل الحالات</option><option value="client_unpaid">العميل لم يسدد</option><option value="client_paid">العميل سدد</option><option value="vendor_unpaid">لم ندفع للشركة / الفريلانسر</option><option value="vendor_paid">تم الدفع للشركة / الفريلانسر</option></select></div>
+<div class="field"><label>فلتر الشركة / الفريلانسر</label><select id="caseProviderFilter" onchange="renderCases()"><option value="all">كل الشركات / الفريلانسر</option></select></div>
 </div>
-<div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th>العميل</th><th>الحيوان</th><th>السلالة</th><th>مطعّم</th><th>Microchip</th><th>المقدم</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق المقدم</th><th>دفع العميل</th><th>دفع المقدم</th><th>الموظف / المصدر</th><th>بيانات العميل</th><th>إجراء العميل</th><th>إجراء المقدم</th></tr></thead><tbody id="caseRows"></tbody></table></div>
+<div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th>العميل</th><th>الحيوان</th><th>السلالة</th><th>مطعّم</th><th>Microchip</th><th>الشركة / الفريلانسر</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق الشركة / الفريلانسر</th><th>حالة العميل</th><th>موعد السداد</th><th>حالة الشركة / الفريلانسر</th><th>الموظف / المصدر</th><th>بيانات الحالة</th><th>إجراء العميل</th><th>إجراء الشركة / الفريلانسر</th></tr></thead><tbody id="caseRows"></tbody></table></div>
 </section>
 </main>
 
@@ -144,8 +146,9 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </div></div>
 
 <div id="completeCaseModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3>استكمال بيانات العميل والحيوان</h3><button class="close" onclick="closeModal('completeCaseModal')">×</button></div>
+<div class="modalHead"><h3>استكمال بيانات الحالة</h3><button class="close" onclick="closeModal('completeCaseModal')">×</button></div>
 <input id="editCaseId" type="hidden">
+<div class="section" style="margin-top:0"><h2>بيانات العميل والحيوان</h2></div>
 <div class="grid2">
 <div class="field"><label>رقم العميل</label><input id="ePhone" inputmode="tel"></div>
 <div class="field"><label>المنطقة / الموقع</label><input id="eLocation"></div>
@@ -158,7 +161,22 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field"><label>Pet ID؟</label><select id="eHasPetId"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
 <div class="field full"><label>سبب الطلب / الحالة</label><textarea id="eReason" rows="2"></textarea></div>
 </div>
-<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCaseDetails()">حفظ البيانات</button>
+<div class="section"><h2>الخدمة والسعر</h2></div>
+<div class="grid2">
+<div class="field"><label>الشركة / الفريلانسر</label><select id="eProvider" onchange="editProviderChanged()"></select></div>
+<div class="field"><label>الخدمة</label><select id="eService"></select></div>
+<div class="field"><label>إجمالي ما يدفعه العميل (د.ك)</label><input id="eTotalAmount" type="number" min="0" step="0.001" oninput="calcEditCase()"></div>
+<div class="field"><label>طريقة حصة PawApp</label><select id="eFeeType" onchange="calcEditCase()"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت</option></select></div>
+<div class="field"><label id="eFeeValueLabel">نسبة PawApp %</label><input id="eFeeValue" type="number" min="0" step="0.001" oninput="calcEditCase()"></div>
+<div class="field"><label>مستحق الشركة / الفريلانسر</label><input id="eProviderAmount" readonly></div>
+</div>
+<div class="section"><h2>سداد العميل</h2></div>
+<div class="grid2">
+<div class="field"><label>حالة العميل</label><select id="eClientPaid" onchange="toggleEditDueDate()"><option value="unpaid">لم يسدد</option><option value="paid">تم السداد بالكامل</option></select></div>
+<div class="field" id="eDueDateWrap"><label>موعد السداد</label><input id="eClientDueDate" type="date"><div class="hint">يظهر كتذكير داخل لوحة التحكم.</div></div>
+<div class="field"><label>طريقة الدفع</label><select id="ePaymentMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
+</div>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCaseDetails()">حفظ كل التعديلات</button>
 </div></div>
 
 <div id="clientPayModal" class="modalBg"><div class="modal">

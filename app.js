@@ -33,17 +33,23 @@
   script.onload = function(){
     window.renderCases = function(){
       const q=(document.getElementById('caseSearch').value||'').toLowerCase();
+      const sf=document.getElementById('caseStatusFilter')?.value||'all';
       const pf=document.getElementById('caseProviderFilter')?.value||'all';
       let h='';
       db.cases.slice().reverse().forEach(c=>{
         const pr=byProvider(c.providerId);
         const hay=['PAW-'+String(c.id).padStart(4,'0'),c.client_name,c.client_phone,c.staff,pr.name,c.service,c.pet_type,c.breed,sourceLabel(c.source)].join(' ').toLowerCase();
+        const clientPaid=clientRem(c)<=0.0001 && Number(c.total_amount||0)>0;
+        const vendorPaid=rem(c)<=0.0001 && Number(c.provider_amount||0)>0;
         if(q&&!hay.includes(q))return;
         if(pf!=='all'&&c.providerId!==pf)return;
-        const clientPaid=clientRem(c)<=0.0001;
-        const providerPaid=rem(c)<=0.0001;
+        if(sf==='client_unpaid'&&clientPaid)return;
+        if(sf==='client_paid'&&!clientPaid)return;
+        if(sf==='vendor_unpaid'&&vendorPaid)return;
+        if(sf==='vendor_paid'&&!vendorPaid)return;
         const yesNo=v=>v===true?'نعم':v===false?'لا':'—';
-        const missing=!c.pet_type||!c.breed||c.vaccinated===null||c.vaccinated===undefined||!c.location;
+        const missing=!c.providerId||!c.service||Number(c.total_amount||0)<=0||!c.pet_type||!c.location;
+        const dueTxt=!clientPaid&&c.client_due_date?c.client_due_date:'—';
         h+=`<tr>
           <td>PAW-${String(c.id).padStart(4,'0')}</td>
           <td>${esc(c.client_name)}</td>
@@ -52,19 +58,20 @@
           <td>${yesNo(c.vaccinated)}</td>
           <td>${yesNo(c.microchipped)}</td>
           <td>${esc(pr.name)}</td>
-          <td>${esc(c.service)}</td>
+          <td>${esc(c.service||c.requested_service||'—')}</td>
           <td>${money(c.amount)}</td>
           <td>${money(paw(c))}</td>
           <td>${money(due(c))}</td>
-          <td><span class="status ${clientPaid?'paid':'unpaid'}">${clientPaid?'تم الدفع':'لم يتم الدفع'}</span></td>
-          <td><span class="status ${providerPaid?'paid':'pending'}">${providerPaid?'تم الدفع للمقدم':'لم يتم الدفع للمقدم'}</span></td>
+          <td><span class="status ${clientPaid?'paid':'unpaid'}">${clientPaid?'تم السداد بالكامل':'لم يسدد'}</span></td>
+          <td>${dueTxt}</td>
+          <td><span class="status ${vendorPaid?'paid':'pending'}">${vendorPaid?'تم الدفع':'لم يتم الدفع'}</span></td>
           <td>${esc(c.staff||'—')}<br><span class="status partial" style="margin-top:4px">${esc(sourceLabel(c.source))}</span></td>
-          <td><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">${missing?'استكمال البيانات':'عرض / تعديل'}</button></td>
-          <td><button class="btn soft" style="padding:7px" onclick="openClientPayment('${c.id}')">${clientPaid?'عرض':'تسجيل دفع'}</button></td>
-          <td><button class="btn soft" style="padding:7px" onclick="openSettlement('${c.id}')">${providerPaid?'عرض':'دفع للمقدم'}</button></td>
+          <td><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">${missing?'استكمال البيانات':'تعديل البيانات'}</button></td>
+          <td><button class="btn soft" style="padding:7px" onclick="openCaseDetails('${c.id}')">${clientPaid?'بيانات السداد':'تحديث السداد'}</button></td>
+          <td><button class="btn soft" style="padding:7px" onclick="openSettlement('${c.id}')">${vendorPaid?'تم الدفع':'تسجيل دفع'}</button></td>
         </tr>`;
       });
-      document.getElementById('caseRows').innerHTML=h||'<tr><td colspan="17">لا توجد عمليات</td></tr>';
+      document.getElementById('caseRows').innerHTML=h||'<tr><td colspan="18">لا توجد عمليات</td></tr>';
     };
 
     const originalRenderDashboard = window.renderDashboard;
@@ -72,10 +79,19 @@
       originalRenderDashboard();
       const upcoming=document.getElementById('upcomingInstallments');
       if(upcoming) upcoming.innerHTML='';
+      const today=new Date().toISOString().slice(0,10);
+      const reminders=db.cases.filter(c=>clientRem(c)>0.0001&&c.client_due_date).sort((a,b)=>String(a.client_due_date).localeCompare(String(b.client_due_date)));
+      const remEl=document.getElementById('clientDueReminders');
+      if(remEl){
+        remEl.innerHTML=reminders.length?reminders.map(c=>{
+          const overdue=String(c.client_due_date)<today;
+          return '<div class="card provider"><h3>'+esc(c.client_name)+'</h3><p>PAW-'+String(c.id).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span>المبلغ</span><b>'+money(clientRem(c))+'</b></div><div class="mini"><span>موعد السداد</span><b>'+c.client_due_date+'</b></div><div class="mini"><span>الحالة</span><b class="'+(overdue?'red':'blue')+'">'+(overdue?'متأخر':'قادم')+'</b></div></div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح الحالة</button></div></div>';
+        }).join(''):'<div class="card">ما في مواعيد سداد مسجلة.</div>';
+      }
       let h='';
       db.cases.slice().reverse().slice(0,6).forEach(c=>{
         const pr=byProvider(c.providerId);
-        const clientPaid=clientRem(c)<=0.0001;
+        const clientPaid=clientRem(c)<=0.0001 && Number(c.total_amount||0)>0;
         const vacc=c.vaccinated===true?'نعم':c.vaccinated===false?'لا':'—';
         h+=`<tr>
           <td>PAW-${String(c.id).padStart(4,'0')}</td>
@@ -83,11 +99,11 @@
           <td>${esc(c.pet_type||'—')}${c.breed?'<br><span class="hint">'+esc(c.breed)+'</span>':''}</td>
           <td>${vacc}</td>
           <td>${esc(pr.name)}</td>
-          <td>${esc(c.service)}</td>
+          <td>${esc(c.service||c.requested_service||'—')}</td>
           <td>${money(c.amount)}</td>
           <td>${money(paw(c))}</td>
           <td>${money(due(c))}</td>
-          <td><span class="status ${clientPaid?'paid':'unpaid'}">${clientPaid?'تم الدفع':'لم يتم الدفع'}</span></td>
+          <td><span class="status ${clientPaid?'paid':'unpaid'}">${clientPaid?'تم السداد':'لم يسدد'}</span></td>
         </tr>`;
       });
       document.getElementById('recent').innerHTML=h||'<tr><td colspan="10">لا توجد عمليات</td></tr>';
@@ -269,6 +285,35 @@
       return map[src]||'غير محدد';
     };
 
+    window.editProviderChanged = function(){
+      const pid=document.getElementById('eProvider').value;
+      const p=db.providers.find(x=>x.id===pid);
+      const s=document.getElementById('eService');
+      s.innerHTML='<option value="">اختاري الخدمة</option>';
+      if(p){
+        p.services.forEach(x=>s.innerHTML+='<option>'+esc(x)+'</option>');
+        document.getElementById('eFeeType').value=p.feeType||'percent';
+        document.getElementById('eFeeValue').value=Number(p.feeValue||0);
+      }
+      calcEditCase();
+    };
+
+    window.calcEditCase = function(){
+      const total=Number(document.getElementById('eTotalAmount').value||0);
+      const feeType=document.getElementById('eFeeType').value;
+      const feeValue=Number(document.getElementById('eFeeValue').value||0);
+      const pawAmount=feeType==='fixed'?feeValue:total*feeValue/100;
+      const providerAmount=Math.max(0,total-pawAmount);
+      document.getElementById('eProviderAmount').value=providerAmount.toFixed(3);
+      document.getElementById('eFeeValueLabel').textContent=feeType==='fixed'?'حصة PawApp (د.ك)':'نسبة PawApp %';
+    };
+
+    window.toggleEditDueDate = function(){
+      const paid=document.getElementById('eClientPaid').value==='paid';
+      document.getElementById('eDueDateWrap').style.display=paid?'none':'flex';
+      if(paid) document.getElementById('eClientDueDate').value='';
+    };
+
     window.openCaseDetails = function(id){
       const c=db.cases.find(x=>String(x.id)===String(id)); if(!c)return;
       const tri=v=>v===true?'yes':v===false?'no':'';
@@ -283,12 +328,40 @@
       document.getElementById('eMicrochipped').value=tri(c.microchipped);
       document.getElementById('eHasPetId').value=tri(c.has_pet_id);
       document.getElementById('eReason').value=c.reason||'';
+
+      const ps=document.getElementById('eProvider');
+      ps.innerHTML='<option value="">اختاري الشركة / الفريلانسر</option>';
+      db.providers.forEach(p=>ps.innerHTML+='<option value="'+p.id+'">'+esc(p.name)+'</option>');
+      ps.value=c.providerId||'';
+      editProviderChanged();
+      if(c.service) document.getElementById('eService').value=c.service;
+
+      document.getElementById('eTotalAmount').value=Number(c.total_amount||0).toFixed(3);
+      document.getElementById('eFeeType').value=c.fee_type||'percent';
+      document.getElementById('eFeeValue').value=Number(c.fee_value||0);
+      calcEditCase();
+
+      const paid=clientRem(c)<=0.0001 && Number(c.total_amount||0)>0;
+      document.getElementById('eClientPaid').value=paid?'paid':'unpaid';
+      document.getElementById('eClientDueDate').value=c.client_due_date||'';
+      document.getElementById('ePaymentMethod').value=c.payment_method||'KNET';
+      toggleEditDueDate();
       document.getElementById('completeCaseModal').classList.add('show');
     };
 
     window.saveCaseDetails = async function(){
       const id=document.getElementById('editCaseId').value;
+      const row=db.cases.find(x=>String(x.id)===String(id)); if(!row)return;
       const tri=v=>v==='yes'?true:v==='no'?false:null;
+      const providerId=document.getElementById('eProvider').value||null;
+      const service=document.getElementById('eService').value||null;
+      const total=Number(document.getElementById('eTotalAmount').value||0);
+      const feeType=document.getElementById('eFeeType').value;
+      const feeValue=Number(document.getElementById('eFeeValue').value||0);
+      const pawAmount=feeType==='fixed'?feeValue:total*feeValue/100;
+      const providerAmount=Math.max(0,total-pawAmount);
+      const paidNow=document.getElementById('eClientPaid').value==='paid';
+      const existingPaid=clientPaidAmt(row);
       try{
         await api('cases?id=eq.'+encodeURIComponent(id),{
           method:'PATCH',
@@ -303,12 +376,38 @@
             vaccinated:tri(document.getElementById('eVaccinated').value),
             microchipped:tri(document.getElementById('eMicrochipped').value),
             has_pet_id:tri(document.getElementById('eHasPetId').value),
-            reason:document.getElementById('eReason').value.trim()||null
+            reason:document.getElementById('eReason').value.trim()||null,
+            provider_id:providerId,
+            service_name:service,
+            requested_service:row.requested_service||service,
+            fee_type:feeType,
+            fee_value:feeValue,
+            total_amount:total,
+            pawapp_amount:pawAmount,
+            provider_amount:providerAmount,
+            payment_method:document.getElementById('ePaymentMethod').value,
+            client_paid:paidNow,
+            client_payment_plan:paidNow?'full':'later',
+            client_due_date:paidNow?null:(document.getElementById('eClientDueDate').value||null)
           })
         });
+
+        if(paidNow && total>0 && existingPaid<total-0.0001){
+          await api('client_payments',{
+            method:'POST',
+            headers:{Prefer:'return=minimal'},
+            body:JSON.stringify({
+              case_id:Number(id),
+              amount:total-existingPaid,
+              paid_at:new Date().toISOString().slice(0,10),
+              method:document.getElementById('ePaymentMethod').value,
+              note:'تسديد كامل من شاشة الحالة'
+            })
+          });
+        }
         closeModal('completeCaseModal');
         await loadData();
-        toast('تم استكمال بيانات العميل');
+        toast('تم حفظ بيانات الحالة');
       }catch(e){console.error(e);alert('تعذر حفظ البيانات')}
     };
 

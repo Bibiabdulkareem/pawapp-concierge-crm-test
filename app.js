@@ -209,6 +209,56 @@
       }catch(e){console.error(e);alert('تعذر إضافة مقدم الخدمة')}
     };
 
+    window.openQuickWhatsApp = function(){
+      const s=document.getElementById('qStaff');
+      s.innerHTML='<option value="">اختاري الموظف</option>';
+      db.staff.forEach(e=>s.innerHTML+='<option value="'+e.id+'">'+esc(e.name)+'</option>');
+      ['qClient','qPhone','qRequest','qNote'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('qPetType').value='';
+      document.getElementById('quickWhatsAppModal').classList.add('show');
+    };
+
+    window.saveQuickWhatsApp = async function(){
+      const client=document.getElementById('qClient').value.trim();
+      const phone=document.getElementById('qPhone').value.trim();
+      const staff=document.getElementById('qStaff').value;
+      if(!client||!phone||!staff){alert('اكتبي اسم العميل، الرقم، والموظف المسؤول.');return}
+      try{
+        await api('cases',{
+          method:'POST',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify({
+            service_date:new Date().toISOString().slice(0,10),
+            client_name:client,
+            client_phone:phone,
+            employee_id:staff,
+            provider_id:null,
+            service_id:null,
+            service_name:null,
+            fee_type:'percent',
+            fee_value:0,
+            total_amount:0,
+            pawapp_amount:0,
+            provider_amount:0,
+            client_paid:false,
+            payment_method:null,
+            notes:document.getElementById('qNote').value.trim()||null,
+            client_payment_plan:'later',
+            source:'whatsapp_quick',
+            workflow_status:'new_request',
+            requested_service:document.getElementById('qRequest').value.trim()||null,
+            pet_type:document.getElementById('qPetType').value||null,
+            reason:document.getElementById('qRequest').value.trim()||null,
+            preferred_date:new Date().toISOString().slice(0,10)
+          })
+        });
+        closeModal('quickWhatsAppModal');
+        await loadData();
+        showPage('cases');
+        toast('تمت إضافة عميل الواتساب السريع');
+      }catch(e){console.error(e);alert('تعذر حفظ العميل')}
+    };
+
     window.openNewCase = function(){
       showPage('newcase');
       fillProviders();

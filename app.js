@@ -795,7 +795,8 @@
           (f.notes?'<div class="hint">ملاحظة: '+esc(f.notes)+'</div>':'')+
           '<div class="hint">الموظف: '+esc(emp?.name||ca.staff||'غير محدد')+'</div>'+
           (isOpen?'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
-            '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'done\')">تمت المتابعة</button>'+
+            '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'done\')">✓ تم / خلص الموضوع</button>'+
+            '<button class="btn soft" onclick="openCaseDetails(\''+String(ca.id||f.case_id)+'\')">فتح الحالة</button>'+
             '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'no_answer\')">ما رد</button>'+
             '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'confirmed\')">تم التأكيد</button>'+
             '<button class="btn danger" onclick="setFollowupStatus(\''+f.id+'\',\'cancelled\')">ألغى</button>'+
@@ -832,11 +833,13 @@
       const reason=document.getElementById('caseFollowupReason')?.value.trim()||null;
       const notes=document.getElementById('caseFollowupNotes')?.value.trim()||null;
       const row=db.cases.find(x=>String(x.id)===String(caseId));
+      const btn=document.querySelector('#caseFollowupBox button[onclick="addCaseFollowup()"]');
       if(!at){alert('اختاري تاريخ ووقت المتابعة');return}
       try{
-        await api('followups',{
+        if(btn){btn.disabled=true;btn.textContent='جاري الحفظ...';}
+        const saved=await api('followups',{
           method:'POST',
-          headers:{Prefer:'return=minimal'},
+          headers:{Prefer:'return=representation'},
           body:JSON.stringify({
             case_id:Number(caseId),
             employee_id:row?.employeeId||row?.employee_id||null,
@@ -846,13 +849,23 @@
             status:'pending'
           })
         });
-        await loadData();
+        if(!saved||!saved[0]||!saved[0].id) throw new Error('لم يتم تأكيد حفظ المتابعة');
+        db.followups=Array.isArray(db.followups)?db.followups:[];
+        db.followups.push(saved[0]);
         if(document.getElementById('caseFollowupAt')) document.getElementById('caseFollowupAt').value='';
         if(document.getElementById('caseFollowupReason')) document.getElementById('caseFollowupReason').value='';
         if(document.getElementById('caseFollowupNotes')) document.getElementById('caseFollowupNotes').value='';
         loadCaseFollowups(caseId);
-        toast('تمت إضافة المتابعة');
-      }catch(e){console.error(e);alert('تعذر إضافة المتابعة')}
+        renderFollowups();
+        checkFollowupAlerts(false);
+        toast('تم حفظ المتابعة بنجاح');
+        try{ await loadData(); }catch(e){ console.warn('refresh after followup save failed',e); }
+      }catch(e){
+        console.error(e);
+        alert('تعذر حفظ المتابعة. ما راح نعتبرها محفوظة إلا إذا أكد النظام الحفظ.');
+      }finally{
+        if(btn){btn.disabled=false;btn.textContent='+ إضافة متابعة';}
+      }
     };
 
     window.loadCaseFollowups = function(caseId){
@@ -987,7 +1000,15 @@
       document.removeEventListener('click',onceAudio);
     },{once:true});
 
-    setInterval(()=>checkFollowupAlerts(false),60000);
+    async function refreshFollowupsFromServer(){
+      try{
+        const fresh=await api('followups?select=*&order=followup_at.asc');
+        db.followups=Array.isArray(fresh)?fresh:[];
+        checkFollowupAlerts(false);
+      }catch(e){console.error('followup polling failed',e);}
+    }
+
+    setInterval(refreshFollowupsFromServer,20000);
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkFollowupAlerts(false)});
 
     const previousLoadDataForAlerts=window.loadData;

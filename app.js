@@ -660,7 +660,90 @@
       }
     };
 
-    renderAll();
+    
+    window.renderCRM = function(){
+      const q=(document.getElementById('crmSearch')?.value||'').trim().toLowerCase();
+      const groups=new Map();
+      db.cases.slice().reverse().forEach(x=>{
+        const phone=(x.client_phone||'').replace(/\s+/g,'');
+        const key=phone||('name:'+String(x.client_name||'').toLowerCase());
+        if(!groups.has(key)) groups.set(key,{name:x.client_name||'بدون اسم',phone:x.client_phone||'',location:x.location||'',cases:[],pets:new Map()});
+        const g=groups.get(key);
+        g.cases.push(x);
+        const pkey=[x.pet_type||'',x.breed||'',x.pet_age||''].join('|');
+        if(!g.pets.has(pkey)) g.pets.set(pkey,{
+          pet_type:x.pet_type||'غير محدد',
+          breed:x.breed||'',
+          pet_age:x.pet_age||'',
+          vaccinated:x.vaccinated,
+          microchipped:x.microchipped,
+          has_pet_id:x.has_pet_id
+        });
+      });
+      const all=[...groups.values()];
+      const filtered=all.filter(g=>{
+        const hay=[g.name,g.phone,g.location,...g.cases.map(x=>'PAW-'+String(x.id).padStart(4,'0'))].join(' ').toLowerCase();
+        return !q||hay.includes(q);
+      });
+      const customerCount=document.getElementById('crmCustomerCount');
+      const petCount=document.getElementById('crmPetCount');
+      const caseCount=document.getElementById('crmCaseCount');
+      if(customerCount) customerCount.textContent=String(all.length);
+      if(petCount) petCount.textContent=String(all.reduce((n,g)=>n+g.pets.size,0));
+      if(caseCount) caseCount.textContent=String(db.cases.length);
+      const out=document.getElementById('crmCustomerList');
+      if(!out) return;
+      out.innerHTML=filtered.length?filtered.map((g,idx)=>{
+        const pets=[...g.pets.values()];
+        const petHtml=pets.map(p=>'<span class="status" style="margin:3px 3px 0 0">'+esc([p.pet_type,p.breed].filter(Boolean).join(' - '))+'</span>').join('');
+        const last=g.cases[0];
+        return '<div class="card" style="box-shadow:none">'+
+          '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">'+
+            '<div><b style="font-size:16px">'+esc(g.name)+'</b><div class="hint">'+esc(g.phone||'بدون رقم')+(g.location?' • '+esc(g.location):'')+'</div></div>'+
+            '<div class="status paid">'+g.cases.length+' عملية</div>'+
+          '</div>'+
+          '<div style="margin-top:8px">'+(petHtml||'<span class="hint">لا توجد بيانات حيوان كاملة</span>')+'</div>'+
+          '<div class="hint" style="margin-top:8px">آخر خدمة: '+esc((last&& (last.service||last.requested_service))||'غير محدد')+'</div>'+
+          '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
+            '<button class="btn soft" type="button" onclick="crmLoadCustomer(\''+String(last?.id||'')+'\')">خدمة جديدة</button>'+
+            '<button class="btn soft" type="button" onclick="crmOpenHistory(\''+encodeURIComponent(g.phone||g.name)+'\')">سجل العميل</button>'+
+          '</div>'+
+        '</div>';
+      }).join(''):'<div class="card"><div class="hint">ما لقينا عميل مطابق.</div></div>';
+    };
+
+    window.crmLoadCustomer = function(caseId){
+      const x=db.cases.find(v=>String(v.id)===String(caseId)); if(!x)return;
+      openNewCase();
+      const tri=v=>v===true?'yes':v===false?'no':'';
+      document.getElementById('cClient').value=x.client_name||'';
+      document.getElementById('cPhone').value=x.client_phone||'';
+      document.getElementById('cLocation').value=x.location||'';
+      document.getElementById('cPetType').value=x.pet_type||'';
+      document.getElementById('cBreed').value=x.breed||'';
+      document.getElementById('cPetAge').value=x.pet_age||'';
+      document.getElementById('cPetFriendly').value=tri(x.pet_friendly);
+      document.getElementById('cVaccinated').value=tri(x.vaccinated);
+      document.getElementById('cMicrochipped').value=tri(x.microchipped);
+      document.getElementById('cHasPetId').value=tri(x.has_pet_id);
+      const box=document.getElementById('existingCustomerResults');
+      if(box) box.innerHTML='<div class="status paid">تم تحميل ملف العميل والحيوان</div>';
+    };
+
+    window.crmOpenHistory = function(key){
+      const decoded=decodeURIComponent(key);
+      showPage('cases');
+      const search=document.getElementById('caseSearch');
+      if(search){search.value=decoded;renderCases();}
+    };
+
+    const originalShowPageCRM=window.showPage;
+    window.showPage=function(id){
+      originalShowPageCRM(id);
+      if(id==='crm') renderCRM();
+    };
+
+renderAll();
   };
   document.head.appendChild(script);
 })();

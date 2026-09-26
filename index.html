@@ -70,7 +70,18 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field"><label>مصدر الطلب *</label><select id="cSource"><option value="whatsapp_quick">واتساب سريع</option><option value="phone_call">مكالمة</option><option value="manual_test">إدخال داخلي</option><option value="instagram">Instagram</option><option value="referral">تحويل / توصية</option></select><div class="hint">يفيدنا نعرف العميل عبّى الفورم ولا فضّل واتساب سريع أو مكالمة.</div></div>
 <div class="field"><label>التاريخ *</label><input id="cDate" type="date"></div>
 <div class="field"><label>الشركة / الفريلانسر *</label><select id="cProvider" onchange="providerChanged()"></select><div class="hint">العيادة / الشركة / الدكتور أو الفريلانسر اللي راح ينفذ الخدمة.</div></div>
-<div class="field"><label>الخدمة *</label><select id="cService"></select><div class="hint">الخدمات هنا تجي تلقائي من الخدمات المسجلة داخل الشركة / الفريلانسر.</div></div>
+<div class="field"><label>الخدمة *</label><select id="cService" onchange="toggleTransportFields('c')"></select><div class="hint">الخدمات هنا تجي تلقائي من الخدمات المسجلة داخل الشركة / الفريلانسر.</div></div>
+<div id="cTransportFields" class="field full" style="display:none">
+  <div class="card" style="box-shadow:none;margin:0">
+    <b>بيانات Pickup / Drop-off</b>
+    <div class="grid2" style="margin-top:8px">
+      <div class="field"><label>نوع المشوار</label><select id="cTransportDirection"><option value="">اختاري</option><option value="pickup">Pickup</option><option value="dropoff">Drop-off</option><option value="both">Pickup + Drop-off</option></select></div>
+      <div class="field"><label>التاريخ والوقت</label><input id="cTransportAt" type="datetime-local"></div>
+      <div class="field"><label>مكان الاستلام</label><input id="cPickupLocation"></div>
+      <div class="field"><label>مكان التوصيل</label><input id="cDropoffLocation"></div>
+    </div>
+  </div>
+</div>
 <div class="field"><label>طريقة حصة PawApp *</label><select id="cFeeType" onchange="toggleCasePricing()"><option value="percent">نسبة %</option><option value="fixed">سعر ثابت د.ك</option></select></div>
 <div class="field"><label id="cAmountLabel">إجمالي ما يدفعه العميل (د.ك) *</label><input id="cAmount" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcCase()"></div>
 <div class="field"><label id="cCommissionLabel">نسبة PawApp % *</label><input id="cCommission" type="number" min="0" step="0.001" oninput="calcCase()"></div>
@@ -205,7 +216,18 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="section"><h2>الخدمة والسعر</h2></div>
 <div class="grid2">
 <div class="field"><label>الشركة / الفريلانسر</label><select id="eProvider" onchange="editProviderChanged()"></select></div>
-<div class="field"><label>الخدمة</label><select id="eService"></select></div>
+<div class="field"><label>الخدمة</label><select id="eService" onchange="toggleTransportFields('e')"></select></div>
+<div id="eTransportFields" class="field full" style="display:none">
+  <div class="card" style="box-shadow:none;margin:0">
+    <b>بيانات Pickup / Drop-off</b>
+    <div class="grid2" style="margin-top:8px">
+      <div class="field"><label>نوع المشوار</label><select id="eTransportDirection"><option value="">اختاري</option><option value="pickup">Pickup</option><option value="dropoff">Drop-off</option><option value="both">Pickup + Drop-off</option></select></div>
+      <div class="field"><label>التاريخ والوقت</label><input id="eTransportAt" type="datetime-local"></div>
+      <div class="field"><label>مكان الاستلام</label><input id="ePickupLocation"></div>
+      <div class="field"><label>مكان التوصيل</label><input id="eDropoffLocation"></div>
+    </div>
+  </div>
+</div>
 <div class="field"><label>إجمالي ما يدفعه العميل (د.ك)</label><input id="eTotalAmount" type="number" min="0" step="0.001" oninput="calcEditCase()"></div>
 <div class="field"><label>طريقة حصة PawApp</label><select id="eFeeType" onchange="calcEditCase()"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت</option></select></div>
 <div class="field"><label id="eFeeValueLabel">نسبة PawApp %</label><input id="eFeeValue" type="number" min="0" step="0.001" oninput="calcEditCase()"></div>
@@ -248,6 +270,5 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div id="toast" class="toast"></div>
 
 <script src="app.js"></script>
-<script src="transport.js"></script>
 </body>
 </html>

@@ -8,7 +8,8 @@
     'cases':'test_cases',
     'settlements':'test_settlements',
     'client_payments':'test_client_payments',
-    'installment_schedule':'test_installment_schedule'
+    'installment_schedule':'test_installment_schedule',
+    'followups':'test_followups'
   };
 
   window.fetch = function(input, init){
@@ -741,6 +742,144 @@
     window.showPage=function(id){
       originalShowPageCRM(id);
       if(id==='crm') renderCRM();
+    };
+
+
+    function followupStatusLabel(v){
+      return {pending:'قيد المتابعة',done:'تم التواصل',no_answer:'ما رد',confirmed:'تم التأكيد',cancelled:'ألغى'}[v]||v||'قيد المتابعة';
+    }
+
+    window.renderFollowups = function(){
+      const list=document.getElementById('followupList');
+      if(!list) return;
+      const rows=(db.followups||[]).slice().sort((a,b)=>String(a.followup_at||'').localeCompare(String(b.followup_at||'')));
+      const now=new Date();
+      const today=now.toISOString().slice(0,10);
+      let nToday=0,nLate=0,nUpcoming=0;
+      rows.forEach(f=>{
+        if(f.status==='done'||f.status==='cancelled') return;
+        const d=String(f.followup_at||'').slice(0,10);
+        if(d===today) nToday++;
+        else if(d<today) nLate++;
+        else nUpcoming++;
+      });
+      document.getElementById('followToday').textContent=String(nToday);
+      document.getElementById('followLate').textContent=String(nLate);
+      document.getElementById('followUpcoming').textContent=String(nUpcoming);
+      list.innerHTML=rows.length?rows.map(f=>{
+        const ca=db.cases.find(x=>String(x.id)===String(f.case_id))||{};
+        const emp=db.employees.find(x=>x.id===f.employee_id);
+        const d=String(f.followup_at||'').replace('T',' ').slice(0,16);
+        const isOpen=!(f.status==='done'||f.status==='cancelled');
+        return '<div class="card" style="box-shadow:none">'+
+          '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+            '<div><b>'+esc(ca.client_name||'عميل')+'</b><div class="hint">PAW-'+String(ca.id||f.case_id).padStart(4,'0')+' • '+esc(ca.client_phone||'بدون رقم')+'</div></div>'+
+            '<span class="status '+(f.status==='done'?'paid':'')+'">'+esc(followupStatusLabel(f.status))+'</span>'+
+          '</div>'+
+          '<div style="margin-top:8px"><b>الموعد:</b> '+esc(d)+'</div>'+
+          (f.reason?'<div class="hint">السبب: '+esc(f.reason)+'</div>':'')+
+          (f.notes?'<div class="hint">ملاحظة: '+esc(f.notes)+'</div>':'')+
+          '<div class="hint">الموظف: '+esc(emp?.name||ca.staff||'غير محدد')+'</div>'+
+          (isOpen?'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
+            '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'done\')">تم التواصل</button>'+
+            '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'no_answer\')">ما رد</button>'+
+            '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'confirmed\')">تم التأكيد</button>'+
+            '<button class="btn danger" onclick="setFollowupStatus(\''+f.id+'\',\'cancelled\')">ألغى</button>'+
+          '</div>':'')+
+        '</div>';
+      }).join(''):'<div class="card"><div class="hint">ما في متابعات مسجلة للحين.</div></div>';
+    };
+
+    window.setFollowupStatus = async function(id,status){
+      try{
+        await api('followups?id=eq.'+encodeURIComponent(id),{
+          method:'PATCH',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify({status})
+        });
+        await loadData();
+        renderFollowups();
+        toast('تم تحديث المتابعة');
+      }catch(e){console.error(e);alert('تعذر تحديث المتابعة')}
+    };
+
+    window.addCaseFollowup = async function(){
+      const caseId=document.getElementById('editCaseId').value;
+      const at=document.getElementById('caseFollowupAt')?.value;
+      const reason=document.getElementById('caseFollowupReason')?.value.trim()||null;
+      const notes=document.getElementById('caseFollowupNotes')?.value.trim()||null;
+      const row=db.cases.find(x=>String(x.id)===String(caseId));
+      if(!at){alert('اختاري تاريخ ووقت المتابعة');return}
+      try{
+        await api('followups',{
+          method:'POST',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify({
+            case_id:Number(caseId),
+            employee_id:row?.employeeId||row?.employee_id||null,
+            followup_at:new Date(at).toISOString(),
+            reason,
+            notes,
+            status:'pending'
+          })
+        });
+        await loadData();
+        if(document.getElementById('caseFollowupAt')) document.getElementById('caseFollowupAt').value='';
+        if(document.getElementById('caseFollowupReason')) document.getElementById('caseFollowupReason').value='';
+        if(document.getElementById('caseFollowupNotes')) document.getElementById('caseFollowupNotes').value='';
+        loadCaseFollowups(caseId);
+        toast('تمت إضافة المتابعة');
+      }catch(e){console.error(e);alert('تعذر إضافة المتابعة')}
+    };
+
+    window.loadCaseFollowups = function(caseId){
+      const box=document.getElementById('caseFollowupHistory');
+      if(!box) return;
+      const rows=(db.followups||[]).filter(f=>String(f.case_id)===String(caseId)).sort((a,b)=>String(b.followup_at||'').localeCompare(String(a.followup_at||'')));
+      box.innerHTML=rows.length?rows.map(f=>'<div class="card" style="box-shadow:none;margin-top:7px"><b>'+esc(followupStatusLabel(f.status))+'</b><div class="hint">'+esc(String(f.followup_at||'').replace('T',' ').slice(0,16))+(f.reason?' • '+esc(f.reason):'')+'</div></div>').join(''):'<div class="hint">ما في متابعة مسجلة على هالحالة.</div>';
+    };
+
+    function ensureFollowupUI(){
+      if(document.getElementById('caseFollowupBox')) return;
+      const modal=document.querySelector('#completeCaseModal .modal');
+      const saveBtn=modal&&Array.from(modal.querySelectorAll('button')).find(b=>b.textContent.includes('حفظ كل التعديلات'));
+      if(!modal||!saveBtn) return;
+      const box=document.createElement('div');
+      box.id='caseFollowupBox';
+      box.innerHTML=
+        '<div class="section"><h2>المتابعة</h2></div>'+
+        '<div class="card" style="box-shadow:none">'+
+          '<div class="grid2">'+
+            '<div class="field"><label>تاريخ ووقت المتابعة</label><input id="caseFollowupAt" type="datetime-local"></div>'+
+            '<div class="field"><label>سبب المتابعة</label><input id="caseFollowupReason" placeholder="مثال: تأكيد الموعد"></div>'+
+          '</div>'+
+          '<div class="field" style="margin-top:8px"><label>ملاحظة</label><textarea id="caseFollowupNotes" rows="2"></textarea></div>'+
+          '<button class="btn soft" style="width:100%;margin-top:9px" type="button" onclick="addCaseFollowup()">+ إضافة متابعة</button>'+
+          '<div id="caseFollowupHistory" style="margin-top:8px"></div>'+
+        '</div>';
+      saveBtn.parentNode.insertBefore(box,saveBtn);
+    }
+
+    const originalOpenCaseDetailsForFollowups=window.openCaseDetails;
+    window.openCaseDetails=function(id){
+      originalOpenCaseDetailsForFollowups(id);
+      ensureFollowupUI();
+      loadCaseFollowups(id);
+    };
+
+    const prevShowPageFollowups=window.showPage;
+    window.showPage=function(id){
+      prevShowPageFollowups(id);
+      if(id==='followups') renderFollowups();
+    };
+
+
+    const originalLoadDataForFollowups=window.loadData;
+    window.loadData=async function(){
+      await originalLoadDataForFollowups();
+      try{
+        db.followups=await api('followups?select=*');
+      }catch(e){console.error('followups load failed',e);db.followups=[]}
     };
 
 renderAll();

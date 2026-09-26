@@ -751,25 +751,39 @@
 
     window.renderFollowups = function(){
       const list=document.getElementById('followupList');
+      const urgentList=document.getElementById('followupUrgentList');
+      const historyList=document.getElementById('followupHistoryList');
       if(!list) return;
-      const rows=(db.followups||[]).slice().sort((a,b)=>String(a.followup_at||'').localeCompare(String(b.followup_at||'')));
+
+      const rows=(db.followups||[]).slice().sort((a,b)=>new Date(a.followup_at)-new Date(b.followup_at));
+      const openRows=rows.filter(f=>!(f.status==='done'||f.status==='cancelled'));
+      const doneRows=rows.filter(f=>f.status==='done'||f.status==='cancelled').sort((a,b)=>new Date(b.completed_at||b.followup_at)-new Date(a.completed_at||a.followup_at));
+
       const now=new Date();
-      const today=now.toISOString().slice(0,10);
+      const localDate=d=>{
+        const x=new Date(d);
+        const y=x.getFullYear(),m=String(x.getMonth()+1).padStart(2,'0'),day=String(x.getDate()).padStart(2,'0');
+        return y+'-'+m+'-'+day;
+      };
+      const today=localDate(now);
       let nToday=0,nLate=0,nUpcoming=0;
-      rows.forEach(f=>{
-        if(f.status==='done'||f.status==='cancelled') return;
-        const d=String(f.followup_at||'').slice(0,10);
+
+      openRows.forEach(f=>{
+        const d=localDate(f.followup_at);
         if(d===today) nToday++;
         else if(d<today) nLate++;
         else nUpcoming++;
       });
+
       document.getElementById('followToday').textContent=String(nToday);
       document.getElementById('followLate').textContent=String(nLate);
       document.getElementById('followUpcoming').textContent=String(nUpcoming);
-      list.innerHTML=rows.length?rows.map(f=>{
+
+      const card=f=>{
         const ca=db.cases.find(x=>String(x.id)===String(f.case_id))||{};
         const emp=db.employees.find(x=>x.id===f.employee_id);
-        const d=String(f.followup_at||'').replace('T',' ').slice(0,16);
+        const dt=new Date(f.followup_at);
+        const d=Number.isFinite(dt.getTime())?dt.toLocaleString('ar-KW',{dateStyle:'medium',timeStyle:'short'}):String(f.followup_at||'');
         const isOpen=!(f.status==='done'||f.status==='cancelled');
         return '<div class="card" style="box-shadow:none">'+
           '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
@@ -781,13 +795,22 @@
           (f.notes?'<div class="hint">ملاحظة: '+esc(f.notes)+'</div>':'')+
           '<div class="hint">الموظف: '+esc(emp?.name||ca.staff||'غير محدد')+'</div>'+
           (isOpen?'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
-            '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'done\')">تم التواصل</button>'+
+            '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'done\')">تمت المتابعة</button>'+
             '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'no_answer\')">ما رد</button>'+
             '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'confirmed\')">تم التأكيد</button>'+
             '<button class="btn danger" onclick="setFollowupStatus(\''+f.id+'\',\'cancelled\')">ألغى</button>'+
           '</div>':'')+
         '</div>';
-      }).join(''):'<div class="card"><div class="hint">ما في متابعات مسجلة للحين.</div></div>';
+      };
+
+      const urgent=openRows.filter(f=>{
+        const t=new Date(f.followup_at).getTime();
+        return Number.isFinite(t)&&t<=Date.now()+15*60*1000;
+      });
+
+      if(urgentList) urgentList.innerHTML=urgent.length?urgent.map(card).join(''):'<div class="card"><div class="hint">ما في متابعة تحتاج تدخل الحين.</div></div>';
+      list.innerHTML=openRows.length?openRows.map(card).join(''):'<div class="card"><div class="hint">ما في متابعات مفتوحة للحين.</div></div>';
+      if(historyList) historyList.innerHTML=doneRows.length?doneRows.map(card).join(''):'<div class="card"><div class="hint">ما في متابعات منتهية للحين.</div></div>';
     };
 
     window.setFollowupStatus = async function(id,status){
@@ -795,7 +818,7 @@
         await api('followups?id=eq.'+encodeURIComponent(id),{
           method:'PATCH',
           headers:{Prefer:'return=minimal'},
-          body:JSON.stringify({status})
+          body:JSON.stringify({status,completed_at:(status==='done'||status==='cancelled')?new Date().toISOString():null})
         });
         await loadData();
         renderFollowups();
@@ -879,6 +902,7 @@
       await originalLoadDataForFollowups();
       try{
         db.followups=await api('followups?select=*');
+        if(document.getElementById('followupList')) renderFollowups();
       }catch(e){console.error('followups load failed',e);db.followups=[]}
     };
 
@@ -918,14 +942,16 @@
       const badge=document.getElementById('followupNavBadge');
       const banner=document.getElementById('followupAlertBanner');
       const txt=document.getElementById('followupAlertText');
+
       if(badge){
         badge.textContent=String(dueSoon.length);
         badge.style.display=dueSoon.length?'inline-block':'none';
       }
       if(banner){
         banner.style.display=dueSoon.length?'block':'none';
-        if(txt) txt.textContent=dueSoon.length===1?'متابعة واحدة خلال 15 دقيقة أو متأخرة':'عندك '+dueSoon.length+' متابعات خلال 15 دقيقة أو متأخرة';
+        if(txt) txt.textContent=dueSoon.length===1?'متابعة واحدة موعدها قريب أو متأخرة':'عندك '+dueSoon.length+' متابعات موعدها قريب أو متأخرة';
       }
+
       dueSoon.forEach(f=>{
         if(!force && followupAlerted.has(f.id)) return;
         followupAlerted.add(f.id);
@@ -937,6 +963,7 @@
           try{ new Notification(title,{body,tag:'followup-'+f.id,renotify:false}); }catch(e){}
         }
       });
+
       if(document.getElementById('followupList')) renderFollowups();
     }
 

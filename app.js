@@ -223,6 +223,16 @@
       const qr=document.getElementById('existingCustomerResults'); if(qr) qr.innerHTML='';
     };
 
+    function normalizePetType(v){
+      const s=String(v||'').trim().toLowerCase();
+      const map={
+        cat:'قط',dog:'كلب',bird:'طائر',rabbit:'أرنب',other:'أخرى',
+        'قطة':'قط','قطه':'قط','كلاب':'كلب','طيور':'طائر','ارنب':'أرنب','أرنب':'أرنب',
+        'قط':'قط','كلب':'كلب','طائر':'طائر','أخرى':'أخرى'
+      };
+      return map[s]||v||'';
+    }
+
     window.searchExistingCustomer = function(){
       const q=(document.getElementById('existingCustomerSearch').value||'').trim().toLowerCase();
       const out=document.getElementById('existingCustomerResults');
@@ -246,7 +256,7 @@
       document.getElementById('cClient').value=x.client_name||'';
       document.getElementById('cPhone').value=x.client_phone||'';
       document.getElementById('cLocation').value=x.location||'';
-      document.getElementById('cPetType').value=x.pet_type||'';
+      document.getElementById('cPetType').value=normalizePetType(x.pet_type);
       document.getElementById('cBreed').value=x.breed||'';
       document.getElementById('cPetAge').value=x.pet_age||'';
       document.getElementById('cPetFriendly').value=tri(x.pet_friendly);
@@ -267,8 +277,15 @@
       const base=Number(document.getElementById('cAmount').value||0);
       const feeType=document.getElementById('cFeeType').value;
       const feeValue=Number(document.getElementById('cCommission').value||0);
-      if(!client||!employeeId||!providerId||!service||!petType||base<=0){
-        alert('كملي اسم العميل، نوع الحيوان، الموظف، مقدم الخدمة، الخدمة والمبلغ.');
+      const missing=[];
+      if(!client) missing.push('اسم العميل');
+      if(!petType) missing.push('نوع الحيوان');
+      if(!employeeId) missing.push('الموظف المسؤول');
+      if(!providerId) missing.push('الشركة / الفريلانسر');
+      if(!service) missing.push('الخدمة');
+      if(base<=0) missing.push('السعر');
+      if(missing.length){
+        alert('باقي تكملين: '+missing.join('، '));
         return;
       }
       const total=feeType==='fixed'?base+feeValue:base;
@@ -434,7 +451,7 @@ window.sourceLabel = function(src){
       document.getElementById('editCaseId').value=id;
       document.getElementById('ePhone').value=c.client_phone||'';
       document.getElementById('eLocation').value=c.location||'';
-      document.getElementById('ePetType').value=c.pet_type||'';
+      document.getElementById('ePetType').value=normalizePetType(c.pet_type);
       document.getElementById('eBreed').value=c.breed||'';
       document.getElementById('ePetAge').value=c.pet_age||'';
       document.getElementById('ePetFriendly').value=tri(c.pet_friendly);
@@ -775,7 +792,7 @@ window.sourceLabel = function(src){
       document.getElementById('cClient').value=x.client_name||'';
       document.getElementById('cPhone').value=x.client_phone||'';
       document.getElementById('cLocation').value=x.location||'';
-      document.getElementById('cPetType').value=x.pet_type||'';
+      document.getElementById('cPetType').value=normalizePetType(x.pet_type);
       document.getElementById('cBreed').value=x.breed||'';
       document.getElementById('cPetAge').value=x.pet_age||'';
       document.getElementById('cPetFriendly').value=tri(x.pet_friendly);

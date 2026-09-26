@@ -121,11 +121,16 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   </div>
 </div>
 <div class="cards" style="grid-template-columns:repeat(3,1fr)">
-<div class="card stat"><span>اليوم</span><b id="followToday" class="blue">0</b></div>
-<div class="card stat"><span>متأخر</span><b id="followLate" class="red">0</b></div>
-<div class="card stat"><span>قادم</span><b id="followUpcoming" class="green">0</b></div>
+<div class="card stat"><span>متابعات اليوم</span><b id="followToday" class="blue">0</b><small class="hint">أي متابعة تاريخها اليوم</small></div>
+<div class="card stat"><span>متأخرة من أيام سابقة</span><b id="followLate" class="red">0</b><small class="hint">موعدها قبل اليوم وما خلصت</small></div>
+<div class="card stat"><span>قادمة</span><b id="followUpcoming" class="green">0</b><small class="hint">موعدها بعد اليوم</small></div>
 </div>
-<div id="followupList" class="providerGrid" style="margin-top:12px"></div>
+<div class="section"><h2>تحتاج متابعة الآن</h2></div>
+<div id="followupUrgentList" class="providerGrid"></div>
+<div class="section"><h2>كل المتابعات المفتوحة</h2></div>
+<div id="followupList" class="providerGrid"></div>
+<div class="section"><h2>سجل المتابعات المنتهية</h2></div>
+<div id="followupHistoryList" class="providerGrid"></div>
 </section>
 
 <section id="cases" class="page">

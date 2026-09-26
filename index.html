@@ -112,7 +112,14 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="followups" class="page">
-<div class="title"><div><h1>المتابعة</h1><p>متابعات اليوم، المتأخرة، والقادمة</p></div></div>
+<div class="title"><div><h1>المتابعة</h1><p>متابعات اليوم، المتأخرة، والقادمة</p></div><button class="btn soft" type="button" onclick="enableBrowserFollowupNotifications()">🔔 تفعيل تنبيه المتصفح</button></div>
+<div id="followupAlertBanner" class="card" style="display:none;margin-bottom:10px;border:2px solid #c62828;background:#fff5f5">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <b style="font-size:18px;color:#c62828">🔔 عندك متابعة تحتاج انتباه</b>
+    <span id="followupAlertText" class="hint" style="color:#8b1a1a"></span>
+    <button class="btn danger" type="button" onclick="showPage('followups')">عرض المتابعات</button>
+  </div>
+</div>
 <div class="cards" style="grid-template-columns:repeat(3,1fr)">
 <div class="card stat"><span>اليوم</span><b id="followToday" class="blue">0</b></div>
 <div class="card stat"><span>متأخر</span><b id="followLate" class="red">0</b></div>
@@ -137,7 +144,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <button class="nav active" data-p="dashboard" onclick="showPage('dashboard')"><b>⌂</b>الرئيسية</button>
 <button class="nav" data-p="cases" onclick="showPage('cases')"><b>▤</b>العمليات</button>
 <button class="nav" data-p="crm" onclick="showPage('crm')"><b>♡</b>العملاء</button>
-<button class="nav" data-p="followups" onclick="showPage('followups')"><b>⏰</b>المتابعة</button>
+<button class="nav" data-p="followups" onclick="showPage('followups')" style="position:relative"><b>⏰</b>المتابعة<span id="followupNavBadge" style="display:none;position:absolute;top:2px;left:50%;transform:translateX(-50%);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#c62828;color:#fff;font-size:10px;line-height:18px;font-weight:800">0</span></button>
 <button class="nav" data-p="providers" onclick="showPage('providers')"><b>♙</b>الشركات / الفريلانسر</button>
 <button class="nav" data-p="staff" onclick="showPage('staff')"><b>♟</b>الموظفون</button>
 <button class="nav" data-p="newcase" onclick="openNewCase()"><b>＋</b>عميل جديد</button>

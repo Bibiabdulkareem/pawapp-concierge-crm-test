@@ -59,7 +59,7 @@
           <td>${yesNo(c.vaccinated)}</td>
           <td>${yesNo(c.microchipped)}</td>
           <td>${esc(pr.name)}</td>
-          <td>${esc(c.service||c.requested_service||'—')}</td>
+          <td>${esc(c.service||c.requested_service||'—')}${transportDashboardHtml(c)}</td>
           <td>${money(c.amount)}</td>
           <td>${money(paw(c))}</td>
           <td>${money(due(c))}</td>
@@ -308,7 +308,8 @@
             vaccinated:tri(document.getElementById('cVaccinated').value),
             microchipped:tri(document.getElementById('cMicrochipped').value),
             has_pet_id:tri(document.getElementById('cHasPetId').value),
-            preferred_date:document.getElementById('cDate').value||new Date().toISOString().slice(0,10)
+            preferred_date:document.getElementById('cDate').value||new Date().toISOString().slice(0,10),
+            ...transportPayload('c',service)
           })
         });
         if(document.getElementById('cClientPaid').value==='paid'){
@@ -338,7 +339,54 @@
       }
     };
 
-    window.sourceLabel = function(src){
+    
+    function isTransportServiceName(name){
+      const s=String(name||'').toLowerCase().replace(/[_-]/g,' ');
+      const keys=['taxi','تاكسي','pickup','pick up','باك اب','باك أب','بك اب','dropoff','drop off','دروب اوف','دروب أوف','نقل','توصيل'];
+      return keys.some(k=>s.includes(k));
+    }
+
+    window.toggleTransportFields = function(prefix){
+      const service=document.getElementById(prefix+'Service')?.value||'';
+      const wrap=document.getElementById(prefix+'TransportFields');
+      if(!wrap) return;
+      const show=isTransportServiceName(service);
+      wrap.style.display=show?'block':'none';
+      if(!show){
+        ['TransportDirection','TransportAt','PickupLocation','DropoffLocation'].forEach(sfx=>{
+          const el=document.getElementById(prefix+sfx);
+          if(el) el.value='';
+        });
+      }
+    };
+
+    function transportPayload(prefix,service){
+      if(!isTransportServiceName(service)){
+        return {transport_direction:null,transport_at:null,pickup_location:null,dropoff_location:null};
+      }
+      const at=document.getElementById(prefix+'TransportAt')?.value||'';
+      return {
+        transport_direction:document.getElementById(prefix+'TransportDirection')?.value||null,
+        transport_at:at?new Date(at).toISOString():null,
+        pickup_location:document.getElementById(prefix+'PickupLocation')?.value.trim()||null,
+        dropoff_location:document.getElementById(prefix+'DropoffLocation')?.value.trim()||null
+      };
+    }
+
+    function transportDashboardHtml(row){
+      const service=row.service||row.requested_service||'';
+      if(!isTransportServiceName(service)) return '';
+      const bits=[];
+      if(row.transport_at){
+        const d=new Date(row.transport_at);
+        if(Number.isFinite(d.getTime())) bits.push('⏰ '+d.toLocaleString('ar-KW',{dateStyle:'short',timeStyle:'short'}));
+      }
+      if(row.pickup_location) bits.push('استلام: '+esc(row.pickup_location));
+      if(row.dropoff_location) bits.push('توصيل: '+esc(row.dropoff_location));
+      return bits.length?'<div class="hint" style="margin-top:4px;line-height:1.5">'+bits.join('<br>')+'</div>':'';
+    }
+
+window.sourceLabel = function(src){
       const map={
         booking_form_test:'فورم واتساب',
         whatsapp_quick:'واتساب سريع',
@@ -361,6 +409,7 @@
         document.getElementById('eFeeValue').value=Number(p.feeValue||0);
       }
       calcEditCase();
+      toggleTransportFields('e');
     };
 
     window.calcEditCase = function(){
@@ -400,6 +449,11 @@
       ps.value=c.providerId||'';
       editProviderChanged();
       if(c.service) document.getElementById('eService').value=c.service;
+      document.getElementById('eTransportDirection').value=c.transport_direction||'';
+      document.getElementById('eTransportAt').value=c.transport_at?new Date(c.transport_at).toISOString().slice(0,16):'';
+      document.getElementById('ePickupLocation').value=c.pickup_location||'';
+      document.getElementById('eDropoffLocation').value=c.dropoff_location||'';
+      toggleTransportFields('e');
 
       document.getElementById('eTotalAmount').value=Number(c.total_amount||0).toFixed(3);
       document.getElementById('eFeeType').value=c.fee_type||'percent';
@@ -453,7 +507,8 @@
             payment_method:document.getElementById('ePaymentMethod').value,
             client_paid:paidNow,
             client_payment_plan:paidNow?'full':'later',
-            client_due_date:paidNow?null:(document.getElementById('eClientDueDate').value||null)
+            client_due_date:paidNow?null:(document.getElementById('eClientDueDate').value||null),
+            ...transportPayload('e',service)
           })
         });
 

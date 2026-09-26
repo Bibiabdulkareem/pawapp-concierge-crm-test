@@ -100,6 +100,17 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div id="staffList" class="providerGrid"></div>
 </section>
 
+<section id="crm" class="page">
+<div class="title"><div><h1>CRM العملاء والحيوانات</h1><p>ملف واحد للعميل، حيواناته، وسجل خدماته بالكامل</p></div><button class="btn yellow" onclick="openNewCase()">+ خدمة جديدة</button></div>
+<input id="crmSearch" class="search" placeholder="بحث باسم العميل، رقم التلفون أو Case ID..." oninput="renderCRM()">
+<div class="cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
+<div class="card stat"><span>العملاء</span><b id="crmCustomerCount" class="blue">0</b></div>
+<div class="card stat"><span>الحيوانات</span><b id="crmPetCount" class="green">0</b></div>
+<div class="card stat"><span>العمليات</span><b id="crmCaseCount">0</b></div>
+</div>
+<div id="crmCustomerList" class="providerGrid" style="margin-top:12px"></div>
+</section>
+
 <section id="cases" class="page">
 <div class="title"><div><h1>العمليات والعملاء</h1><p>كل الحالات المسجلة وحالة التسوية</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
 <input id="caseSearch" class="search" placeholder="بحث باسم العميل، الشركة، الموظف أو Case ID..." oninput="renderCases()">
@@ -115,6 +126,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <nav class="bottom">
 <button class="nav active" data-p="dashboard" onclick="showPage('dashboard')"><b>⌂</b>الرئيسية</button>
 <button class="nav" data-p="cases" onclick="showPage('cases')"><b>▤</b>العمليات</button>
+<button class="nav" data-p="crm" onclick="showPage('crm')"><b>♡</b>العملاء</button>
 <button class="nav" data-p="providers" onclick="showPage('providers')"><b>♙</b>الشركات / الفريلانسر</button>
 <button class="nav" data-p="staff" onclick="showPage('staff')"><b>♟</b>الموظفون</button>
 <button class="nav" data-p="newcase" onclick="openNewCase()"><b>＋</b>عميل جديد</button>

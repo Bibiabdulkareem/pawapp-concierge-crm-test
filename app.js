@@ -882,6 +882,78 @@
       }catch(e){console.error('followups load failed',e);db.followups=[]}
     };
 
+
+    const followupAlerted=new Set();
+
+    function playFollowupBeep(){
+      try{
+        const AC=window.AudioContext||window.webkitAudioContext;
+        if(!AC) return;
+        const ctx=new AC(),osc=ctx.createOscillator(),gain=ctx.createGain();
+        osc.type='sine'; osc.frequency.value=880;
+        gain.gain.setValueAtTime(0.0001,ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.18,ctx.currentTime+0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.35);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime+0.38);
+      }catch(e){console.warn('beep unavailable',e)}
+    }
+
+    window.enableBrowserFollowupNotifications=async function(){
+      if(!('Notification' in window)){alert('هذا المتصفح ما يدعم إشعارات المتصفح');return}
+      try{
+        const p=await Notification.requestPermission();
+        if(p==='granted'){toast('تم تفعيل تنبيه المتصفح');checkFollowupAlerts(true)}
+        else alert('لازم تسمحين بالإشعارات من المتصفح');
+      }catch(e){console.error(e);alert('تعذر تفعيل الإشعارات')}
+    };
+
+    function checkFollowupAlerts(force){
+      const rows=(db.followups||[]).filter(f=>!(f.status==='done'||f.status==='cancelled'));
+      const now=Date.now();
+      const dueSoon=rows.filter(f=>{
+        const t=new Date(f.followup_at).getTime();
+        return Number.isFinite(t) && t<=now+15*60*1000;
+      });
+      const badge=document.getElementById('followupNavBadge');
+      const banner=document.getElementById('followupAlertBanner');
+      const txt=document.getElementById('followupAlertText');
+      if(badge){
+        badge.textContent=String(dueSoon.length);
+        badge.style.display=dueSoon.length?'inline-block':'none';
+      }
+      if(banner){
+        banner.style.display=dueSoon.length?'block':'none';
+        if(txt) txt.textContent=dueSoon.length===1?'متابعة واحدة خلال 15 دقيقة أو متأخرة':'عندك '+dueSoon.length+' متابعات خلال 15 دقيقة أو متأخرة';
+      }
+      dueSoon.forEach(f=>{
+        if(!force && followupAlerted.has(f.id)) return;
+        followupAlerted.add(f.id);
+        const ca=db.cases.find(x=>String(x.id)===String(f.case_id))||{};
+        const title='PawApp متابعة';
+        const body=(ca.client_name||'عميل')+' • '+(f.reason||'موعد متابعة');
+        if(document.visibilityState==='visible') playFollowupBeep();
+        if('Notification' in window && Notification.permission==='granted'){
+          try{ new Notification(title,{body,tag:'followup-'+f.id,renotify:false}); }catch(e){}
+        }
+      });
+      if(document.getElementById('followupList')) renderFollowups();
+    }
+
+    document.addEventListener('click',function onceAudio(){
+      try{playFollowupBeep()}catch(e){}
+      document.removeEventListener('click',onceAudio);
+    },{once:true});
+
+    setInterval(()=>checkFollowupAlerts(false),60000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkFollowupAlerts(false)});
+
+    const previousLoadDataForAlerts=window.loadData;
+    window.loadData=async function(){
+      await previousLoadDataForAlerts();
+      checkFollowupAlerts(false);
+    };
+
 renderAll();
   };
   document.head.appendChild(script);

@@ -69,8 +69,8 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field"><label>الموظف المسؤول *</label><select id="cStaff"></select><div class="hint">هذا اسم موظف PawApp اللي استلم وسجّل الطلب.</div></div>
 <div class="field"><label>مصدر الطلب *</label><select id="cSource"><option value="whatsapp_quick">واتساب سريع</option><option value="phone_call">مكالمة</option><option value="manual_test">إدخال داخلي</option><option value="instagram">Instagram</option><option value="referral">تحويل / توصية</option></select><div class="hint">يفيدنا نعرف العميل عبّى الفورم ولا فضّل واتساب سريع أو مكالمة.</div></div>
 <div class="field"><label>التاريخ *</label><input id="cDate" type="date"></div>
-<div class="field"><label>مقدم الخدمة *</label><select id="cProvider" onchange="providerChanged()"></select><div class="hint">العيادة / الشركة / الدكتور أو الفريلانسر اللي راح ينفذ الخدمة.</div></div>
-<div class="field"><label>الخدمة *</label><select id="cService"></select><div class="hint">الخدمات هنا تجي تلقائي من الخدمات المسجلة داخل مقدم الخدمة.</div></div>
+<div class="field"><label>الشركة / الفريلانسر *</label><select id="cProvider" onchange="providerChanged()"></select><div class="hint">العيادة / الشركة / الدكتور أو الفريلانسر اللي راح ينفذ الخدمة.</div></div>
+<div class="field"><label>الخدمة *</label><select id="cService"></select><div class="hint">الخدمات هنا تجي تلقائي من الخدمات المسجلة داخل الشركة / الفريلانسر.</div></div>
 <div class="field"><label>طريقة حصة PawApp *</label><select id="cFeeType" onchange="toggleCasePricing()"><option value="percent">نسبة %</option><option value="fixed">سعر ثابت د.ك</option></select></div>
 <div class="field"><label id="cAmountLabel">إجمالي ما يدفعه العميل (د.ك) *</label><input id="cAmount" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcCase()"></div>
 <div class="field"><label id="cCommissionLabel">نسبة PawApp % *</label><input id="cCommission" type="number" min="0" step="0.001" oninput="calcCase()"></div>
@@ -79,18 +79,18 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div id="installmentsWrap" style="display:none"></div>
 <div id="installmentScheduleWrap" style="display:none"><div id="installmentRows"></div></div>
 <div class="field"><label>حالة دفع العميل *</label><select id="cClientPaid"><option value="unpaid">لم يتم الدفع</option><option value="paid">تم الدفع بالكامل</option></select><div class="hint" id="payNowHint">بس نحدد: تم الدفع أو لم يتم الدفع. ما في أقساط في نسخة التست الحالية.</div></div>
-<div class="field"><label>طريقة دفع العميل</label><select id="cPayMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/المقدم مباشرة</option></select></div>
+<div class="field"><label>طريقة دفع العميل</label><select id="cPayMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
 <div class="field full"><label>ملاحظة السداد</label><input id="cPaymentNote" placeholder="مثال: يدفع نهاية الشهر / أول قسط 20 د.ك"></div>
 <div class="field full"><label>ملاحظات</label><textarea id="cNotes" rows="3" placeholder="أي تفاصيل مهمة عن الحالة"></textarea></div>
 </div>
-<div class="calc" style="grid-template-columns:repeat(3,1fr)"><div><span>إجمالي ما يدفعه العميل</span><b id="calcTotal">0.000 د.ك</b></div><div><span>حصة PawApp من العميل</span><b id="calcPaw">0.000 د.ك</b></div><div><span>مستحق مقدم الخدمة</span><b id="calcDue">0.000 د.ك</b></div><b id="calcRemain" style="display:none">0.000 د.ك</b></div>
+<div class="calc" style="grid-template-columns:repeat(3,1fr)"><div><span>إجمالي ما يدفعه العميل</span><b id="calcTotal">0.000 د.ك</b></div><div><span>حصة PawApp من العميل</span><b id="calcPaw">0.000 د.ك</b></div><div><span>مستحق الشركة / الفريلانسر</span><b id="calcDue">0.000 د.ك</b></div><b id="calcRemain" style="display:none">0.000 د.ك</b></div>
 <button class="btn primary" style="width:100%;margin-top:13px" onclick="saveCase()">حفظ العملية</button>
 <p class="hint">كل عملية تأخذ Case ID تلقائي، واسم الموظف يبقى مسجل عليها.</p>
 </div>
 </section>
 
 <section id="providers" class="page">
-<div class="title"><div><h1>مقدمو الخدمة</h1><p>سجلي العيادة أو الدكتور مرة واحدة، وبعدها أضيفي كل خدماته تحته</p></div><button class="btn primary" onclick="openProvider()">+ إضافة مقدم</button></div>
+<div class="title"><div><h1>الشركات / الفريلانسر</h1><p>سجلي العيادة أو الدكتور مرة واحدة، وبعدها أضيفي كل خدماته تحته</p></div><button class="btn primary" onclick="openProvider()">+ إضافة شركة / فريلانسر</button></div>
 <input id="providerSearch" class="search" placeholder="بحث..." oninput="renderProviders()">
 <div id="providerList" class="providerGrid" style="margin-top:11px"></div>
 </section>
@@ -115,13 +115,13 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <nav class="bottom">
 <button class="nav active" data-p="dashboard" onclick="showPage('dashboard')"><b>⌂</b>الرئيسية</button>
 <button class="nav" data-p="cases" onclick="showPage('cases')"><b>▤</b>العمليات</button>
-<button class="nav" data-p="providers" onclick="showPage('providers')"><b>♙</b>المقدمون</button>
+<button class="nav" data-p="providers" onclick="showPage('providers')"><b>♙</b>الشركات / الفريلانسر</button>
 <button class="nav" data-p="staff" onclick="showPage('staff')"><b>♟</b>الموظفون</button>
 <button class="nav" data-p="newcase" onclick="openNewCase()"><b>＋</b>عميل جديد</button>
 </nav>
 
 <div id="providerModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3>إضافة مقدم خدمة</h3><button class="close" onclick="closeModal('providerModal')">×</button></div>
+<div class="modalHead"><h3>إضافة شركة / فريلانسر خدمة</h3><button class="close" onclick="closeModal('providerModal')">×</button></div>
 <div class="grid2">
 <div class="field"><label>النوع</label><select id="pType" onchange="typeChanged()"><option value="company">Company</option><option value="freelancer">Freelancer</option></select></div>
 <div id="pCatWrap" class="field"><label>تصنيف الشركة</label><select id="pCategory"><option value="veterinary">Veterinary</option><option value="services">Services</option></select></div>
@@ -129,9 +129,9 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field"><label>رقم التواصل</label><input id="pPhone"></div>
 <div class="field"><label>طريقة حصة PawApp الافتراضية</label><select id="pFeeType" onchange="toggleProviderPricing()"><option value="percent">نسبة %</option><option value="fixed">سعر ثابت د.ك</option></select></div>
 <div class="field"><label id="pCommissionLabel">نسبة PawApp الافتراضية %</label><input id="pCommission" type="number" value="7" min="0" step="0.001"></div>
-<div class="field full"><div class="hint">احفظي مقدم الخدمة أولاً، وبعدها أضيفي خدماته من زر «إدارة الخدمات» تحت اسمه.</div></div>
+<div class="field full"><div class="hint">احفظي الشركة / الفريلانسر أولاً، وبعدها أضيفي خدماته من زر «إدارة الخدمات» تحت الاسم.</div></div>
 </div>
-<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveProvider()">حفظ مقدم الخدمة</button>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveProvider()">حفظ الشركة / الفريلانسر</button>
 </div></div>
 
 <div id="serviceModal" class="modalBg"><div class="modal">
@@ -191,7 +191,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="grid2">
 <div class="field"><label>المبلغ المدفوع</label><input id="cpAmount" type="number" min="0" step="0.001"></div>
 <div class="field"><label>تاريخ الدفع</label><input id="cpDate" type="date"></div>
-<div class="field"><label>طريقة الدفع</label><select id="cpMethod"><option>كاش</option><option>KNET</option><option>كريدت كارد</option><option>تحويل</option><option>رابط دفع</option><option>دفع للعيادة/المقدم مباشرة</option></select></div>
+<div class="field"><label>طريقة الدفع</label><select id="cpMethod"><option>كاش</option><option>KNET</option><option>كريدت كارد</option><option>تحويل</option><option>رابط دفع</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
 <div class="field"><label>ملاحظة</label><input id="cpNote" placeholder="اختياري"></div>
 </div>
 <p class="hint" id="cpSummary"></p>
@@ -199,7 +199,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </div></div>
 
 <div id="settleModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3>تسجيل دفعة لمقدم الخدمة</h3><button class="close" onclick="closeModal('settleModal')">×</button></div>
+<div class="modalHead"><h3>تسجيل دفعة للشركة / الفريلانسر</h3><button class="close" onclick="closeModal('settleModal')">×</button></div>
 <input id="sCase" type="hidden">
 <div class="grid2">
 <div class="field"><label>المبلغ المدفوع</label><input id="sAmount" type="number" min="0" step="0.001"></div>

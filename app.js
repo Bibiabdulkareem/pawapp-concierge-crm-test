@@ -891,9 +891,18 @@
     };
 
     const prevShowPageFollowups=window.showPage;
-    window.showPage=function(id){
+    window.showPage=async function(id){
       prevShowPageFollowups(id);
-      if(id==='followups') renderFollowups();
+      if(id==='followups'){
+        try{
+          db.followups=await api('followups?select=*&order=followup_at.asc');
+        }catch(e){
+          console.error('followups refresh failed',e);
+          db.followups=db.followups||[];
+        }
+        renderFollowups();
+        checkFollowupAlerts(false);
+      }
     };
 
 
@@ -939,17 +948,23 @@
         const t=new Date(f.followup_at).getTime();
         return Number.isFinite(t) && t<=now+15*60*1000;
       });
+
       const badge=document.getElementById('followupNavBadge');
       const banner=document.getElementById('followupAlertBanner');
       const txt=document.getElementById('followupAlertText');
 
+      // Red badge = ANY open follow-up, even if its time is later.
       if(badge){
-        badge.textContent=String(dueSoon.length);
-        badge.style.display=dueSoon.length?'inline-block':'none';
+        badge.textContent=String(rows.length);
+        badge.style.display=rows.length?'inline-block':'none';
       }
+
+      // Red banner + sound/browser notification = due within 15 minutes or overdue.
       if(banner){
         banner.style.display=dueSoon.length?'block':'none';
-        if(txt) txt.textContent=dueSoon.length===1?'متابعة واحدة موعدها قريب أو متأخرة':'عندك '+dueSoon.length+' متابعات موعدها قريب أو متأخرة';
+        if(txt) txt.textContent=dueSoon.length===1
+          ? 'متابعة واحدة موعدها خلال 15 دقيقة أو متأخرة'
+          : 'عندك '+dueSoon.length+' متابعات موعدها خلال 15 دقيقة أو متأخرة';
       }
 
       dueSoon.forEach(f=>{
@@ -981,7 +996,15 @@
       checkFollowupAlerts(false);
     };
 
-renderAll();
+(async()=>{
+      try{
+        await loadData();
+      }catch(e){
+        console.error('initial test load failed',e);
+      }
+      renderAll();
+      checkFollowupAlerts(false);
+    })();
   };
   document.head.appendChild(script);
 })();

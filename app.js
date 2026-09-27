@@ -1091,6 +1091,256 @@ window.sourceLabel = function(src){
     };
 
 
+
+    /* payment-destination-v2 */
+    function v2ClientPaid(c){
+      return !!c.client_paid || (clientRem(c)<=0.0001 && Number(c.total_amount||0)>0);
+    }
+    function v2CollectFromProvider(c){
+      if(!v2ClientPaid(c) || c.client_paid_to!=='provider') return 0;
+      return Math.max(0,Number(c.pawapp_amount||0)-Number(c.pawapp_received_from_provider||0));
+    }
+    function v2PayProvider(c){
+      if(!v2ClientPaid(c) || c.client_paid_to!=='pawapp') return 0;
+      return Math.max(0,Number(c.provider_amount||0)-Number(c.providerPaid||0));
+    }
+    function v2Route(c){
+      if(!v2ClientPaid(c)) return 'لم يسدد';
+      if(c.client_paid_to==='pawapp') return 'دفع لـ PawApp';
+      if(c.client_paid_to==='provider') return 'دفع للشركة / الفريلانسر';
+      return 'تم السداد - حددي دفع لمن';
+    }
+    window.toggleNewPaymentFields=function(){
+      const paid=document.getElementById('cClientPaid')&&document.getElementById('cClientPaid').value==='paid';
+      const a=document.getElementById('cPaidToWrap'),b=document.getElementById('cDueDateWrap');
+      if(a)a.style.display=paid?'flex':'none';
+      if(b)b.style.display=paid?'none':'flex';
+      if(paid&&document.getElementById('cClientDueDate'))document.getElementById('cClientDueDate').value='';
+    };
+    window.toggleEditPaymentFields=function(){
+      const paid=document.getElementById('eClientPaid')&&document.getElementById('eClientPaid').value==='paid';
+      const route=document.getElementById('ePaidTo')?document.getElementById('ePaidTo').value:'pawapp';
+      const a=document.getElementById('ePaidToWrap'),b=document.getElementById('eDueDateWrap'),d=document.getElementById('ePawappCollectedWrap');
+      if(a)a.style.display=paid?'flex':'none';
+      if(b)b.style.display=paid?'none':'flex';
+      if(d)d.style.display=(paid&&route==='provider')?'flex':'none';
+      if(paid&&document.getElementById('eClientDueDate'))document.getElementById('eClientDueDate').value='';
+      const id=document.getElementById('editCaseId')?document.getElementById('editCaseId').value:'';
+      const row=db.cases.find(function(x){return String(x.id)===String(id)});
+      const s=document.getElementById('eFinancialSummary');
+      if(s&&row){
+        if(!paid)s.innerHTML='<b class="red">العميل لم يسدد</b><div class="hint">المتبقي '+money(clientRem(row))+'</div>';
+        else if(route==='provider'){
+          const left=Math.max(0,Number(row.pawapp_amount||0)-(document.getElementById('ePawappCollected').value==='yes'?Number(row.pawapp_amount||0):Number(row.pawapp_received_from_provider||0)));
+          s.innerHTML='<b>دفع للشركة / الفريلانسر</b><div class="hint">حصة PawApp '+money(row.pawapp_amount)+' • '+(left>0?'لنا عندهم '+money(left):'تم استلام حصة PawApp')+'</div>';
+        } else {
+          s.innerHTML='<b>دفع لـ PawApp</b><div class="hint">مستحق الشركة / الفريلانسر '+money(row.provider_amount)+' • '+(v2PayProvider(row)>0?'لهم عندنا '+money(v2PayProvider(row)):'تمت التسوية')+'</div>';
+        }
+      }
+    };
+    window.toggleEditDueDate=window.toggleEditPaymentFields;
+
+    const v2OpenCase=window.openCaseDetails;
+    window.openCaseDetails=function(id){
+      v2OpenCase(id);
+      const row=db.cases.find(function(x){return String(x.id)===String(id)});
+      if(!row)return;
+      const paid=v2ClientPaid(row);
+      if(document.getElementById('eClientPaid'))document.getElementById('eClientPaid').value=paid?'paid':'unpaid';
+      if(document.getElementById('ePaidTo'))document.getElementById('ePaidTo').value=row.client_paid_to||'pawapp';
+      if(document.getElementById('ePawappCollected'))document.getElementById('ePawappCollected').value=(Number(row.pawapp_amount||0)>0&&Number(row.pawapp_received_from_provider||0)>=Number(row.pawapp_amount||0)-0.0001)?'yes':'no';
+      window.toggleEditPaymentFields();
+    };
+
+    const v2OpenNewCase=window.openNewCase;
+    window.openNewCase=function(){
+      v2OpenNewCase();
+      if(document.getElementById('cClientPaid'))document.getElementById('cClientPaid').value='unpaid';
+      if(document.getElementById('cPaidTo'))document.getElementById('cPaidTo').value='pawapp';
+      if(document.getElementById('cClientDueDate'))document.getElementById('cClientDueDate').value='';
+      window.toggleNewPaymentFields();
+    };
+
+    window.saveCase=async function(){
+      const client=document.getElementById('cClient').value.trim();
+      const employeeId=document.getElementById('cStaff').value;
+      const providerId=document.getElementById('cProvider').value;
+      const service=document.getElementById('cService').value;
+      const petType=document.getElementById('cPetType').value;
+      const base=Number(document.getElementById('cAmount').value||0);
+      const feeType=document.getElementById('cFeeType').value;
+      const feeValue=Number(document.getElementById('cCommission').value||0);
+      const paidNow=document.getElementById('cClientPaid').value==='paid';
+      const paidTo=paidNow?(document.getElementById('cPaidTo').value||'pawapp'):null;
+      const missing=[];
+      if(!client)missing.push('اسم العميل');
+      if(!petType)missing.push('نوع الحيوان');
+      if(!employeeId)missing.push('الموظف المسؤول');
+      if(!providerId)missing.push('الشركة / الفريلانسر');
+      if(!service)missing.push('الخدمة');
+      if(base<=0)missing.push('السعر');
+      if(missing.length){alert('باقي تكملين: '+missing.join('، '));return}
+      const total=feeType==='fixed'?base+feeValue:base;
+      const pw=feeType==='fixed'?feeValue:total*feeValue/100;
+      const providerAmount=Math.max(0,total-pw);
+      const tri=function(v){return v==='yes'?true:v==='no'?false:null};
+      try{
+        const inserted=await api('cases',{
+          method:'POST',headers:{Prefer:'return=representation'},
+          body:JSON.stringify({
+            service_date:document.getElementById('cDate').value||new Date().toISOString().slice(0,10),
+            client_name:client,client_phone:document.getElementById('cPhone').value.trim(),
+            employee_id:employeeId,provider_id:providerId,service_name:service,
+            fee_type:feeType,fee_value:feeValue,total_amount:total,pawapp_amount:pw,provider_amount:providerAmount,
+            client_paid:paidNow,client_paid_to:paidTo,pawapp_received_from_provider:0,
+            payment_method:document.getElementById('cPayMethod').value,
+            client_payment_plan:paidNow?'full':'later',
+            client_due_date:paidNow?null:(document.getElementById('cClientDueDate').value||null),
+            client_payment_note:document.getElementById('cPaymentNote').value.trim()||null,
+            notes:document.getElementById('cNotes').value.trim()||null,
+            source:document.getElementById('cSource')?document.getElementById('cSource').value:'manual_test',
+            workflow_status:'new_request',requested_service:service,
+            location:document.getElementById('cLocation').value.trim()||null,
+            pet_type:petType,breed:document.getElementById('cBreed').value.trim()||null,
+            pet_age:document.getElementById('cPetAge').value.trim()||null,
+            pet_friendly:tri(document.getElementById('cPetFriendly').value),
+            reason:document.getElementById('cReason').value.trim()||null,
+            vaccinated:tri(document.getElementById('cVaccinated').value),
+            microchipped:tri(document.getElementById('cMicrochipped').value),
+            has_pet_id:tri(document.getElementById('cHasPetId').value),
+            preferred_date:document.getElementById('cDate').value||new Date().toISOString().slice(0,10),
+            ...transportPayload('c',service)
+          })
+        });
+        if(paidNow&&paidTo==='pawapp'){
+          await api('client_payments',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+            case_id:inserted[0].id,amount:total,
+            paid_at:document.getElementById('cDate').value||new Date().toISOString().slice(0,10),
+            method:document.getElementById('cPayMethod').value,
+            note:document.getElementById('cPaymentNote').value.trim()||null
+          })});
+        }
+        await loadData();showPage('cases');toast('تم حفظ العملية');
+      }catch(e){console.error(e);alert('تعذر حفظ العملية')}
+    };
+
+    window.saveCaseDetails=async function(){
+      const id=document.getElementById('editCaseId').value;
+      const row=db.cases.find(function(x){return String(x.id)===String(id)});if(!row)return;
+      const tri=function(v){return v==='yes'?true:v==='no'?false:null};
+      const providerId=document.getElementById('eProvider').value||null;
+      const service=document.getElementById('eService').value||null;
+      const total=Number(document.getElementById('eTotalAmount').value||0);
+      const feeType=document.getElementById('eFeeType').value;
+      const feeValue=Number(document.getElementById('eFeeValue').value||0);
+      const pawAmount=feeType==='fixed'?feeValue:total*feeValue/100;
+      const providerAmount=Math.max(0,total-pawAmount);
+      const paidNow=document.getElementById('eClientPaid').value==='paid';
+      const paidTo=paidNow?(document.getElementById('ePaidTo').value||'pawapp'):null;
+      const collected=(paidNow&&paidTo==='provider'&&document.getElementById('ePawappCollected').value==='yes')?pawAmount:0;
+      const existingPaid=clientPaidAmt(row);
+      try{
+        await api('cases?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+          client_phone:document.getElementById('ePhone').value.trim(),
+          location:document.getElementById('eLocation').value.trim()||null,
+          pet_type:document.getElementById('ePetType').value||null,
+          breed:document.getElementById('eBreed').value.trim()||null,
+          pet_age:document.getElementById('ePetAge').value.trim()||null,
+          pet_friendly:tri(document.getElementById('ePetFriendly').value),
+          vaccinated:tri(document.getElementById('eVaccinated').value),
+          microchipped:tri(document.getElementById('eMicrochipped').value),
+          has_pet_id:tri(document.getElementById('eHasPetId').value),
+          reason:document.getElementById('eReason').value.trim()||null,
+          provider_id:providerId,service_name:service,requested_service:row.requested_service||service,
+          fee_type:feeType,fee_value:feeValue,total_amount:total,pawapp_amount:pawAmount,provider_amount:providerAmount,
+          payment_method:document.getElementById('ePaymentMethod').value,
+          client_paid:paidNow,client_paid_to:paidTo,pawapp_received_from_provider:collected,
+          client_payment_plan:paidNow?'full':'later',
+          client_due_date:paidNow?null:(document.getElementById('eClientDueDate').value||null),
+          ...transportPayload('e',service)
+        })});
+        if(paidNow&&paidTo==='pawapp'&&total>0&&existingPaid<total-0.0001){
+          await api('client_payments',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+            case_id:Number(id),amount:total-existingPaid,paid_at:new Date().toISOString().slice(0,10),
+            method:document.getElementById('ePaymentMethod').value,note:'تسديد كامل من شاشة الحالة'
+          })});
+        }
+        closeModal('completeCaseModal');await loadData();toast('تم حفظ بيانات الحالة');
+      }catch(e){console.error(e);alert('تعذر حفظ البيانات')}
+    };
+
+    window.renderDashboard=function(){
+      let pawTotal=0,ours=0,theirs=0,clientRemainTotal=0,unpaidCount=0;
+      db.cases.forEach(function(c){
+        pawTotal+=paw(c);ours+=v2CollectFromProvider(c);theirs+=v2PayProvider(c);
+        if(!v2ClientPaid(c)&&clientRem(c)>0.0001){unpaidCount++;clientRemainTotal+=clientRem(c)}
+      });
+      if(document.getElementById('kOps'))document.getElementById('kOps').textContent=String(db.cases.length);
+      if(document.getElementById('kPaw'))document.getElementById('kPaw').textContent=money(pawTotal);
+      if(document.getElementById('kCollectFromProviders'))document.getElementById('kCollectFromProviders').textContent=money(ours);
+      if(document.getElementById('kPayProviders'))document.getElementById('kPayProviders').textContent=money(theirs);
+      if(document.getElementById('kUnpaidClients'))document.getElementById('kUnpaidClients').textContent=String(unpaidCount);
+      if(document.getElementById('kClientRemain'))document.getElementById('kClientRemain').textContent=money(clientRemainTotal);
+
+      const tasks=[];
+      db.cases.forEach(function(c){
+        const pr=byProvider(c.providerId);
+        if(!v2ClientPaid(c)&&clientRem(c)>0.0001)tasks.push({c:c,t:'تحصيل من العميل',a:clientRem(c),x:'العميل لم يسدد'});
+        else if(c.client_paid_to==='provider'&&v2CollectFromProvider(c)>0.0001)tasks.push({c:c,t:'تحصيل حصة PawApp',a:v2CollectFromProvider(c),x:'عند '+pr.name});
+        else if(c.client_paid_to==='pawapp'&&v2PayProvider(c)>0.0001)tasks.push({c:c,t:'تحويل مستحق الجهة',a:v2PayProvider(c),x:'إلى '+pr.name});
+        else if(v2ClientPaid(c)&&!c.client_paid_to)tasks.push({c:c,t:'حدد جهة الدفع',a:0,x:'العميل مسدد لكن غير محدد دفع لمن'});
+      });
+      const sec=document.getElementById('financialFollowupSection'),box=document.getElementById('financialFollowups');
+      if(sec)sec.style.display=tasks.length?'block':'none';
+      if(box)box.innerHTML=tasks.slice(0,8).map(function(x){
+        return '<div class="card provider"><h3>'+esc(x.t)+'</h3><p>'+esc(x.c.client_name)+' • PAW-'+String(x.c.id).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span>المبلغ</span><b>'+money(x.a)+'</b></div><div class="mini" style="grid-column:span 2"><span>المطلوب</span><b>'+esc(x.x)+'</b></div></div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+x.c.id+'\')">فتح الحالة</button></div></div>';
+      }).join('');
+
+      const reminders=db.cases.filter(function(c){return !v2ClientPaid(c)&&clientRem(c)>0.0001&&c.client_due_date});
+      const dueSec=document.getElementById('clientDueSection'),remBox=document.getElementById('clientDueReminders');
+      if(dueSec)dueSec.style.display=reminders.length?'block':'none';
+      if(remBox)remBox.innerHTML=reminders.map(function(c){
+        return '<div class="card provider"><h3>'+esc(c.client_name)+'</h3><p>PAW-'+String(c.id).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span>المتبقي</span><b>'+money(clientRem(c))+'</b></div><div class="mini"><span>موعد المتابعة</span><b>'+esc(c.client_due_date)+'</b></div><div class="mini"><span>الحالة</span><b>متابعة سداد</b></div></div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح الحالة</button></div></div>';
+      }).join('');
+
+      const pf=document.getElementById('dashboardProviderFilter')?document.getElementById('dashboardProviderFilter').value:'all';
+      const vf=document.getElementById('dashboardVendorStatusFilter')?document.getElementById('dashboardVendorStatusFilter').value:'all';
+      let ph='';
+      db.providers.forEach(function(pr){
+        if(pf!=='all'&&pr.id!==pf)return;
+        const cs=db.cases.filter(function(x){return x.providerId===pr.id});if(!cs.length)return;
+        const clients=new Set(cs.map(function(x){return String(x.client_phone||x.client_name||x.id).toLowerCase()})).size;
+        const services=[...new Set(cs.map(function(x){return x.service||x.requested_service}).filter(Boolean))];
+        let po=0,pt=0;cs.forEach(function(x){po+=v2CollectFromProvider(x);pt+=v2PayProvider(x)});
+        const open=po>0.0001||pt>0.0001;if(vf==='paid'&&open)return;if(vf==='unpaid'&&!open)return;
+        const net=po-pt;
+        const sv=services.slice(0,3).map(esc).join(' • ')+(services.length>3?' +'+(services.length-3):'');
+        ph+='<div class="card provider"><h3>'+esc(pr.name)+'</h3><p>'+(sv||'ما في خدمات مستخدمة')+'</p><div class="miniGrid"><div class="mini"><span>العملاء</span><b>'+clients+'</b></div><div class="mini"><span>العمليات</span><b>'+cs.length+'</b></div><div class="mini"><span>الخدمات</span><b>'+services.length+'</b></div></div><div class="miniGrid"><div class="mini"><span>لنا عندهم</span><b class="'+(po>0?'red':'green')+'">'+money(po)+'</b></div><div class="mini"><span>لهم عندنا</span><b class="'+(pt>0?'red':'green')+'">'+money(pt)+'</b></div><div class="mini"><span>الصافي</span><b>'+(net>0?'لنا '+money(net):net<0?'لهم '+money(Math.abs(net)):'متسوي')+'</b></div></div><div class="actions"><button class="btn soft" onclick="providerCases(\''+pr.id+'\')">التفاصيل</button></div></div>';
+      });
+      if(document.getElementById('dashboardProviders'))document.getElementById('dashboardProviders').innerHTML=ph||'<div class="card">ما في نتائج.</div>';
+
+      let recent='';
+      db.cases.slice().reverse().slice(0,6).forEach(function(c){
+        const pr=byProvider(c.providerId);
+        recent+='<tr><td>PAW-'+String(c.id).padStart(4,'0')+'</td><td>'+esc(c.client_name)+'</td><td>'+esc(c.pet_type||'—')+'</td><td>'+(c.vaccinated===true?'نعم':c.vaccinated===false?'لا':'—')+'</td><td>'+esc(pr.name)+'</td><td>'+esc(c.service||c.requested_service||'—')+'</td><td>'+money(c.amount)+'</td><td>'+money(paw(c))+'</td><td>'+money(due(c))+'</td><td><span class="status '+(v2ClientPaid(c)?'paid':'unpaid')+'">'+esc(v2Route(c))+'</span></td></tr>';
+      });
+      if(document.getElementById('recent'))document.getElementById('recent').innerHTML=recent||'<tr><td colspan="10">لا توجد عمليات</td></tr>';
+    };
+
+    window.renderProviders=function(){
+      const q=(document.getElementById('providerSearch').value||'').toLowerCase();let h='';
+      db.providers.filter(function(p){return !q||p.name.toLowerCase().includes(q)}).forEach(function(p){
+        const cs=db.cases.filter(function(c){return c.providerId===p.id});
+        const clients=new Set(cs.map(function(x){return String(x.client_phone||x.client_name||x.id).toLowerCase()})).size;
+        let po=0,pt=0;cs.forEach(function(x){po+=v2CollectFromProvider(x);pt+=v2PayProvider(x)});
+        const typ=p.type==='freelancer'?'Freelancer':(p.category==='veterinary'?'Company - Veterinary':'Company - Services');
+        const feeTxt=p.feeType==='fixed'?money(p.feeValue)+' ثابت':p.feeValue+'%';
+        const services=p.services.length?p.services.map(function(x){return '<span class="status partial" style="margin:3px">'+esc(x)+'</span>'}).join(''):'<span class="hint">ما في خدمات مضافة</span>';
+        h+='<div class="card provider"><h3>'+esc(p.name)+'</h3><p>'+typ+' • '+feeTxt+'</p><div style="margin-top:8px">'+services+'</div><div class="miniGrid"><div class="mini"><span>العملاء</span><b>'+clients+'</b></div><div class="mini"><span>العمليات</span><b>'+cs.length+'</b></div><div class="mini"><span>الخدمات</span><b>'+p.services.length+'</b></div></div><div class="miniGrid"><div class="mini"><span>لنا عندهم</span><b>'+money(po)+'</b></div><div class="mini"><span>لهم عندنا</span><b>'+money(pt)+'</b></div><div class="mini"><span>الصافي</span><b>'+money(Math.abs(po-pt))+'</b></div></div><div class="actions"><button class="btn primary" onclick="openServiceManager(\''+p.id+'\')">إدارة الخدمات</button><button class="btn soft" onclick="providerCases(\''+p.id+'\')">العمليات</button><button class="btn danger" onclick="deleteProvider(\''+p.id+'\')">حذف</button></div></div>';
+      });
+      document.getElementById('providerList').innerHTML=h||'<div class="card">لا توجد نتائج</div>';
+    };
+
 (async()=>{
       try{
         await loadData();

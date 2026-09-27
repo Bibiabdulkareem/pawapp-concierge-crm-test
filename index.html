@@ -313,7 +313,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field" id="ePaidToWrap" style="display:none"><label>العميل دفع لمن؟</label><select id="ePaidTo" onchange="toggleEditPaymentFields()"><option value="pawapp">PawApp</option><option value="provider">العيادة / الشركة / الفريلانسر مباشرة</option></select></div>
 <div class="field" id="eDueDateWrap"><label>موعد متابعة السداد</label><input id="eClientDueDate" type="date"><div class="hint">إذا لم يسدد، يظهر كتذكير للموظف.</div></div>
 <div class="field"><label>طريقة الدفع</label><select id="ePaymentMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
-<div class="field" id="ePawappCollectedWrap" style="display:none"><label>هل استلمت PawApp حصتها من الشركة؟</label><select id="ePawappCollected"><option value="no">لا، لازالت مستحقة</option><option value="yes">نعم، تم الاستلام</option></select></div>
+<div class="field" id="ePawappCollectedWrap" style="display:none"><label>هل استلمت PawApp حصتها من الشركة؟</label><select id="ePawappCollected" onchange="toggleEditPaymentFields()"><option value="no">لا، لازالت مستحقة</option><option value="yes">نعم، تم الاستلام</option></select></div>
 <div class="field full"><div id="eFinancialSummary" class="card" style="box-shadow:none;margin:0;background:#f8fafc"></div></div>
 </div>
 <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCaseDetails()">حفظ كل التعديلات</button>

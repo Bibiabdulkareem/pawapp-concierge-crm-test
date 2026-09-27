@@ -89,17 +89,19 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <main class="main">
 <section id="dashboard" class="page active">
 <div class="title"><div><h1>لوحة التحكم</h1><p>واضح وبسيط: ما يدفعه العميل، حصة PawApp، وحسابات الشركات / الفريلانسر</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
-<div class="cards">
-<div class="card stat"><span>إجمالي ما يدفعه العملاء</span><b id="kSales" class="blue">0.000 د.ك</b></div>
-<div class="card stat"><span>حصة PawApp من العملاء</span><b id="kPaw" class="green">0.000 د.ك</b></div>
-<div class="card stat"><span>مستحق للشركات / الفريلانسر</span><b id="kDue">0.000 د.ك</b></div>
-<div class="card stat"><span>تم دفعه للشركات / الفريلانسر</span><b id="kPaid" class="green">0.000 د.ك</b></div>
-<div class="card stat"><span>متبقي للشركات / الفريلانسر</span><b id="kRemain" class="red">0.000 د.ك</b></div>
+<div class="cards" style="grid-template-columns:repeat(4,1fr)">
+<div class="card stat"><span>عدد العمليات</span><b id="kOps" class="blue">0</b></div>
+<div class="card stat"><span>حصة PawApp</span><b id="kPaw" class="green">0.000 د.ك</b></div>
+<div class="card stat"><span>لنا عند الشركات / الفريلانسر</span><b id="kCollectFromProviders" class="red">0.000 د.ك</b></div>
+<div class="card stat"><span>للشركات / الفريلانسر عندنا</span><b id="kPayProviders" class="red">0.000 د.ك</b></div>
 </div>
-<div class="cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
-<div class="card stat"><span>إجمالي على العملاء</span><b id="kClientDue" class="blue">0.000 د.ك</b></div>
-<div class="card stat"><span>استلمنا من العملاء</span><b id="kClientPaid" class="green">0.000 د.ك</b></div>
-<div class="card stat"><span>متبقي على العملاء</span><b id="kClientRemain" class="red">0.000 د.ك</b></div>
+<div class="cards" style="margin-top:10px;grid-template-columns:repeat(2,1fr)">
+<div class="card stat"><span>عملاء لم يسددوا</span><b id="kUnpaidClients" class="red">0</b></div>
+<div class="card stat"><span>مبالغ غير مسددة من العملاء</span><b id="kClientRemain" class="red">0.000 د.ك</b></div>
+</div>
+<div id="financialFollowupSection" style="display:none">
+  <div class="section"><h2>متابعات مالية تحتاج إجراء</h2></div>
+  <div id="financialFollowups" class="providerGrid"></div>
 </div>
 <div id="upcomingInstallments" style="display:none"></div>
 <div id="clientDueSection" style="display:none"><div class="section"><h2>تذكيرات سداد العملاء</h2></div><div id="clientDueReminders" class="providerGrid"></div></div>
@@ -155,7 +157,9 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <input type="hidden" id="cInstallments" value="">
 <div id="installmentsWrap" style="display:none"></div>
 <div id="installmentScheduleWrap" style="display:none"><div id="installmentRows"></div></div>
-<div class="field"><label>حالة دفع العميل *</label><select id="cClientPaid"><option value="unpaid">لم يتم الدفع</option><option value="paid">تم الدفع بالكامل</option></select><div class="hint" id="payNowHint">بس نحدد: تم الدفع أو لم يتم الدفع. ما في أقساط في نسخة التست الحالية.</div></div>
+<div class="field"><label>حالة دفع العميل *</label><select id="cClientPaid" onchange="toggleNewPaymentFields()"><option value="unpaid">لم يتم الدفع</option><option value="paid">تم الدفع بالكامل</option></select><div class="hint">إذا لم يدفع، تظهر متابعة سداد تلقائيًا.</div></div>
+<div class="field" id="cPaidToWrap" style="display:none"><label>العميل دفع لمن؟ *</label><select id="cPaidTo"><option value="pawapp">PawApp</option><option value="provider">العيادة / الشركة / الفريلانسر مباشرة</option></select></div>
+<div class="field" id="cDueDateWrap"><label>موعد متابعة السداد</label><input id="cClientDueDate" type="date"></div>
 <div class="field"><label>طريقة دفع العميل</label><select id="cPayMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
 <div class="field full"><label>ملاحظة السداد</label><input id="cPaymentNote" placeholder="مثال: يدفع نهاية الشهر / أول قسط 20 د.ك"></div>
 <div class="field full"><label>ملاحظات</label><textarea id="cNotes" rows="3" placeholder="أي تفاصيل مهمة عن الحالة"></textarea></div>
@@ -301,9 +305,12 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </div>
 <div class="section"><h2>سداد العميل</h2></div>
 <div class="grid2">
-<div class="field"><label>حالة العميل</label><select id="eClientPaid" onchange="toggleEditDueDate()"><option value="unpaid">لم يسدد</option><option value="paid">تم السداد بالكامل</option></select></div>
-<div class="field" id="eDueDateWrap"><label>موعد السداد</label><input id="eClientDueDate" type="date"><div class="hint">يظهر كتذكير داخل لوحة التحكم.</div></div>
+<div class="field"><label>حالة العميل</label><select id="eClientPaid" onchange="toggleEditPaymentFields()"><option value="unpaid">لم يسدد</option><option value="paid">تم السداد بالكامل</option></select></div>
+<div class="field" id="ePaidToWrap" style="display:none"><label>العميل دفع لمن؟</label><select id="ePaidTo" onchange="toggleEditPaymentFields()"><option value="pawapp">PawApp</option><option value="provider">العيادة / الشركة / الفريلانسر مباشرة</option></select></div>
+<div class="field" id="eDueDateWrap"><label>موعد متابعة السداد</label><input id="eClientDueDate" type="date"><div class="hint">إذا لم يسدد، يظهر كتذكير للموظف.</div></div>
 <div class="field"><label>طريقة الدفع</label><select id="ePaymentMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
+<div class="field" id="ePawappCollectedWrap" style="display:none"><label>هل استلمت PawApp حصتها من الشركة؟</label><select id="ePawappCollected"><option value="no">لا، لازالت مستحقة</option><option value="yes">نعم، تم الاستلام</option></select></div>
+<div class="field full"><div id="eFinancialSummary" class="card" style="box-shadow:none;margin:0;background:#f8fafc"></div></div>
 </div>
 <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCaseDetails()">حفظ كل التعديلات</button>
 </div></div>

@@ -163,17 +163,32 @@
       return;
     }
 
-    const employeeId = (el('adminEmployeeSelect')?.value || '').trim();
+    const employeeName = (el('adminEmployeeName')?.value || '').trim();
     const email = (el('adminEmployeeEmail')?.value || '').trim().toLowerCase();
     const password = el('adminEmployeePassword')?.value || '';
     const role = el('adminEmployeeRole')?.value || 'operations';
     const message = el('adminCreateUserMessage');
 
-    if (!employeeId) { if(message) message.textContent='اختاري الموظف.'; return; }
+    if (!employeeName) { if(message) message.textContent='اكتبي اسم الموظف.'; return; }
     if (!email) { if(message) message.textContent='اكتبي الإيميل.'; return; }
     if (password.length < 8) { if(message) message.textContent='الباسورد المؤقت لازم يكون 8 أحرف أو أكثر.'; return; }
 
     if (message) message.textContent='جاري إنشاء الحساب...';
+
+    let employeeId='';
+    try{
+      const existing=await sb.from('test_employees').select('id,name').ilike('name',employeeName).limit(1);
+      if(!existing.error && existing.data && existing.data[0]) employeeId=existing.data[0].id;
+    }catch(e){}
+
+    if(!employeeId){
+      const created=await sb.from('test_employees').insert({name:employeeName}).select('id').single();
+      if(created.error){
+        if(message) message.textContent='تعذر إضافة الموظف: '+created.error.message;
+        return;
+      }
+      employeeId=created.data.id;
+    }
 
     const { data: row, error: rowError } = await sb
       .from('test_employee_access')
@@ -213,6 +228,8 @@
     }
 
     if (el('adminEmployeePassword')) el('adminEmployeePassword').value='';
+    if (el('adminEmployeeName')) el('adminEmployeeName').value='';
+    if (el('adminEmployeeEmail')) el('adminEmployeeEmail').value='';
     if (window.renderAdminAccess) window.renderAdminAccess();
   };
 

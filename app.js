@@ -16,7 +16,16 @@
 
   window.fetch = function(input, init){
     let url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+    const method = String((init && init.method) || (typeof input !== 'string' && input && input.method) || 'GET').toUpperCase();
+
     if (url && url.indexOf('/rest/v1/') !== -1) {
+      if (document.body && document.body.dataset.pawRole === 'read_only' && !['GET','HEAD'].includes(method)) {
+        return Promise.resolve(new Response(JSON.stringify({message:'Read only access'}), {
+          status:403,
+          headers:{'Content-Type':'application/json'}
+        }));
+      }
+
       for (const [from,to] of Object.entries(tableMap)) {
         url = url.replace('/rest/v1/' + from, '/rest/v1/' + to);
       }

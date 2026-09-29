@@ -70,9 +70,13 @@
   }
 
   function applyReadOnlyUI() {
-    const readOnly = document.body.dataset.pawRole === 'read_only';
+    const role = document.body.dataset.pawRole || '';
+    const readOnly = role === 'read_only';
+    const accountant = role === 'accountant';
+    const noWrite = readOnly || accountant;
+
     document.querySelectorAll('[data-p="newcase"], .fab').forEach(node => {
-      node.style.display = readOnly ? 'none' : '';
+      node.style.display = noWrite ? 'none' : '';
     });
 
     const blockedActions = [
@@ -85,17 +89,18 @@
     document.querySelectorAll('button[onclick]').forEach(btn => {
       const handler = btn.getAttribute('onclick') || '';
       const blocked = blockedActions.some(name => handler.includes(name + '('));
-      if (readOnly && blocked) {
+      if (noWrite && blocked) {
         btn.style.display = 'none';
         btn.dataset.readOnlyHidden = '1';
-      } else if (!readOnly && btn.dataset.readOnlyHidden === '1') {
+      } else if (!noWrite && btn.dataset.readOnlyHidden === '1') {
         btn.style.display = '';
         delete btn.dataset.readOnlyHidden;
       }
     });
 
     document.querySelectorAll('.modalBg input, .modalBg select, .modalBg textarea').forEach(field => {
-      if (readOnly) {
+      const accountantInvoicePin = accountant && field.id === 'attachmentPin';
+      if (noWrite && !accountantInvoicePin) {
         field.disabled = true;
         field.dataset.readOnlyDisabled = '1';
       } else if (field.dataset.readOnlyDisabled === '1') {

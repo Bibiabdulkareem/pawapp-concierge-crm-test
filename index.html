@@ -171,6 +171,34 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
     <div><span>حصة الشركة / الفريلانسر</span><b id="calcDue">0.000 د.ك</b></div>
     <b id="calcRemain" style="display:none">0.000 د.ك</b>
   </div>
+
+  <div style="margin-top:14px;border-top:1px solid #e5e7eb;padding-top:14px">
+    <div class="field">
+      <label>هل يحتاج Pickup / Drop-off؟</label>
+      <select id="cTransportNeeded" onchange="toggleTransportAddon()">
+        <option value="no">لا</option>
+        <option value="yes">نعم</option>
+      </select>
+    </div>
+
+    <div id="cTransportAddon" style="display:none;margin-top:10px">
+      <div class="grid2">
+        <div class="field"><label>الخدمة</label><select id="cTransportDirection"><option value="">اختاري</option><option value="pickup">Pickup</option><option value="dropoff">Drop-off</option><option value="both">Pickup + Drop-off</option></select></div>
+        <div class="field"><label>شركة التوصيل / الفريلانسر</label><select id="cTransportProvider"></select></div>
+        <div class="field"><label>سعر خدمة Pickup / Drop-off</label><input id="cTransportTotal" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcTransportAddon()"></div>
+        <div class="field"><label>حصة PawApp من النقل</label><input id="cTransportPaw" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcTransportAddon()"></div>
+        <div class="field"><label>حصة شركة التوصيل</label><input id="cTransportProviderAmount" readonly></div>
+        <div class="field"><label>التاريخ والوقت</label><input id="cTransportAt" type="datetime-local"></div>
+        <div class="field"><label>مكان الاستلام</label><input id="cPickupLocation"></div>
+        <div class="field"><label>مكان التوصيل</label><input id="cDropoffLocation"></div>
+      </div>
+      <div class="calc" style="grid-template-columns:repeat(3,1fr);margin-top:10px">
+        <div><span>إجمالي النقل</span><b id="calcTransportTotal">0.000 د.ك</b></div>
+        <div><span>حصة PawApp من النقل</span><b id="calcTransportPaw">0.000 د.ك</b></div>
+        <div><span>حصة شركة التوصيل</span><b id="calcTransportProvider">0.000 د.ك</b></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="card">
@@ -197,14 +225,6 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
       <div class="field full"><label>ملاحظات</label><textarea id="cNotes" rows="3" placeholder="أي تفاصيل مهمة عن الحالة"></textarea></div>
     </div>
   </details>
-</div>
-
-<!-- Pickup / Drop-off will be rebuilt as an optional add-on for every service in the next step. -->
-<div id="cTransportFields" style="display:none">
-  <select id="cTransportDirection"><option value=""></option></select>
-  <input id="cTransportAt" type="datetime-local">
-  <input id="cPickupLocation">
-  <input id="cDropoffLocation">
 </div>
 
 <input type="hidden" id="cPaymentPlan" value="full">

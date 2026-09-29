@@ -378,8 +378,7 @@
       const service=document.getElementById(prefix+'Service')?.value||'';
       const wrap=document.getElementById(prefix+'TransportFields');
       if(!wrap) return;
-      const forced=wrap.dataset.forceTransport==='1';
-      const show=forced||isTransportServiceName(service);
+      const show=isTransportServiceName(service);
       wrap.style.display=show?'block':'none';
       if(!show){
         ['TransportDirection','TransportAt','PickupLocation','DropoffLocation'].forEach(sfx=>{
@@ -390,9 +389,7 @@
     };
 
     function transportPayload(prefix,service){
-      const wrap=document.getElementById(prefix+'TransportFields');
-      const forced=wrap&&wrap.dataset.forceTransport==='1';
-      if(!forced&&!isTransportServiceName(service)){
+      if(!isTransportServiceName(service)){
         return {transport_direction:null,transport_at:null,pickup_location:null,dropoff_location:null};
       }
       const at=document.getElementById(prefix+'TransportAt')?.value||'';
@@ -480,10 +477,6 @@ window.sourceLabel = function(src){
       ps.value=c.providerId||'';
       editProviderChanged();
       if(c.service) document.getElementById('eService').value=c.service;
-      const eTransportWrap=document.getElementById('eTransportFields');
-      if(eTransportWrap){
-        eTransportWrap.dataset.forceTransport=(c.transport_provider_id||Number(c.transport_total_amount||0)>0||c.transport_direction||c.pickup_location||c.dropoff_location)?'1':'0';
-      }
       document.getElementById('eTransportDirection').value=c.transport_direction||'';
       document.getElementById('eTransportAt').value=c.transport_at?new Date(c.transport_at).toISOString().slice(0,16):'';
       document.getElementById('ePickupLocation').value=c.pickup_location||'';
@@ -1580,10 +1573,6 @@ window.sourceLabel = function(src){
       ['editClientSectionTitle','editClientSection','editServiceSectionTitle','editServiceSection','editPaymentSectionTitle','editPaymentSection','caseAttachmentsBox','caseFollowupBox'].forEach(function(id){
         setEditSectionVisible(id,true);
       });
-      ['editClientSection','editServiceSection','editPaymentSection'].forEach(function(id){
-        const section=document.getElementById(id);
-        if(section) Array.from(section.querySelectorAll('.field')).forEach(function(f){f.style.display=''});
-      });
       const btn=document.getElementById('workflowShowAllBtn');
       if(btn) btn.style.display='none';
     };
@@ -1605,36 +1594,12 @@ window.sourceLabel = function(src){
 
       if(mode==='missing'){
         const first=missingFollowupItems(c)[0]||'';
-        const showOnlyFields=function(sectionId,fieldIds){
-          const section=document.getElementById(sectionId);
-          if(!section) return;
-          Array.from(section.children).forEach(function(child){
-            if(child.classList&&child.classList.contains('field')) child.style.display='none';
-          });
-          fieldIds.forEach(function(fid){
-            const el=document.getElementById(fid);
-            const field=el&&el.closest('.field');
-            if(field){
-              field.style.display='';
-              Array.from(field.querySelectorAll('.field')).forEach(function(nested){nested.style.display=''});
-            }
-          });
-        };
-        if(first.includes('الموظف')){
-          setEditSectionVisible('editClientSectionTitle',true);setEditSectionVisible('editClientSection',true);
-          showOnlyFields('editClientSection',['eEmployee']);
-        }else if(first.includes('نوع الحيوان')){
-          setEditSectionVisible('editClientSectionTitle',true);setEditSectionVisible('editClientSection',true);
-          showOnlyFields('editClientSection',['ePetType']);
-        }else if(first.includes('الموقع / المنطقة')){
-          setEditSectionVisible('editClientSectionTitle',true);setEditSectionVisible('editClientSection',true);
-          showOnlyFields('editClientSection',['eLocation']);
+        if(first.includes('الموظف')||first.includes('نوع الحيوان')||first.includes('الموقع')){
+          setEditSectionVisible('editClientSectionTitle',true);
+          setEditSectionVisible('editClientSection',true);
         }else{
-          setEditSectionVisible('editServiceSectionTitle',true);setEditSectionVisible('editServiceSection',true);
-          if(first.includes('الشركة')) showOnlyFields('editServiceSection',['eProvider']);
-          else if(first.includes('اختيار الخدمة')) showOnlyFields('editServiceSection',['eProvider','eService']);
-          else if(first.includes('السعر')) showOnlyFields('editServiceSection',['eTotalAmount','eFeeType','eFeeValue','eProviderAmount']);
-          else if(first.includes('Pickup')||first.includes('Drop-off')) showOnlyFields('editServiceSection',['eTransportFields']);
+          setEditSectionVisible('editServiceSectionTitle',true);
+          setEditSectionVisible('editServiceSection',true);
         }
       }else if(mode==='finance'){
         setEditSectionVisible('editPaymentSectionTitle',true);
@@ -1650,34 +1615,7 @@ window.sourceLabel = function(src){
     window.openCaseWorkflow=function(id,mode){
       window.openCaseDetails(id);
       const row=db.cases.find(function(x){return String(x.id)===String(id)});
-      if(!row) return;
-      const actualMode=mode||workflowState(row).focus;
-      focusCaseEditor(row,actualMode);
-
-      const modal=document.querySelector('#completeCaseModal .modal');
-      if(modal) modal.scrollTop=0;
-
-      let target=null;
-      if(actualMode==='missing'){
-        const first=missingFollowupItems(row)[0]||'';
-        if(first.includes('الموظف')) target=document.getElementById('eEmployee');
-        else if(first.includes('نوع الحيوان')) target=document.getElementById('ePetType');
-        else if(first.includes('الموقع / المنطقة')) target=document.getElementById('eLocation');
-        else if(first.includes('الشركة')) target=document.getElementById('eProvider');
-        else if(first.includes('اختيار الخدمة')) target=document.getElementById('eService');
-        else if(first.includes('السعر')) target=document.getElementById('eTotalAmount');
-        else if(first.includes('Pickup')) target=document.getElementById('ePickupLocation');
-        else if(first.includes('Drop-off')) target=document.getElementById('eDropoffLocation');
-      }else if(actualMode==='finance'){
-        target=document.getElementById('eClientPaid');
-      }else if(actualMode==='appointment'){
-        target=document.getElementById('eAppointmentAt');
-      }
-      if(target){
-        setTimeout(function(){
-          try{target.scrollIntoView({behavior:'smooth',block:'center'});target.focus({preventScroll:true})}catch(e){}
-        },80);
-      }
+      if(row) focusCaseEditor(row,mode||workflowState(row).focus);
     };
 
 function financialFollowupItems(c){
@@ -1700,7 +1638,7 @@ function financialFollowupItems(c){
       if(!c.providerId) items.push('اختيار الشركة / الفريلانسر');
       if(!(c.service||c.requested_service)) items.push('اختيار الخدمة');
       if(Number(c.total_amount||0)<=0) items.push('إدخال السعر');
-      if(!c.employee_id && !c.employeeId && !c.staff) items.push('تحديد الموظف المسؤول');
+      if(!c.employee_id && !c.staff) items.push('تحديد الموظف المسؤول');
       if(!c.pet_type) items.push('نوع الحيوان');
       if(!c.location) items.push('الموقع / المنطقة');
       if(c.transport_provider_id && Number(c.transport_total_amount||0)>0){
@@ -1790,9 +1728,9 @@ function financialFollowupItems(c){
         let action='';
         if(item.action==='settle'){
           action='<button class="btn primary" onclick="openSettlement(\''+c.id+'\')">تسجيل دفع للشركة</button>'+
-                 '<button class="btn soft" onclick="openCaseWorkflow(\''+c.id+'\'','finance')">فتح العملية</button>';
+                 '<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>';
         }else{
-          action='<button class="btn primary" onclick="openCaseWorkflow(\''+c.id+'\'','finance')">تعديل الدفع</button>';
+          action='<button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">تعديل الدفع</button>';
         }
         return '<div class="card provider">'+followupCaseHeader(c,'<span class="status unpaid">أولوية مالية</span>')+
           '<div style="margin-top:10px"><b>'+esc(item.label)+'</b><div class="hint">'+esc(item.detail)+'</div></div>'+
@@ -1809,7 +1747,7 @@ function financialFollowupItems(c){
           '<div class="actions">'+
             '<button class="btn primary" onclick="completeAppointmentFollowup(\''+c.id+'\')">✓ تمت متابعة الموعد</button>'+
             '<button class="btn soft" onclick="openAppointmentReminder(\''+c.id+'\')">تأجيل التذكير</button>'+
-            '<button class="btn soft" onclick="openCaseWorkflow(\''+c.id+'\'','appointment')">فتح العملية</button>'+
+            '<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>'+
           '</div></div>';
       }).join(''):'<div class="card"><div class="hint">ما في مواعيد أو ريميندر قادمة.</div></div>';
 
@@ -1817,7 +1755,7 @@ function financialFollowupItems(c){
         const c=x.c;
         return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial">بيانات ناقصة</span>')+
           '<div style="margin-top:10px">'+x.items.map(function(r){return '<div class="kpi-line"><span>'+esc(r)+'</span></div>'}).join('')+'</div>'+
-          '<div class="actions"><button class="btn primary" onclick="openCaseWorkflow(\''+c.id+'\'','missing')">استكمال البيانات</button></div></div>';
+          '<div class="actions"><button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">استكمال البيانات</button></div></div>';
       }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في بيانات أساسية ناقصة.</div></div>';
     };
 

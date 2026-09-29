@@ -19,7 +19,7 @@
     const method = String((init && init.method) || (typeof input !== 'string' && input && input.method) || 'GET').toUpperCase();
 
     if (url && url.indexOf('/rest/v1/') !== -1) {
-      if (document.body && document.body.dataset.pawRole === 'read_only' && !['GET','HEAD'].includes(method)) {
+      if (document.body && ['read_only','accountant'].includes(document.body.dataset.pawRole) && !['GET','HEAD'].includes(method)) {
         return Promise.resolve(new Response(JSON.stringify({message:'Read only access'}), {
           status:403,
           headers:{'Content-Type':'application/json'}
@@ -1967,7 +1967,7 @@ function financialFollowupItems(c){
 
       box.innerHTML=rows.length?rows.map(function(e){
         const a=accessRows.find(function(x){return String(x.employee_id)===String(e.id)});
-        const roleLabel=a?(a.role==='admin'?'Admin':a.role==='read_only'?'Read only':'Operations'):'—';
+        const roleLabel=a?(a.role==='admin'?'Admin':a.role==='accountant'?'Accountant - محاسب':a.role==='read_only'?'Read only':'Operations'):'—';
         const state=a?(a.is_active?(a.auth_user_id?'مفعّل':'جاهز للتفعيل'):'موقوف'):'بدون حساب';
         const cls=a&&a.is_active?(a.auth_user_id?'paid':'partial'):'unpaid';
         return '<div class="card" style="box-shadow:none;margin-bottom:8px">'+

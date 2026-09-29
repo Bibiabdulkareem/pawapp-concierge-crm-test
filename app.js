@@ -1922,15 +1922,39 @@ function financialFollowupItems(c){
     };
 
 
-    window.renderAdminAccess=function(){
+    window.renderAdminAccess=async function(){
       const box=document.getElementById('adminAccessList');
+      const employeeSelect=document.getElementById('adminEmployeeSelect');
+      if(employeeSelect){
+        employeeSelect.innerHTML='<option value="">اختاري الموظف</option>'+
+          (Array.isArray(db.employees)?db.employees:[]).map(function(e){
+            return '<option value="'+e.id+'">'+esc(e.name||'موظف')+'</option>';
+          }).join('');
+      }
       if(!box) return;
+
       const rows=Array.isArray(db.employees)?db.employees:[];
+      let accessRows=[];
+      try{
+        const client=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.client;
+        if(client){
+          const res=await client.from('test_employee_access')
+            .select('employee_id,email,role,is_active,auth_user_id,updated_at')
+            .order('updated_at',{ascending:false});
+          if(!res.error) accessRows=Array.isArray(res.data)?res.data:[];
+        }
+      }catch(e){console.warn('admin access list failed',e)}
+
       box.innerHTML=rows.length?rows.map(function(e){
+        const a=accessRows.find(function(x){return String(x.employee_id)===String(e.id)});
+        const roleLabel=a?(a.role==='admin'?'Admin':a.role==='read_only'?'Read only':'Operations'):'—';
+        const state=a?(a.is_active?(a.auth_user_id?'مفعّل':'جاهز للتفعيل'):'موقوف'):'بدون حساب';
+        const cls=a&&a.is_active?(a.auth_user_id?'paid':'partial'):'unpaid';
         return '<div class="card" style="box-shadow:none;margin-bottom:8px">'+
           '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+
-            '<div><b>'+esc(e.name||'موظف')+'</b><div class="hint">حساب الدخول: غير مفعّل بعد</div></div>'+
-            '<span class="status partial">بانتظار الإيميل</span>'+
+            '<div><b>'+esc(e.name||'موظف')+'</b>'+
+              '<div class="hint">'+esc(a&&a.email?a.email:'ما في إيميل')+' • '+esc(roleLabel)+'</div></div>'+
+            '<span class="status '+cls+'">'+esc(state)+'</span>'+
           '</div>'+
         '</div>';
       }).join(''):'<div class="hint">ما في موظفين مضافين حاليًا.</div>';

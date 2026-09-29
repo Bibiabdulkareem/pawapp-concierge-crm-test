@@ -69,6 +69,20 @@
     document.body.appendChild(script);
   }
 
+  function applyRoleUI(access) {
+    const isAdmin = access && access.role === 'admin';
+    document.querySelectorAll('[data-p="admin"]').forEach(node => {
+      node.style.display = isAdmin ? '' : 'none';
+    });
+    const adminPage = document.getElementById('admin');
+    if (adminPage && !isAdmin) adminPage.classList.remove('active');
+    document.body.dataset.pawRole = access?.role || '';
+  }
+
+  window.pawIsAdmin = function() {
+    return window.PAWAPP_AUTH?.access?.role === 'admin';
+  };
+
   async function enterApp(session) {
     const access = await verifyAccess(session.user);
     if (!access) {
@@ -91,6 +105,7 @@
     if (bar) bar.style.display = 'flex';
     if (email) email.textContent = access.email || session.user.email || '';
 
+    applyRoleUI(access);
     loadAppOnce();
   }
 

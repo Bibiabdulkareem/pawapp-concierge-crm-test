@@ -1270,64 +1270,84 @@ window.sourceLabel = function(src){
     };
 
     window.renderDashboard=function(){
-      let pawTotal=0,ours=0,theirs=0,clientRemainTotal=0,unpaidCount=0;
+      const customerKeys=new Set();
       db.cases.forEach(function(c){
-        pawTotal+=paw(c);ours+=v2CollectFromProvider(c);theirs+=v2PayProvider(c);
-        if(!v2ClientPaid(c)&&clientRem(c)>0.0001){unpaidCount++;clientRemainTotal+=clientRem(c)}
+        customerKeys.add(String(c.client_phone||c.client_name||c.id).toLowerCase());
       });
+      const companies=db.providers.filter(function(p){return p.type!=='freelancer'}).length;
+      const freelancers=db.providers.filter(function(p){return p.type==='freelancer'}).length;
       if(document.getElementById('kOps'))document.getElementById('kOps').textContent=String(db.cases.length);
-      if(document.getElementById('kPaw'))document.getElementById('kPaw').textContent=money(pawTotal);
-      if(document.getElementById('kCollectFromProviders'))document.getElementById('kCollectFromProviders').textContent=money(ours);
-      if(document.getElementById('kPayProviders'))document.getElementById('kPayProviders').textContent=money(theirs);
-      if(document.getElementById('kUnpaidClients'))document.getElementById('kUnpaidClients').textContent=String(unpaidCount);
-      if(document.getElementById('kClientRemain'))document.getElementById('kClientRemain').textContent=money(clientRemainTotal);
+      if(document.getElementById('kCustomers'))document.getElementById('kCustomers').textContent=String(customerKeys.size);
+      if(document.getElementById('kCompanies'))document.getElementById('kCompanies').textContent=String(companies);
+      if(document.getElementById('kFreelancers'))document.getElementById('kFreelancers').textContent=String(freelancers);
 
       const tasks=[];
       db.cases.forEach(function(c){
-        const pr=byProvider(c.providerId);
-        if(!v2ClientPaid(c)&&clientRem(c)>0.0001)tasks.push({c:c,t:'تحصيل من العميل',a:clientRem(c),x:'العميل لم يسدد'});
-        else if(c.client_paid_to==='provider'&&v2CollectFromProvider(c)>0.0001)tasks.push({c:c,t:'تحصيل حصة PawApp',a:v2CollectFromProvider(c),x:'عند '+pr.name});
-        else if(c.client_paid_to==='pawapp'&&v2PayProvider(c)>0.0001)tasks.push({c:c,t:'تحويل مستحق الجهة',a:v2PayProvider(c),x:'إلى '+pr.name});
-        else if(v2ClientPaid(c)&&!c.client_paid_to)tasks.push({c:c,t:'حدد جهة الدفع',a:0,x:'العميل مسدد لكن غير محدد دفع لمن'});
+        const main=byProvider(c.providerId);
+        if(!v2ClientPaid(c)&&clientRem(c)>0.0001){
+          tasks.push({c:c,t:'تحصيل من العميل',x:'العميل لم يسدد',a:clientRem(c)});
+        } else if(c.client_paid_to==='provider'&&v2CollectFromProvider(c)>0.0001){
+          tasks.push({c:c,t:'تحصيل حصة PawApp',x:'من '+main.name,a:v2CollectFromProvider(c)});
+        } else if(c.client_paid_to==='pawapp'&&v2PayProvider(c)>0.0001){
+          tasks.push({c:c,t:'تحويل مستحق الشركة',x:'إلى '+main.name,a:v2PayProvider(c)});
+        } else if(v2ClientPaid(c)&&!c.client_paid_to){
+          tasks.push({c:c,t:'تحديد جهة الدفع',x:'العميل مسدد لكن غير محدد دفع لمن',a:0});
+        }
       });
       const sec=document.getElementById('financialFollowupSection'),box=document.getElementById('financialFollowups');
       if(sec)sec.style.display=tasks.length?'block':'none';
-      if(box)box.innerHTML=tasks.slice(0,8).map(function(x){
+      if(box)box.innerHTML=tasks.slice(0,6).map(function(x){
         return '<div class="card provider"><h3>'+esc(x.t)+'</h3><p>'+esc(x.c.client_name)+' • PAW-'+String(x.c.id).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span>المبلغ</span><b>'+money(x.a)+'</b></div><div class="mini" style="grid-column:span 2"><span>المطلوب</span><b>'+esc(x.x)+'</b></div></div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+x.c.id+'\')">فتح الحالة</button></div></div>';
       }).join('');
 
-      const reminders=db.cases.filter(function(c){return !v2ClientPaid(c)&&clientRem(c)>0.0001&&c.client_due_date});
-      const dueSec=document.getElementById('clientDueSection'),remBox=document.getElementById('clientDueReminders');
-      if(dueSec)dueSec.style.display=reminders.length?'block':'none';
-      if(remBox)remBox.innerHTML=reminders.map(function(c){
-        return '<div class="card provider"><h3>'+esc(c.client_name)+'</h3><p>PAW-'+String(c.id).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span>المتبقي</span><b>'+money(clientRem(c))+'</b></div><div class="mini"><span>موعد المتابعة</span><b>'+esc(c.client_due_date)+'</b></div><div class="mini"><span>الحالة</span><b>متابعة سداد</b></div></div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح الحالة</button></div></div>';
-      }).join('');
+      function providerActivity(pr){
+        const mainCases=db.cases.filter(function(c){return c.providerId===pr.id});
+        const transportCases=db.cases.filter(function(c){return c.transport_provider_id===pr.id && Number(c.transport_total_amount||0)>0});
+        const ids=new Set();
+        mainCases.forEach(function(c){ids.add('m'+c.id)});
+        transportCases.forEach(function(c){ids.add('t'+c.id)});
+        const clients=new Set();
+        mainCases.concat(transportCases).forEach(function(c){clients.add(String(c.client_phone||c.client_name||c.id).toLowerCase())});
+        const services=[];
+        mainCases.forEach(function(c){const s=c.service||c.requested_service;if(s)services.push(s)});
+        if(transportCases.length)services.push('Pickup / Drop-off');
 
-      const pf=document.getElementById('dashboardProviderFilter')?document.getElementById('dashboardProviderFilter').value:'all';
-      const vf=document.getElementById('dashboardVendorStatusFilter')?document.getElementById('dashboardVendorStatusFilter').value:'all';
+        let ours=0,theirs=0;
+        mainCases.forEach(function(c){ours+=v2CollectFromProvider(c);theirs+=v2PayProvider(c)});
+        return {mainCases:mainCases,transportCases:transportCases,operations:ids.size,clients:clients.size,services:[...new Set(services)],ours:ours,theirs:theirs};
+      }
+
       let ph='';
       db.providers.forEach(function(pr){
-        if(pf!=='all'&&pr.id!==pf)return;
-        const cs=db.cases.filter(function(x){return x.providerId===pr.id});if(!cs.length)return;
-        const clients=new Set(cs.map(function(x){return String(x.client_phone||x.client_name||x.id).toLowerCase()})).size;
-        const services=[...new Set(cs.map(function(x){return x.service||x.requested_service}).filter(Boolean))];
-        let po=0,pt=0;cs.forEach(function(x){po+=v2CollectFromProvider(x);pt+=v2PayProvider(x)});
-        const open=po>0.0001||pt>0.0001;if(vf==='paid'&&open)return;if(vf==='unpaid'&&!open)return;
-        const net=po-pt;
-        const sv=services.slice(0,3).map(esc).join(' • ')+(services.length>3?' +'+(services.length-3):'');
-        ph+='<div class="card provider"><h3>'+esc(pr.name)+'</h3><p>'+(sv||'ما في خدمات مستخدمة')+'</p><div class="miniGrid"><div class="mini"><span>العملاء</span><b>'+clients+'</b></div><div class="mini"><span>العمليات</span><b>'+cs.length+'</b></div><div class="mini"><span>الخدمات</span><b>'+services.length+'</b></div></div><div class="miniGrid"><div class="mini"><span>لنا عندهم</span><b class="'+(po>0?'red':'green')+'">'+money(po)+'</b></div><div class="mini"><span>لهم عندنا</span><b class="'+(pt>0?'red':'green')+'">'+money(pt)+'</b></div><div class="mini"><span>الصافي</span><b>'+(net>0?'لنا '+money(net):net<0?'لهم '+money(Math.abs(net)):'متسوي')+'</b></div></div><div class="actions"><button class="btn soft" onclick="providerCases(\''+pr.id+'\')">التفاصيل</button></div></div>';
+        const a=providerActivity(pr);
+        if(!a.operations)return;
+        const net=a.ours-a.theirs;
+        const serviceText=a.services.slice(0,3).map(esc).join(' • ')+(a.services.length>3?' +'+(a.services.length-3):'');
+        ph+='<div class="card provider"><h3>'+esc(pr.name)+'</h3><p>'+(serviceText||'—')+'</p>'+
+          '<div class="miniGrid"><div class="mini"><span>العملاء</span><b>'+a.clients+'</b></div><div class="mini"><span>العمليات</span><b>'+a.operations+'</b></div><div class="mini"><span>الخدمات</span><b>'+a.services.length+'</b></div></div>'+
+          '<div class="miniGrid"><div class="mini"><span>لنا عندهم</span><b class="'+(a.ours>0?'red':'green')+'">'+money(a.ours)+'</b></div><div class="mini"><span>لهم عندنا</span><b class="'+(a.theirs>0?'red':'green')+'">'+money(a.theirs)+'</b></div><div class="mini"><span>الصافي</span><b>'+(net>0?'لنا '+money(net):net<0?'لهم '+money(Math.abs(net)):'متسوي')+'</b></div></div>'+
+          '<div class="actions"><button class="btn soft" onclick="providerCases(\''+pr.id+'\')">التفاصيل</button></div></div>';
       });
-      if(document.getElementById('dashboardProviders'))document.getElementById('dashboardProviders').innerHTML=ph||'<div class="card">ما في نتائج.</div>';
+      if(document.getElementById('dashboardProviders'))document.getElementById('dashboardProviders').innerHTML=ph||'<div class="card">ما في عمليات مسجلة للحين.</div>';
 
       let recent='';
       db.cases.slice().reverse().slice(0,6).forEach(function(c){
         const pr=byProvider(c.providerId);
-        recent+='<tr><td>PAW-'+String(c.id).padStart(4,'0')+'</td><td>'+esc(c.client_name)+'</td><td>'+esc(c.pet_type||'—')+'</td><td>'+(c.vaccinated===true?'نعم':c.vaccinated===false?'لا':'—')+'</td><td>'+esc(pr.name)+'</td><td>'+esc(c.service||c.requested_service||'—')+'</td><td>'+money(c.amount)+'</td><td>'+money(paw(c))+'</td><td>'+money(due(c))+'</td><td><span class="status '+(v2ClientPaid(c)?'paid':'unpaid')+'">'+esc(v2Route(c))+'</span></td></tr>';
+        const tp=c.transport_provider_id?byProvider(c.transport_provider_id):null;
+        const tdir=c.transport_direction==='pickup'?'Pickup':c.transport_direction==='dropoff'?'Drop-off':c.transport_direction==='both'?'Pickup + Drop-off':'';
+        let transport='';
+        if(tp&&Number(c.transport_total_amount||0)>0){
+          transport='<div class="hint" style="margin-top:6px">+ '+esc(tdir||'Pickup / Drop-off')+' • '+esc(tp.name)+' • '+money(c.transport_total_amount)+'</div>';
+        }
+        recent+='<div class="card provider"><h3>'+esc(c.client_name)+'</h3><p>PAW-'+String(c.id).padStart(4,'0')+'</p>'+
+          '<div><b>'+esc(c.service||c.requested_service||'—')+'</b><div class="hint">'+esc(pr.name)+'</div>'+transport+'</div>'+
+          '<div class="miniGrid"><div class="mini"><span>الخدمة الأساسية</span><b>'+money(c.amount)+'</b></div><div class="mini"><span>النقل</span><b>'+money(c.transport_total_amount||0)+'</b></div><div class="mini"><span>الدفع</span><b>'+esc(v2Route(c))+'</b></div></div>'+
+          '<div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح الحالة</button></div></div>';
       });
-      if(document.getElementById('recent'))document.getElementById('recent').innerHTML=recent||'<tr><td colspan="10">لا توجد عمليات</td></tr>';
+      if(document.getElementById('dashboardRecentCards'))document.getElementById('dashboardRecentCards').innerHTML=recent||'<div class="card">لا توجد عمليات.</div>';
     };
 
-    window.renderProviders=function(){
+        window.renderProviders=function(){
       const q=(document.getElementById('providerSearch').value||'').toLowerCase();let h='';
       db.providers.filter(function(p){return !q||p.name.toLowerCase().includes(q)}).forEach(function(p){
         const cs=db.cases.filter(function(c){return c.providerId===p.id});

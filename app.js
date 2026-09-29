@@ -43,6 +43,14 @@
         const hay=['PAW-'+String(c.id).padStart(4,'0'),c.client_name,c.client_phone,c.staff,pr.name,c.service,c.pet_type,c.breed,sourceLabel(c.source)].join(' ').toLowerCase();
         const clientPaid=clientRem(c)<=0.0001 && Number(c.total_amount||0)>0;
         const vendorPaid=rem(c)<=0.0001 && Number(c.provider_amount||0)>0;
+        let companyStatus='بانتظار دفع العميل',companyStatusClass='pending';
+        if(clientPaid&&c.client_paid_to==='provider'){
+          if(v2CollectFromProvider(c)>0.0001){companyStatus='استلمت من العميل • حصة PawApp مستحقة';companyStatusClass='pending';}
+          else{companyStatus='استلمت من العميل • مكتمل';companyStatusClass='paid';}
+        }else if(clientPaid&&c.client_paid_to==='pawapp'){
+          if(v2PayProvider(c)>0.0001){companyStatus='مستحق للشركة';companyStatusClass='pending';}
+          else{companyStatus='تم تحويل مستحق الشركة';companyStatusClass='paid';}
+        }else if(clientPaid&&!c.client_paid_to){companyStatus='حددي دفع لمن';companyStatusClass='unpaid';}
         if(q&&!hay.includes(q))return;
         if(pf!=='all'&&c.providerId!==pf)return;
         if(sf==='client_unpaid'&&clientPaid)return;
@@ -66,7 +74,7 @@
           <td>${money(due(c))}</td>
           <td><span class="status ${clientPaid?'paid':'unpaid'}">${clientPaid?'تم السداد بالكامل':'لم يسدد'}</span></td>
           <td>${dueTxt}</td>
-          <td><span class="status ${vendorPaid?'paid':'pending'}">${vendorPaid?'تم الدفع':'لم يتم الدفع'}</span></td>
+          <td><span class="status ${companyStatusClass}">${companyStatus}</span></td>
           <td>${esc(c.staff||'—')}<br><span class="status partial" style="margin-top:4px">${esc(sourceLabel(c.source))}</span></td>
           <td><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">${missing?'استكمال البيانات':'تعديل البيانات'}</button></td>
           <td><button class="btn soft" style="padding:7px" onclick="openCaseDetails('${c.id}')">${clientPaid?'بيانات السداد':'تحديث السداد'}</button></td>

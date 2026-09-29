@@ -69,6 +69,44 @@
     document.body.appendChild(script);
   }
 
+  function applyReadOnlyUI() {
+    const readOnly = document.body.dataset.pawRole === 'read_only';
+    document.querySelectorAll('[data-p="newcase"], .fab').forEach(node => {
+      node.style.display = readOnly ? 'none' : '';
+    });
+
+    const blockedActions = [
+      'saveCase','saveCaseDetails','saveClientPayment','saveSettlement','saveProvider','saveStaff',
+      'saveAppointmentReminder','addCaseFollowup','addProviderService','deleteProvider','deleteProviderService',
+      'deleteCaseAttachment','uploadCaseAttachment','completeAppointmentFollowup','setFollowupStatus',
+      'openNewCase','openSettlement','openServiceManager'
+    ];
+
+    document.querySelectorAll('button[onclick]').forEach(btn => {
+      const handler = btn.getAttribute('onclick') || '';
+      const blocked = blockedActions.some(name => handler.includes(name + '('));
+      if (readOnly && blocked) {
+        btn.style.display = 'none';
+        btn.dataset.readOnlyHidden = '1';
+      } else if (!readOnly && btn.dataset.readOnlyHidden === '1') {
+        btn.style.display = '';
+        delete btn.dataset.readOnlyHidden;
+      }
+    });
+
+    document.querySelectorAll('.modalBg input, .modalBg select, .modalBg textarea').forEach(field => {
+      if (readOnly) {
+        field.disabled = true;
+        field.dataset.readOnlyDisabled = '1';
+      } else if (field.dataset.readOnlyDisabled === '1') {
+        field.disabled = false;
+        delete field.dataset.readOnlyDisabled;
+      }
+    });
+  }
+
+  let readOnlyObserver = null;
+
   function applyRoleUI(access) {
     const isAdmin = access && access.role === 'admin';
     document.querySelectorAll('[data-p="admin"]').forEach(node => {
@@ -77,6 +115,12 @@
     const adminPage = document.getElementById('admin');
     if (adminPage && !isAdmin) adminPage.classList.remove('active');
     document.body.dataset.pawRole = access?.role || '';
+
+    applyReadOnlyUI();
+    if (!readOnlyObserver) {
+      readOnlyObserver = new MutationObserver(() => applyReadOnlyUI());
+      readOnlyObserver.observe(document.body, { childList: true, subtree: true });
+    }
   }
 
   window.pawIsAdmin = function() {

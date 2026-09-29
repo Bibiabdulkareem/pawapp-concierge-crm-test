@@ -327,6 +327,7 @@
             microchipped:tri(document.getElementById('cMicrochipped').value),
             has_pet_id:tri(document.getElementById('cHasPetId').value),
             preferred_date:document.getElementById('cDate').value||new Date().toISOString().slice(0,10),
+            appointment_at:document.getElementById('cAppointmentAt')?.value?new Date(document.getElementById('cAppointmentAt').value).toISOString():null,
             ...transportPayload('c',service)
           })
         });
@@ -1257,6 +1258,7 @@ window.sourceLabel = function(src){
           client_paid:paidNow,client_paid_to:paidTo,pawapp_received_from_provider:collected,
           client_payment_plan:paidNow?'full':'later',
           client_due_date:paidNow?null:(document.getElementById('eClientDueDate').value||null),
+          appointment_at:document.getElementById('eAppointmentAt')?.value?new Date(document.getElementById('eAppointmentAt').value).toISOString():null,
           ...transportPayload('e',service)
         })});
         if(paidNow&&paidTo==='pawapp'&&total>0&&existingPaid<total-0.0001){
@@ -1525,46 +1527,143 @@ window.sourceLabel = function(src){
       }catch(e){console.error(e);alert('تم حفظ العملية لكن تعذر حفظ بيانات Pickup / Drop-off')}
     };
 
-    function autoFollowupReason(c){
-      const reasons=[];
+    function financialFollowupItems(c){
+      const items=[];
       const paid=v2ClientPaid(c);
-      if(!paid && clientRem(c)>0.0001) reasons.push('العميل لم يسدد '+money(clientRem(c)));
-      if(paid && !c.client_paid_to) reasons.push('حددوا دفع لمن');
-      if(c.client_paid_to==='provider' && v2CollectFromProvider(c)>0.0001) reasons.push('تحصيل حصة PawApp من الشركة '+money(v2CollectFromProvider(c)));
-      if(c.client_paid_to==='pawapp' && v2PayProvider(c)>0.0001) reasons.push('تحويل مستحق الشركة '+money(v2PayProvider(c)));
-      if(!c.providerId) reasons.push('الشركة / الفريلانسر غير محدد');
-      if(!(c.service||c.requested_service)) reasons.push('الخدمة غير محددة');
-      if(Number(c.total_amount||0)<=0) reasons.push('السعر غير مكتمل');
-      if(!c.pet_type) reasons.push('بيانات الحيوان ناقصة');
-      if(!c.location) reasons.push('الموقع ناقص');
-      return reasons;
+      if(!paid && clientRem(c)>0.0001){
+        items.push({kind:'client',label:'تحصيل من العميل',detail:'متبقي على العميل '+money(clientRem(c)),action:'edit'});
+      }else if(paid && !c.client_paid_to){
+        items.push({kind:'route',label:'تحديد جهة الدفع',detail:'العميل دفع، حددي دفع لـ PawApp أو للشركة',action:'edit'});
+      }else if(c.client_paid_to==='pawapp' && v2PayProvider(c)>0.0001){
+        items.push({kind:'provider_due',label:'دفع مستحق الشركة',detail:'للشركة عندنا '+money(v2PayProvider(c)),action:'settle'});
+      }else if(c.client_paid_to==='provider' && v2CollectFromProvider(c)>0.0001){
+        items.push({kind:'paw_due',label:'تحصيل حصة PawApp',detail:'لنا عند الشركة '+money(v2CollectFromProvider(c)),action:'edit'});
+      }
+      return items;
+    }
+
+    function missingFollowupItems(c){
+      const items=[];
+      if(!c.providerId) items.push('اختيار الشركة / الفريلانسر');
+      if(!(c.service||c.requested_service)) items.push('اختيار الخدمة');
+      if(Number(c.total_amount||0)<=0) items.push('إدخال السعر');
+      if(!c.employee_id && !c.staff) items.push('تحديد الموظف المسؤول');
+      if(!c.pet_type) items.push('نوع الحيوان');
+      if(!c.location) items.push('الموقع / المنطقة');
+      if(c.transport_provider_id && Number(c.transport_total_amount||0)>0){
+        if(!c.pickup_location) items.push('موقع الاستلام Pickup');
+        if(!c.dropoff_location) items.push('موقع التوصيل Drop-off');
+      }
+      return items;
+    }
+
+    function appointmentFollowupItems(c){
+      const out=[];
+      if(c.appointment_at){
+        const d=new Date(c.appointment_at);
+        if(Number.isFinite(d.getTime()) && d.getTime()>=Date.now()-24*60*60*1000){
+          out.push({at:d,type:'appointment',label:'موعد العميل'});
+        }
+      }else if(c.source==='booking_form_test' && c.preferred_date){
+        const d=new Date(String(c.preferred_date)+'T12:00:00');
+        if(Number.isFinite(d.getTime()) && d.getTime()>=Date.now()-24*60*60*1000){
+          out.push({at:d,type:'preferred',label:'موعد مفضل من النموذج'});
+        }
+      }
+      (db.followups||[]).filter(function(f){
+        return String(f.case_id)===String(c.id) && !(f.status==='done'||f.status==='cancelled');
+      }).forEach(function(f){
+        const d=new Date(f.followup_at);
+        if(Number.isFinite(d.getTime())) out.push({at:d,type:'manual',label:f.reason||'متابعة'});
+      });
+      return out.sort(function(a,b){return a.at-b.at});
+    }
+
+    function formatFollowupDate(d){
+      try{
+        return d.toLocaleString('ar-KW',{dateStyle:'medium',timeStyle:'short'});
+      }catch(e){return String(d)}
+    }
+
+    function followupCaseHeader(c,badge){
+      const pr=byProvider(c.providerId);
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'+
+        '<div><h3 style="margin:0">'+esc(c.client_name||'عميل')+'</h3><div class="hint">PAW-'+String(c.id).padStart(4,'0')+' • '+esc(pr.name)+'</div></div>'+
+        badge+'</div>';
     }
 
     window.renderAutomaticFollowups=function(){
-      const list=document.getElementById('followupActionList');
-      if(!list) return;
-      const rows=db.cases.slice().reverse().map(function(c){
-        const reasons=autoFollowupReason(c);
-        return {c:c,reasons:reasons};
-      }).filter(function(x){return x.reasons.length});
+      const financeBox=document.getElementById('followupFinanceList');
+      const appointmentBox=document.getElementById('followupAppointmentList');
+      const missingBox=document.getElementById('followupMissingList');
+      if(!financeBox||!appointmentBox||!missingBox) return;
 
-      let clientN=0,providerN=0,incompleteN=0;
-      rows.forEach(function(x){
-        if(x.reasons.some(function(r){return r.includes('العميل لم يسدد')})) clientN++;
-        if(x.reasons.some(function(r){return r.includes('حصة PawApp')||r.includes('مستحق الشركة')||r.includes('دفع لمن')})) providerN++;
-        if(x.reasons.some(function(r){return r.includes('غير محدد')||r.includes('غير محددة')||r.includes('ناقص')||r.includes('غير مكتمل')})) incompleteN++;
+      const financeRows=[],appointmentRows=[],missingRows=[];
+      db.cases.slice().reverse().forEach(function(c){
+        const financial=financialFollowupItems(c);
+        if(financial.length) financeRows.push({c:c,items:financial});
+        const appointments=appointmentFollowupItems(c);
+        if(appointments.length) appointmentRows.push({c:c,items:appointments});
+        const missing=missingFollowupItems(c);
+        if(missing.length) missingRows.push({c:c,items:missing});
       });
-      const set=function(id,v){const e=document.getElementById(id);if(e)e.textContent=String(v)};
-      set('fuAll',rows.length);set('fuClients',clientN);set('fuProviders',providerN);set('fuIncomplete',incompleteN);
 
-      list.innerHTML=rows.length?rows.map(function(x){
-        const c=x.c,pr=byProvider(c.providerId);
-        return '<div class="card provider">'+
-          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><h3 style="margin:0">'+esc(c.client_name||'عميل')+'</h3><div class="hint">PAW-'+String(c.id).padStart(4,'0')+' • '+esc(pr.name)+'</div></div><span class="status unpaid">● تحتاج متابعة</span></div>'+
-          '<div style="margin-top:10px">'+x.reasons.map(function(r){return '<div class="kpi-line"><span>'+esc(r)+'</span></div>'}).join('')+'</div>'+
-          '<div class="actions"><button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">تعديل العملية</button></div>'+
-          '</div>';
-      }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في عمليات تحتاج متابعة حاليًا.</div></div>';
+      appointmentRows.sort(function(a,b){
+        return a.items[0].at-b.items[0].at;
+      });
+
+      const set=function(id,v){const e=document.getElementById(id);if(e)e.textContent=String(v)};
+      set('fuFinance',financeRows.length);
+      set('fuAppointments',appointmentRows.length);
+      set('fuMissing',missingRows.length);
+
+      financeBox.innerHTML=financeRows.length?financeRows.map(function(x){
+        const c=x.c,item=x.items[0];
+        let action='';
+        if(item.action==='settle'){
+          action='<button class="btn primary" onclick="openSettlement(\''+c.id+'\')">تسجيل دفع للشركة</button>'+
+                 '<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>';
+        }else{
+          action='<button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">تعديل الدفع</button>';
+        }
+        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status unpaid">أولوية مالية</span>')+
+          '<div style="margin-top:10px"><b>'+esc(item.label)+'</b><div class="hint">'+esc(item.detail)+'</div></div>'+
+          '<div class="actions">'+action+'</div></div>';
+      }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في مستحقات تحتاج إجراء حاليًا.</div></div>';
+
+      appointmentBox.innerHTML=appointmentRows.length?appointmentRows.map(function(x){
+        const c=x.c,item=x.items[0],now=Date.now();
+        const overdue=item.at.getTime()<now;
+        const soon=item.at.getTime()<=now+24*60*60*1000;
+        const badge=overdue?'<span class="status unpaid">متأخر</span>':soon?'<span class="status partial">خلال 24 ساعة</span>':'<span class="status paid">قادم</span>';
+        return '<div class="card provider">'+followupCaseHeader(c,badge)+
+          '<div style="margin-top:10px"><b>'+esc(item.label)+'</b><div class="hint">'+esc(formatFollowupDate(item.at))+'</div></div>'+
+          '<div class="actions"><button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button></div></div>';
+      }).join(''):'<div class="card"><div class="hint">ما في مواعيد أو ريميندر قادمة.</div></div>';
+
+      missingBox.innerHTML=missingRows.length?missingRows.map(function(x){
+        const c=x.c;
+        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial">بيانات ناقصة</span>')+
+          '<div style="margin-top:10px">'+x.items.map(function(r){return '<div class="kpi-line"><span>'+esc(r)+'</span></div>'}).join('')+'</div>'+
+          '<div class="actions"><button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">استكمال البيانات</button></div></div>';
+      }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في بيانات أساسية ناقصة.</div></div>';
+    };
+
+    const openCaseBeforeAppointment=window.openCaseDetails;
+    window.openCaseDetails=function(id){
+      openCaseBeforeAppointment(id);
+      const row=db.cases.find(function(x){return String(x.id)===String(id)});
+      const el=document.getElementById('eAppointmentAt');
+      if(el&&row){
+        el.value=row.appointment_at?new Date(row.appointment_at).toISOString().slice(0,16):'';
+      }
+    };
+
+    const newCaseBeforeAppointment=window.openNewCase;
+    window.openNewCase=function(){
+      newCaseBeforeAppointment();
+      const el=document.getElementById('cAppointmentAt');
+      if(el)el.value='';
     };
 
     const showPageBeforeAutoFollowup=window.showPage;
@@ -1576,13 +1675,13 @@ window.sourceLabel = function(src){
     const loadDataBeforeAutoFollowup=window.loadData;
     window.loadData=async function(){
       await loadDataBeforeAutoFollowup();
-      if(document.getElementById('followupActionList')) window.renderAutomaticFollowups();
+      if(document.getElementById('followupFinanceList')) window.renderAutomaticFollowups();
     };
 
     const saveCaseDetailsBeforeAutoFollowup=window.saveCaseDetails;
     window.saveCaseDetails=async function(){
       await saveCaseDetailsBeforeAutoFollowup();
-      if(document.getElementById('followupActionList')) window.renderAutomaticFollowups();
+      if(document.getElementById('followupFinanceList')) window.renderAutomaticFollowups();
     };
 
 (async()=>{

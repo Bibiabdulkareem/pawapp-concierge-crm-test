@@ -10,7 +10,8 @@
     'client_payments':'test_client_payments',
     'installment_schedule':'test_installment_schedule',
     'followups':'test_followups',
-    'activity_log':'test_activity_log'
+    'activity_log':'test_activity_log',
+    'case_attachments':'test_case_attachments'
   };
 
   window.fetch = function(input, init){
@@ -1855,9 +1856,9 @@ function financialFollowupItems(c){
     };
 
 
-    window.downloadTestBackup=async function(){
+    window.downloadTestBackup=async function(ev){
       const status=document.getElementById('testBackupStatus');
-      const btn=event&&event.currentTarget?event.currentTarget:null;
+      const btn=ev&&ev.currentTarget?ev.currentTarget:null;
       if(status) status.textContent='جاري تجهيز النسخة...';
       if(btn) btn.disabled=true;
       try{
@@ -1869,7 +1870,7 @@ function financialFollowupItems(c){
           api('followups?select=*'),
           api('client_payments?select=*'),
           api('settlements?select=*'),
-          fetch(SUPABASE_URL+'/rest/v1/test_case_attachments?select=*',{headers:HEADERS}).then(function(r){return r.ok?r.json():[]}),
+          api('case_attachments?select=*').catch(function(){return []}),
           api('activity_log?select=*')
         ]);
         const payload={

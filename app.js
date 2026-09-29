@@ -1050,7 +1050,7 @@ window.sourceLabel = function(src){
       const txt=document.getElementById('followupAlertText');
 
       // Red badge = ANY open follow-up, even if its time is later.
-      if(badge){
+      if(badge && !document.getElementById('followupFinanceList')){
         badge.textContent=String(rows.length);
         badge.style.display=rows.length?'inline-block':'none';
       }

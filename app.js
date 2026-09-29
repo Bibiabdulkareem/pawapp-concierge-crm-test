@@ -378,7 +378,8 @@
       const service=document.getElementById(prefix+'Service')?.value||'';
       const wrap=document.getElementById(prefix+'TransportFields');
       if(!wrap) return;
-      const show=isTransportServiceName(service);
+      const forced=wrap.dataset.forceTransport==='1';
+      const show=forced||isTransportServiceName(service);
       wrap.style.display=show?'block':'none';
       if(!show){
         ['TransportDirection','TransportAt','PickupLocation','DropoffLocation'].forEach(sfx=>{
@@ -389,7 +390,9 @@
     };
 
     function transportPayload(prefix,service){
-      if(!isTransportServiceName(service)){
+      const wrap=document.getElementById(prefix+'TransportFields');
+      const forced=wrap&&wrap.dataset.forceTransport==='1';
+      if(!forced&&!isTransportServiceName(service)){
         return {transport_direction:null,transport_at:null,pickup_location:null,dropoff_location:null};
       }
       const at=document.getElementById(prefix+'TransportAt')?.value||'';
@@ -477,6 +480,10 @@ window.sourceLabel = function(src){
       ps.value=c.providerId||'';
       editProviderChanged();
       if(c.service) document.getElementById('eService').value=c.service;
+      const eTransportWrap=document.getElementById('eTransportFields');
+      if(eTransportWrap){
+        eTransportWrap.dataset.forceTransport=(c.transport_provider_id||Number(c.transport_total_amount||0)>0||c.transport_direction||c.pickup_location||c.dropoff_location)?'1':'0';
+      }
       document.getElementById('eTransportDirection').value=c.transport_direction||'';
       document.getElementById('eTransportAt').value=c.transport_at?new Date(c.transport_at).toISOString().slice(0,16):'';
       document.getElementById('ePickupLocation').value=c.pickup_location||'';
@@ -1601,11 +1608,16 @@ window.sourceLabel = function(src){
         const showOnlyFields=function(sectionId,fieldIds){
           const section=document.getElementById(sectionId);
           if(!section) return;
-          Array.from(section.querySelectorAll('.field')).forEach(function(f){f.style.display='none'});
+          Array.from(section.children).forEach(function(child){
+            if(child.classList&&child.classList.contains('field')) child.style.display='none';
+          });
           fieldIds.forEach(function(fid){
             const el=document.getElementById(fid);
             const field=el&&el.closest('.field');
-            if(field) field.style.display='';
+            if(field){
+              field.style.display='';
+              Array.from(field.querySelectorAll('.field')).forEach(function(nested){nested.style.display=''});
+            }
           });
         };
         if(first.includes('الموظف')){
@@ -1638,7 +1650,34 @@ window.sourceLabel = function(src){
     window.openCaseWorkflow=function(id,mode){
       window.openCaseDetails(id);
       const row=db.cases.find(function(x){return String(x.id)===String(id)});
-      if(row) focusCaseEditor(row,mode||workflowState(row).focus);
+      if(!row) return;
+      const actualMode=mode||workflowState(row).focus;
+      focusCaseEditor(row,actualMode);
+
+      const modal=document.querySelector('#completeCaseModal .modal');
+      if(modal) modal.scrollTop=0;
+
+      let target=null;
+      if(actualMode==='missing'){
+        const first=missingFollowupItems(row)[0]||'';
+        if(first.includes('الموظف')) target=document.getElementById('eEmployee');
+        else if(first.includes('نوع الحيوان')) target=document.getElementById('ePetType');
+        else if(first.includes('الموقع / المنطقة')) target=document.getElementById('eLocation');
+        else if(first.includes('الشركة')) target=document.getElementById('eProvider');
+        else if(first.includes('اختيار الخدمة')) target=document.getElementById('eService');
+        else if(first.includes('السعر')) target=document.getElementById('eTotalAmount');
+        else if(first.includes('Pickup')) target=document.getElementById('ePickupLocation');
+        else if(first.includes('Drop-off')) target=document.getElementById('eDropoffLocation');
+      }else if(actualMode==='finance'){
+        target=document.getElementById('eClientPaid');
+      }else if(actualMode==='appointment'){
+        target=document.getElementById('eAppointmentAt');
+      }
+      if(target){
+        setTimeout(function(){
+          try{target.scrollIntoView({behavior:'smooth',block:'center'});target.focus({preventScroll:true})}catch(e){}
+        },80);
+      }
     };
 
 function financialFollowupItems(c){
@@ -1661,7 +1700,7 @@ function financialFollowupItems(c){
       if(!c.providerId) items.push('اختيار الشركة / الفريلانسر');
       if(!(c.service||c.requested_service)) items.push('اختيار الخدمة');
       if(Number(c.total_amount||0)<=0) items.push('إدخال السعر');
-      if(!c.employee_id && !c.staff) items.push('تحديد الموظف المسؤول');
+      if(!c.employee_id && !c.employeeId && !c.staff) items.push('تحديد الموظف المسؤول');
       if(!c.pet_type) items.push('نوع الحيوان');
       if(!c.location) items.push('الموقع / المنطقة');
       if(c.transport_provider_id && Number(c.transport_total_amount||0)>0){

@@ -1341,6 +1341,85 @@ window.sourceLabel = function(src){
       document.getElementById('providerList').innerHTML=h||'<div class="card">لا توجد نتائج</div>';
     };
 
+
+    window.toggleTransportAddon=function(){
+      const yes=document.getElementById('cTransportNeeded')&&document.getElementById('cTransportNeeded').value==='yes';
+      const box=document.getElementById('cTransportAddon');
+      if(box) box.style.display=yes?'block':'none';
+      const sel=document.getElementById('cTransportProvider');
+      if(sel){
+        const keep=sel.value;
+        sel.innerHTML='<option value="">اختاري شركة التوصيل / الفريلانسر</option>';
+        db.providers.forEach(function(p){sel.innerHTML+='<option value="'+p.id+'">'+esc(p.name)+'</option>'});
+        if([...sel.options].some(function(o){return o.value===keep})) sel.value=keep;
+      }
+      if(!yes){
+        ['cTransportDirection','cTransportProvider','cTransportTotal','cTransportPaw','cTransportAt','cPickupLocation','cDropoffLocation'].forEach(function(id){const e=document.getElementById(id);if(e)e.value=''});
+        if(document.getElementById('cTransportProviderAmount'))document.getElementById('cTransportProviderAmount').value='';
+        ['calcTransportTotal','calcTransportPaw','calcTransportProvider'].forEach(function(id){const e=document.getElementById(id);if(e)e.textContent=money(0)});
+      }
+    };
+
+    window.calcTransportAddon=function(){
+      const total=Number(document.getElementById('cTransportTotal')?.value||0);
+      const pawShare=Number(document.getElementById('cTransportPaw')?.value||0);
+      const providerShare=Math.max(0,total-pawShare);
+      if(document.getElementById('cTransportProviderAmount'))document.getElementById('cTransportProviderAmount').value=providerShare.toFixed(3);
+      if(document.getElementById('calcTransportTotal'))document.getElementById('calcTransportTotal').textContent=money(total);
+      if(document.getElementById('calcTransportPaw'))document.getElementById('calcTransportPaw').textContent=money(pawShare);
+      if(document.getElementById('calcTransportProvider'))document.getElementById('calcTransportProvider').textContent=money(providerShare);
+    };
+
+    const transportOpenNew=window.openNewCase;
+    window.openNewCase=function(){
+      transportOpenNew();
+      if(document.getElementById('cTransportNeeded'))document.getElementById('cTransportNeeded').value='no';
+      window.toggleTransportAddon();
+    };
+
+    const saveCaseBeforeTransport=window.saveCase;
+    window.saveCase=async function(){
+      const transportNeeded=document.getElementById('cTransportNeeded')?.value==='yes';
+      if(transportNeeded){
+        const tp=document.getElementById('cTransportProvider')?.value||'';
+        const dir=document.getElementById('cTransportDirection')?.value||'';
+        const total=Number(document.getElementById('cTransportTotal')?.value||0);
+        const pawShare=Number(document.getElementById('cTransportPaw')?.value||0);
+        const miss=[];
+        if(!dir)miss.push('نوع Pickup / Drop-off');
+        if(!tp)miss.push('شركة التوصيل');
+        if(total<=0)miss.push('سعر النقل');
+        if(pawShare<0||pawShare>total)miss.push('حصة PawApp من النقل');
+        if(miss.length){alert('باقي تكملين بالنقل: '+miss.join('، '));return}
+      }
+      const beforeRows=db.cases.length;
+      await saveCaseBeforeTransport();
+      if(!transportNeeded) return;
+      await loadData();
+      const newest=db.cases.slice().sort(function(a,b){return Number(b.id)-Number(a.id)})[0];
+      if(!newest || db.cases.length<=beforeRows) return;
+      const total=Number(document.getElementById('cTransportTotal')?.value||0);
+      const pawShare=Number(document.getElementById('cTransportPaw')?.value||0);
+      const at=document.getElementById('cTransportAt')?.value||'';
+      try{
+        await api('cases?id=eq.'+encodeURIComponent(newest.id),{
+          method:'PATCH',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify({
+            transport_direction:document.getElementById('cTransportDirection')?.value||null,
+            transport_provider_id:document.getElementById('cTransportProvider')?.value||null,
+            transport_total_amount:total,
+            transport_pawapp_amount:pawShare,
+            transport_provider_amount:Math.max(0,total-pawShare),
+            transport_at:at?new Date(at).toISOString():null,
+            pickup_location:document.getElementById('cPickupLocation')?.value.trim()||null,
+            dropoff_location:document.getElementById('cDropoffLocation')?.value.trim()||null
+          })
+        });
+        await loadData();
+      }catch(e){console.error(e);alert('تم حفظ العملية لكن تعذر حفظ بيانات Pickup / Drop-off')}
+    };
+
 (async()=>{
       try{
         await loadData();

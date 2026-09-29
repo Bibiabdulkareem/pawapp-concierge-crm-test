@@ -1923,9 +1923,9 @@ function financialFollowupItems(c){
         let action='';
         if(item.action==='settle'){
           action='<button class="btn primary" onclick="openSettlement(\''+c.id+'\')">تسجيل دفع للشركة</button>'+
-                 '<button class="btn soft" onclick="openCaseWorkflow(\''+c.id+'\'','finance')">فتح العملية</button>';
+                 '<button class="btn soft" onclick="openCaseWorkflow(\''+c.id+'\',\'finance\')">فتح العملية</button>';
         }else{
-          action='<button class="btn primary" onclick="openCaseWorkflow(\''+c.id+'\'','finance')">تعديل الدفع</button>';
+          action='<button class="btn primary" onclick="openCaseWorkflow(\''+c.id+'\',\'finance\')">تعديل الدفع</button>';
         }
         return '<div class="card provider">'+followupCaseHeader(c,'<span class="status unpaid">أولوية مالية</span>')+
           '<div style="margin-top:10px"><b>'+esc(item.label)+'</b><div class="hint">'+esc(item.detail)+'</div></div>'+
@@ -1942,7 +1942,7 @@ function financialFollowupItems(c){
           '<div class="actions">'+
             '<button class="btn primary" onclick="completeAppointmentFollowup(\''+c.id+'\')">✓ تمت متابعة الموعد</button>'+
             '<button class="btn soft" onclick="openAppointmentReminder(\''+c.id+'\')">تأجيل التذكير</button>'+
-            '<button class="btn soft" onclick="openCaseWorkflow(\''+c.id+'\'','appointment')">فتح العملية</button>'+
+            '<button class="btn soft" onclick="openCaseWorkflow(\''+c.id+'\',\'appointment\')">فتح العملية</button>'+
           '</div></div>';
       }).join(''):'<div class="card"><div class="hint">ما في مواعيد أو ريميندر قادمة.</div></div>';
 

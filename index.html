@@ -273,6 +273,14 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <section id="staff" class="page">
 <div class="title"><div><h1>الموظفون</h1><p>فريق PawApp اللي يستلم ويسجل طلبات العملاء</p></div><button class="btn primary" onclick="openStaff()">+ إضافة موظف</button></div>
 <div id="staffList" class="providerGrid"></div>
+
+<div class="section" style="margin-top:18px"><h2>النسخ الاحتياطي - TEST</h2></div>
+<div class="card" style="box-shadow:none">
+  <b>حماية بيانات التجربة</b>
+  <div class="hint" style="margin-top:5px;line-height:1.6">تم إنشاء Snapshot محفوظ داخل قاعدة البيانات. تقدرين بعد تحملين نسخة JSON كاملة من البيانات الأساسية على جهازج.</div>
+  <button class="btn soft" type="button" style="width:100%;margin-top:10px" onclick="downloadTestBackup()">تحميل نسخة احتياطية JSON</button>
+  <div id="testBackupStatus" class="hint" style="margin-top:8px"></div>
+</div>
 </section>
 
 <section id="crm" class="page">

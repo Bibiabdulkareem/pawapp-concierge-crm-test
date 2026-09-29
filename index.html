@@ -332,9 +332,9 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="section"><h2>تغيير الباسورد</h2></div>
 <div class="card" style="box-shadow:none">
   <div class="grid2">
-    <div class="field"><label>الباسورد الحالي</label><input id="myCurrentPassword" type="password" autocomplete="current-password"></div>
     <div class="field"><label>الباسورد الجديد</label><input id="myNewPassword" type="password" minlength="8" autocomplete="new-password"></div>
-    <div class="field full"><button class="btn soft" type="button" onclick="pawChangeMyPassword()">تغيير الباسورد</button></div>
+    <div class="field"><label>تأكيد الباسورد الجديد</label><input id="myConfirmPassword" type="password" minlength="8" autocomplete="new-password"></div>
+    <div class="field full"><button class="btn soft" type="button" onclick="pawChangeMyPassword()">حفظ الباسورد الجديد</button></div>
     <div id="myPasswordMessage" class="hint field full"></div>
   </div>
 </div>

@@ -88,32 +88,47 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 
 <main class="main">
 <section id="dashboard" class="page active">
-<div class="title"><div><h1>لوحة التحكم</h1><p>واضح وبسيط: ما يدفعه العميل، حصة PawApp، وحسابات الشركات / الفريلانسر</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
+<div class="title">
+  <div><h1>لوحة التحكم</h1><p>ملخص سريع، المتابعات المطلوبة، وحساب كل شركة بشكل واضح</p></div>
+  <button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button>
+</div>
+
 <div class="cards" style="grid-template-columns:repeat(4,1fr)">
-<div class="card stat"><span>عدد العمليات</span><b id="kOps" class="blue">0</b></div>
-<div class="card stat"><span>حصة PawApp</span><b id="kPaw" class="green">0.000 د.ك</b></div>
-<div class="card stat"><span>لنا عند الشركات / الفريلانسر</span><b id="kCollectFromProviders" class="red">0.000 د.ك</b></div>
-<div class="card stat"><span>للشركات / الفريلانسر عندنا</span><b id="kPayProviders" class="red">0.000 د.ك</b></div>
+  <div class="card stat"><span>العمليات</span><b id="kOps" class="blue">0</b></div>
+  <div class="card stat"><span>العملاء</span><b id="kCustomers" class="green">0</b></div>
+  <div class="card stat"><span>الشركات / العيادات</span><b id="kCompanies">0</b></div>
+  <div class="card stat"><span>الفريلانسر</span><b id="kFreelancers">0</b></div>
 </div>
-<div class="cards" style="margin-top:10px;grid-template-columns:repeat(2,1fr)">
-<div class="card stat"><span>عملاء لم يسددوا</span><b id="kUnpaidClients" class="red">0</b></div>
-<div class="card stat"><span>مبالغ غير مسددة من العملاء</span><b id="kClientRemain" class="red">0.000 د.ك</b></div>
-</div>
+
 <div id="financialFollowupSection" style="display:none">
-  <div class="section"><h2>متابعات مالية تحتاج إجراء</h2></div>
+  <div class="section">
+    <h2>متابعات تحتاج إجراء</h2>
+    <button class="btn soft" onclick="showPage('followups')">كل المتابعات</button>
+  </div>
   <div id="financialFollowups" class="providerGrid"></div>
 </div>
-<div id="legacyDashboardMetrics" style="display:none">
-  <span id="kSales"></span><span id="kDue"></span><span id="kPaid"></span><span id="kRemain"></span>
-  <span id="kClientDue"></span><span id="kClientPaid"></span>
+
+<div class="section">
+  <h2>الشركات / الفريلانسر</h2>
+  <button class="btn soft" onclick="showPage('providers')">إدارة الشركات</button>
 </div>
-<div id="upcomingInstallments" style="display:none"></div>
-<div id="clientDueSection" style="display:none"><div class="section"><h2>تذكيرات سداد العملاء</h2></div><div id="clientDueReminders" class="providerGrid"></div></div>
-<div class="section"><h2>حسابات الشركات / الفريلانسر</h2><button class="btn soft" onclick="showPage('providers')">كل الشركات / الفريلانسر</button></div>
-<div class="card" style="margin-bottom:11px"><div class="grid2"><div class="field"><label>الشركة / الفريلانسر</label><select id="dashboardProviderFilter" onchange="renderDashboard()"><option value="all">كل الشركات / الفريلانسر</option></select></div><div class="field"><label>حالة الدفع</label><select id="dashboardVendorStatusFilter" onchange="renderDashboard()"><option value="all">الكل</option><option value="unpaid">عليهم مبالغ غير مدفوعة</option><option value="paid">تم دفع مستحقاتهم بالكامل</option></select></div></div></div>
 <div id="dashboardProviders" class="providerGrid"></div>
-<div class="section"><h2>آخر العمليات</h2><button class="btn soft" onclick="showPage('cases')">عرض الكل</button></div>
-<div class="table"><table><thead><tr><th>رقم</th><th>العميل</th><th>الحيوان</th><th>التطعيم</th><th>الشركة / الفريلانسر</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق الشركة / الفريلانسر</th><th>دفع العميل</th></tr></thead><tbody id="recent"></tbody></table></div>
+
+<div class="section">
+  <h2>آخر العمليات</h2>
+  <button class="btn soft" onclick="showPage('cases')">عرض الكل</button>
+</div>
+<div id="dashboardRecentCards" class="providerGrid"></div>
+
+<div id="legacyDashboardMetrics" style="display:none">
+  <span id="kSales"></span><span id="kPaw"></span><span id="kDue"></span><span id="kPaid"></span><span id="kRemain"></span>
+  <span id="kClientDue"></span><span id="kClientPaid"></span><span id="kClientRemain"></span>
+  <span id="kCollectFromProviders"></span><span id="kPayProviders"></span><span id="kUnpaidClients"></span>
+  <div id="upcomingInstallments"></div><div id="clientDueSection"></div><div id="clientDueReminders"></div>
+  <select id="dashboardProviderFilter"><option value="all">الكل</option></select>
+  <select id="dashboardVendorStatusFilter"><option value="all">الكل</option></select>
+  <table><tbody id="recent"></tbody></table>
+</div>
 </section>
 
 <section id="newcase" class="page">

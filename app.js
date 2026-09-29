@@ -1269,96 +1269,181 @@ window.sourceLabel = function(src){
       }catch(e){console.error(e);alert('تعذر حفظ البيانات')}
     };
 
+    function providerActivity(pr){
+      const mainCases=db.cases.filter(function(c){return c.providerId===pr.id});
+      const transportCases=db.cases.filter(function(c){return c.transport_provider_id===pr.id && Number(c.transport_total_amount||0)>0});
+      const allCases=[];
+      mainCases.forEach(function(c){allCases.push({case:c,role:'main'})});
+      transportCases.forEach(function(c){allCases.push({case:c,role:'transport'})});
+
+      const clientMap=new Map();
+      allCases.forEach(function(x){
+        const c=x.case;
+        const key=String(c.client_phone||c.client_name||c.id).toLowerCase();
+        if(!clientMap.has(key)) clientMap.set(key,{name:c.client_name||'عميل',phone:c.client_phone||'',cases:[]});
+        clientMap.get(key).cases.push(x);
+      });
+
+      let sales=0,pawTotal=0,ours=0,theirs=0,attention=0,complete=0;
+      const serviceCounts={};
+      allCases.forEach(function(x){
+        const c=x.case;
+        if(x.role==='main'){
+          sales+=Number(c.total_amount||0);
+          pawTotal+=Number(c.pawapp_amount||0);
+          ours+=v2CollectFromProvider(c);
+          theirs+=v2PayProvider(c);
+          const s=c.service||c.requested_service||'غير محدد';
+          serviceCounts[s]=(serviceCounts[s]||0)+1;
+        }else{
+          sales+=Number(c.transport_total_amount||0);
+          pawTotal+=Number(c.transport_pawapp_amount||0);
+          const s='Pickup / Drop-off';
+          serviceCounts[s]=(serviceCounts[s]||0)+1;
+        }
+        const needs=!v2ClientPaid(c) || (v2ClientPaid(c)&&!c.client_paid_to) ||
+          (x.role==='main' && (v2CollectFromProvider(c)>0.0001 || v2PayProvider(c)>0.0001));
+        if(needs) attention++; else complete++;
+      });
+
+      return {
+        mainCases:mainCases,transportCases:transportCases,allCases:allCases,
+        clients:[...clientMap.values()],operations:allCases.length,
+        sales:sales,pawTotal:pawTotal,ours:ours,theirs:theirs,
+        attention:attention,complete:complete,serviceCounts:serviceCounts
+      };
+    }
+
     window.renderDashboard=function(){
       const customerKeys=new Set();
+      let clientPaidTotal=0,clientUnpaidTotal=0,ours=0,theirs=0,pawTotal=0,needs=0;
       db.cases.forEach(function(c){
         customerKeys.add(String(c.client_phone||c.client_name||c.id).toLowerCase());
+        clientPaidTotal+=clientPaidAmt(c);
+        clientUnpaidTotal+=clientRem(c);
+        pawTotal+=Number(c.pawapp_amount||0)+Number(c.transport_pawapp_amount||0);
+        ours+=v2CollectFromProvider(c);
+        theirs+=v2PayProvider(c);
+        if(!v2ClientPaid(c) || (v2ClientPaid(c)&&!c.client_paid_to) || v2CollectFromProvider(c)>0.0001 || v2PayProvider(c)>0.0001) needs++;
       });
-      const companies=db.providers.filter(function(p){return p.type!=='freelancer'}).length;
-      const freelancers=db.providers.filter(function(p){return p.type==='freelancer'}).length;
-      if(document.getElementById('kOps'))document.getElementById('kOps').textContent=String(db.cases.length);
-      if(document.getElementById('kCustomers'))document.getElementById('kCustomers').textContent=String(customerKeys.size);
-      if(document.getElementById('kCompanies'))document.getElementById('kCompanies').textContent=String(companies);
-      if(document.getElementById('kFreelancers'))document.getElementById('kFreelancers').textContent=String(freelancers);
 
-      const tasks=[];
-      db.cases.forEach(function(c){
-        const main=byProvider(c.providerId);
-        if(!v2ClientPaid(c)&&clientRem(c)>0.0001){
-          tasks.push({c:c,t:'تحصيل من العميل',x:'العميل لم يسدد',a:clientRem(c)});
-        } else if(c.client_paid_to==='provider'&&v2CollectFromProvider(c)>0.0001){
-          tasks.push({c:c,t:'تحصيل حصة PawApp',x:'من '+main.name,a:v2CollectFromProvider(c)});
-        } else if(c.client_paid_to==='pawapp'&&v2PayProvider(c)>0.0001){
-          tasks.push({c:c,t:'تحويل مستحق الشركة',x:'إلى '+main.name,a:v2PayProvider(c)});
-        } else if(v2ClientPaid(c)&&!c.client_paid_to){
-          tasks.push({c:c,t:'تحديد جهة الدفع',x:'العميل مسدد لكن غير محدد دفع لمن',a:0});
-        }
-      });
-      const sec=document.getElementById('financialFollowupSection'),box=document.getElementById('financialFollowups');
-      if(sec)sec.style.display=tasks.length?'block':'none';
-      if(box)box.innerHTML=tasks.slice(0,6).map(function(x){
-        return '<div class="card provider"><h3>'+esc(x.t)+'</h3><p>'+esc(x.c.client_name)+' • PAW-'+String(x.c.id).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span>المبلغ</span><b>'+money(x.a)+'</b></div><div class="mini" style="grid-column:span 2"><span>المطلوب</span><b>'+esc(x.x)+'</b></div></div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+x.c.id+'\')">فتح الحالة</button></div></div>';
-      }).join('');
-
-      function providerActivity(pr){
-        const mainCases=db.cases.filter(function(c){return c.providerId===pr.id});
-        const transportCases=db.cases.filter(function(c){return c.transport_provider_id===pr.id && Number(c.transport_total_amount||0)>0});
-        const ids=new Set();
-        mainCases.forEach(function(c){ids.add('m'+c.id)});
-        transportCases.forEach(function(c){ids.add('t'+c.id)});
-        const clients=new Set();
-        mainCases.concat(transportCases).forEach(function(c){clients.add(String(c.client_phone||c.client_name||c.id).toLowerCase())});
-        const services=[];
-        mainCases.forEach(function(c){const s=c.service||c.requested_service;if(s)services.push(s)});
-        if(transportCases.length)services.push('Pickup / Drop-off');
-
-        let ours=0,theirs=0;
-        mainCases.forEach(function(c){ours+=v2CollectFromProvider(c);theirs+=v2PayProvider(c)});
-        return {mainCases:mainCases,transportCases:transportCases,operations:ids.size,clients:clients.size,services:[...new Set(services)],ours:ours,theirs:theirs};
-      }
-
-      let ph='';
-      db.providers.forEach(function(pr){
-        const a=providerActivity(pr);
-        if(!a.operations)return;
-        const net=a.ours-a.theirs;
-        const serviceText=a.services.slice(0,3).map(esc).join(' • ')+(a.services.length>3?' +'+(a.services.length-3):'');
-        ph+='<div class="card provider"><h3>'+esc(pr.name)+'</h3><p>'+(serviceText||'—')+'</p>'+
-          '<div class="miniGrid"><div class="mini"><span>العملاء</span><b>'+a.clients+'</b></div><div class="mini"><span>العمليات</span><b>'+a.operations+'</b></div><div class="mini"><span>الخدمات</span><b>'+a.services.length+'</b></div></div>'+
-          '<div class="miniGrid"><div class="mini"><span>لنا عندهم</span><b class="'+(a.ours>0?'red':'green')+'">'+money(a.ours)+'</b></div><div class="mini"><span>لهم عندنا</span><b class="'+(a.theirs>0?'red':'green')+'">'+money(a.theirs)+'</b></div><div class="mini"><span>الصافي</span><b>'+(net>0?'لنا '+money(net):net<0?'لهم '+money(Math.abs(net)):'متسوي')+'</b></div></div>'+
-          '<div class="actions"><button class="btn soft" onclick="providerCases(\''+pr.id+'\')">التفاصيل</button></div></div>';
-      });
-      if(document.getElementById('dashboardProviders'))document.getElementById('dashboardProviders').innerHTML=ph||'<div class="card">ما في عمليات مسجلة للحين.</div>';
+      const set=function(id,val){const e=document.getElementById(id);if(e)e.textContent=val};
+      set('kOps',String(db.cases.length));
+      set('kCustomers',String(customerKeys.size));
+      set('kProviders',String(db.providers.length));
+      set('kNeedsFollowup',String(needs));
+      set('kClientPaidTotal',money(clientPaidTotal));
+      set('kClientUnpaidTotal',money(clientUnpaidTotal));
+      set('kOursFromProviders',money(ours));
+      set('kOweProviders',money(theirs));
 
       let recent='';
-      db.cases.slice().reverse().slice(0,6).forEach(function(c){
+      db.cases.slice().reverse().slice(0,3).forEach(function(c){
         const pr=byProvider(c.providerId);
         const tp=c.transport_provider_id?byProvider(c.transport_provider_id):null;
-        const tdir=c.transport_direction==='pickup'?'Pickup':c.transport_direction==='dropoff'?'Drop-off':c.transport_direction==='both'?'Pickup + Drop-off':'';
+        const needsAttention=!v2ClientPaid(c) || !c.client_paid_to || v2CollectFromProvider(c)>0.0001 || v2PayProvider(c)>0.0001;
         let transport='';
         if(tp&&Number(c.transport_total_amount||0)>0){
-          transport='<div class="hint" style="margin-top:6px">+ '+esc(tdir||'Pickup / Drop-off')+' • '+esc(tp.name)+' • '+money(c.transport_total_amount)+'</div>';
+          const tdir=c.transport_direction==='pickup'?'Pickup':c.transport_direction==='dropoff'?'Drop-off':c.transport_direction==='both'?'Pickup + Drop-off':'Pickup / Drop-off';
+          transport='<div class="hint" style="margin-top:5px">+ '+esc(tdir)+' • '+esc(tp.name)+' • '+money(c.transport_total_amount)+'</div>';
         }
-        recent+='<div class="card provider"><h3>'+esc(c.client_name)+'</h3><p>PAW-'+String(c.id).padStart(4,'0')+'</p>'+
+        recent+='<div class="card provider">'+
+          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">'+esc(c.client_name)+'</h3>'+(needsAttention?'<span class="status unpaid">● تحتاج متابعة</span>':'<span class="status paid">مكتملة</span>')+'</div>'+
+          '<p>PAW-'+String(c.id).padStart(4,'0')+'</p>'+
           '<div><b>'+esc(c.service||c.requested_service||'—')+'</b><div class="hint">'+esc(pr.name)+'</div>'+transport+'</div>'+
-          '<div class="miniGrid"><div class="mini"><span>الخدمة الأساسية</span><b>'+money(c.amount)+'</b></div><div class="mini"><span>النقل</span><b>'+money(c.transport_total_amount||0)+'</b></div><div class="mini"><span>الدفع</span><b>'+esc(v2Route(c))+'</b></div></div>'+
-          '<div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح الحالة</button></div></div>';
+          '<div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button></div></div>';
       });
-      if(document.getElementById('dashboardRecentCards'))document.getElementById('dashboardRecentCards').innerHTML=recent||'<div class="card">لا توجد عمليات.</div>';
+      const box=document.getElementById('dashboardRecentCards');
+      if(box)box.innerHTML=recent||'<div class="card">لا توجد عمليات.</div>';
     };
 
-        window.renderProviders=function(){
-      const q=(document.getElementById('providerSearch').value||'').toLowerCase();let h='';
+    window.renderProviders=function(){
+      const q=(document.getElementById('providerSearch')?.value||'').toLowerCase();
+      let h='';
       db.providers.filter(function(p){return !q||p.name.toLowerCase().includes(q)}).forEach(function(p){
-        const cs=db.cases.filter(function(c){return c.providerId===p.id});
-        const clients=new Set(cs.map(function(x){return String(x.client_phone||x.client_name||x.id).toLowerCase()})).size;
-        let po=0,pt=0;cs.forEach(function(x){po+=v2CollectFromProvider(x);pt+=v2PayProvider(x)});
-        const typ=p.type==='freelancer'?'Freelancer':(p.category==='veterinary'?'Company - Veterinary':'Company - Services');
-        const feeTxt=p.feeType==='fixed'?money(p.feeValue)+' ثابت':p.feeValue+'%';
-        const services=p.services.length?p.services.map(function(x){return '<span class="status partial" style="margin:3px">'+esc(x)+'</span>'}).join(''):'<span class="hint">ما في خدمات مضافة</span>';
-        h+='<div class="card provider"><h3>'+esc(p.name)+'</h3><p>'+typ+' • '+feeTxt+'</p><div style="margin-top:8px">'+services+'</div><div class="miniGrid"><div class="mini"><span>العملاء</span><b>'+clients+'</b></div><div class="mini"><span>العمليات</span><b>'+cs.length+'</b></div><div class="mini"><span>الخدمات</span><b>'+p.services.length+'</b></div></div><div class="miniGrid"><div class="mini"><span>لنا عندهم</span><b>'+money(po)+'</b></div><div class="mini"><span>لهم عندنا</span><b>'+money(pt)+'</b></div><div class="mini"><span>الصافي</span><b>'+money(Math.abs(po-pt))+'</b></div></div><div class="actions"><button class="btn primary" onclick="openServiceManager(\''+p.id+'\')">إدارة الخدمات</button><button class="btn soft" onclick="providerCases(\''+p.id+'\')">العمليات</button><button class="btn danger" onclick="deleteProvider(\''+p.id+'\')">حذف</button></div></div>';
+        const a=providerActivity(p);
+        const typ=p.type==='freelancer'?'فريلانسر':(p.category==='veterinary'?'عيادة / شركة بيطرية':'شركة خدمات');
+        const names=a.clients.slice(0,5).map(function(x){return esc(x.name)}).join(' • ');
+        h+='<div class="card provider">'+
+          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">'+esc(p.name)+'</h3>'+(a.attention?'<span class="status unpaid">● '+a.attention+' تحتاج متابعة</span>':'<span class="status paid">مستقرة</span>')+'</div>'+
+          '<p>'+typ+'</p>'+
+          '<div class="miniGrid"><div class="mini"><span>العملاء</span><b>'+a.clients.length+'</b></div><div class="mini"><span>العمليات</span><b>'+a.operations+'</b></div><div class="mini"><span>الخدمات</span><b>'+Object.keys(a.serviceCounts).length+'</b></div></div>'+
+          '<div class="miniGrid"><div class="mini"><span>لنا عندهم</span><b>'+money(a.ours)+'</b></div><div class="mini"><span>لهم عندنا</span><b>'+money(a.theirs)+'</b></div><div class="mini"><span>الصافي</span><b>'+money(Math.abs(a.ours-a.theirs))+'</b></div></div>'+
+          (a.clients.length?'<div class="hint" style="margin-top:9px"><b>العملاء:</b> '+names+(a.clients.length>5?' +'+(a.clients.length-5):'')+'</div>':'')+
+          '<div class="actions"><button class="btn primary" onclick="openProviderCRM(\''+p.id+'\')">التفاصيل والتحليل</button><button class="btn soft" onclick="openServiceManager(\''+p.id+'\')">الخدمات</button></div>'+
+          '</div>';
       });
-      document.getElementById('providerList').innerHTML=h||'<div class="card">لا توجد نتائج</div>';
+      const list=document.getElementById('providerList');
+      if(list)list.innerHTML=h||'<div class="card">لا توجد نتائج</div>';
+    };
+
+    window.openProviderCRM=function(id){
+      const p=db.providers.find(function(x){return x.id===id});if(!p)return;
+      const a=providerActivity(p);
+      showPage('providerdetail');
+      const set=function(id,val){const e=document.getElementById(id);if(e)e.textContent=val};
+      set('providerDetailName',p.name);
+      set('providerDetailType',p.type==='freelancer'?'فريلانسر':'شركة / عيادة');
+      set('pdClients',String(a.clients.length));
+      set('pdOps',String(a.operations));
+      set('pdComplete',String(a.complete));
+      set('pdPending',String(a.attention));
+      set('pdSales',money(a.sales));
+      set('pdPaw',money(a.pawTotal));
+      set('pdOurs',money(a.ours));
+      set('pdTheirs',money(a.theirs));
+
+      const services=Object.entries(a.serviceCounts).sort(function(x,y){return y[1]-x[1]});
+      const sb=document.getElementById('pdServices');
+      if(sb)sb.innerHTML=services.length?services.map(function(x){
+        return '<div class="kpi-line"><span>'+esc(x[0])+'</span><b>'+x[1]+' عملية</b></div>';
+      }).join(''):'ما في خدمات مسجلة.';
+
+      let clientsHtml='';
+      a.clients.forEach(function(cl){
+        const pending=cl.cases.filter(function(x){
+          const c=x.case;
+          return !v2ClientPaid(c) || !c.client_paid_to || (x.role==='main'&&(v2CollectFromProvider(c)>0.0001||v2PayProvider(c)>0.0001));
+        }).length;
+        clientsHtml+='<div class="card provider">'+
+          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">'+esc(cl.name)+'</h3>'+(pending?'<span class="status unpaid">● '+pending+' غير مكتملة</span>':'<span class="status paid">مكتملة</span>')+'</div>'+
+          '<p>'+esc(cl.phone||'بدون رقم')+' • '+cl.cases.length+' عملية</p>'+
+          cl.cases.map(function(x){
+            const c=x.case;
+            const label=x.role==='transport'?'Pickup / Drop-off':(c.service||c.requested_service||'خدمة');
+            const amount=x.role==='transport'?Number(c.transport_total_amount||0):Number(c.total_amount||0);
+            return '<div class="kpi-line"><span>'+esc(label)+' • PAW-'+String(c.id).padStart(4,'0')+'</span><b>'+money(amount)+'</b></div>';
+          }).join('')+
+          '</div>';
+      });
+      const cb=document.getElementById('pdClientList');
+      if(cb)cb.innerHTML=clientsHtml||'<div class="card">ما في عملاء مسجلين.</div>';
+
+      const btn=document.getElementById('pdExportBtn');
+      if(btn)btn.onclick=function(){exportProviderFullReport(id)};
+    };
+
+    window.providerCases=function(id){openProviderCRM(id)};
+
+    window.exportProviderFullReport=function(id){
+      const p=db.providers.find(function(x){return x.id===id});if(!p)return;
+      const a=providerActivity(p);
+      if(!a.operations){alert('ما في عمليات لهذه الجهة');return}
+      let csv='Case ID,Date,Client,Phone,Role,Service,Amount KD,PawApp KD,Payment Status,Needs Followup\n';
+      a.allCases.forEach(function(x){
+        const c=x.case;
+        const role=x.role==='transport'?'Transport':'Main';
+        const service=x.role==='transport'?'Pickup / Drop-off':(c.service||c.requested_service||'');
+        const amount=x.role==='transport'?Number(c.transport_total_amount||0):Number(c.total_amount||0);
+        const pawAmt=x.role==='transport'?Number(c.transport_pawapp_amount||0):Number(c.pawapp_amount||0);
+        const needs=!v2ClientPaid(c)||!c.client_paid_to||(x.role==='main'&&(v2CollectFromProvider(c)>0.0001||v2PayProvider(c)>0.0001));
+        const vals=[c.id,c.service_date||'',c.client_name||'',c.client_phone||'',role,service,amount.toFixed(3),pawAmt.toFixed(3),v2Route(c),needs?'Yes':'No'];
+        csv+=vals.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"'}).join(',')+'\n';
+      });
+      const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+      const url=URL.createObjectURL(blob),aEl=document.createElement('a');
+      aEl.href=url;aEl.download=('PawApp-'+p.name+'-full-report.csv').replace(/\s+/g,'-');
+      document.body.appendChild(aEl);aEl.click();document.body.removeChild(aEl);setTimeout(function(){URL.revokeObjectURL(url)},1000);
     };
 
 

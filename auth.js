@@ -217,22 +217,17 @@
   };
 
   window.pawChangeMyPassword = async function() {
-    const currentPassword = el('myCurrentPassword')?.value || '';
     const newPassword = el('myNewPassword')?.value || '';
+    const confirmPassword = el('myConfirmPassword')?.value || '';
     const message = el('myPasswordMessage');
-    const email = window.PAWAPP_AUTH?.user?.email || '';
 
     if (newPassword.length < 8) {
       if (message) message.textContent='الباسورد الجديد لازم يكون 8 أحرف أو أكثر.';
       return;
     }
-
-    if (currentPassword) {
-      const { error: reauthError } = await sb.auth.signInWithPassword({ email, password: currentPassword });
-      if (reauthError) {
-        if (message) message.textContent='الباسورد الحالي غير صحيح.';
-        return;
-      }
+    if (newPassword !== confirmPassword) {
+      if (message) message.textContent='تأكيد الباسورد مو مطابق.';
+      return;
     }
 
     const { error } = await sb.auth.updateUser({ password: newPassword });
@@ -241,9 +236,9 @@
       return;
     }
 
-    if (el('myCurrentPassword')) el('myCurrentPassword').value='';
     if (el('myNewPassword')) el('myNewPassword').value='';
-    if (message) message.textContent='تم تغيير الباسورد بنجاح.';
+    if (el('myConfirmPassword')) el('myConfirmPassword').value='';
+    if (message) message.textContent='تم حفظ الباسورد الجديد بنجاح.';
   };
 
   window.pawAuthSignOut = async function() {

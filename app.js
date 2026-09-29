@@ -1854,6 +1854,72 @@ function financialFollowupItems(c){
       if(document.getElementById('followupFinanceList')) window.renderAutomaticFollowups();
     };
 
+
+    window.downloadTestBackup=async function(){
+      const status=document.getElementById('testBackupStatus');
+      const btn=event&&event.currentTarget?event.currentTarget:null;
+      if(status) status.textContent='جاري تجهيز النسخة...';
+      if(btn) btn.disabled=true;
+      try{
+        const [cases,providers,services,employees,followups,payments,settlements,attachments,activity]=await Promise.all([
+          api('cases?select=*'),
+          api('providers?select=*'),
+          api('services?select=*'),
+          api('employees?select=*'),
+          api('followups?select=*'),
+          api('client_payments?select=*'),
+          api('settlements?select=*'),
+          fetch(SUPABASE_URL+'/rest/v1/test_case_attachments?select=*',{headers:HEADERS}).then(function(r){return r.ok?r.json():[]}),
+          api('activity_log?select=*')
+        ]);
+        const payload={
+          backup_type:'pawapp_concierge_test',
+          created_at:new Date().toISOString(),
+          version:1,
+          counts:{
+            cases:cases.length,
+            providers:providers.length,
+            services:services.length,
+            employees:employees.length,
+            followups:followups.length,
+            client_payments:payments.length,
+            settlements:settlements.length,
+            attachments:attachments.length,
+            activity_log:activity.length
+          },
+          data:{
+            test_cases:cases,
+            test_providers:providers,
+            test_services:services,
+            test_employees:employees,
+            test_followups:followups,
+            test_client_payments:payments,
+            test_settlements:settlements,
+            test_case_attachments:attachments,
+            test_activity_log:activity
+          }
+        };
+        const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+        a.href=url;
+        a.download='pawapp-test-backup-'+stamp+'.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function(){URL.revokeObjectURL(url)},1000);
+        if(status) status.textContent='تم تجهيز النسخة الاحتياطية • '+cases.length+' عملية';
+        toast('تم تحميل النسخة الاحتياطية');
+      }catch(e){
+        console.error('backup download failed',e);
+        if(status) status.textContent='تعذر تجهيز النسخة الاحتياطية';
+        alert('تعذر تجهيز النسخة الاحتياطية');
+      }finally{
+        if(btn) btn.disabled=false;
+      }
+    };
+
 (async()=>{
       try{
         await loadData();

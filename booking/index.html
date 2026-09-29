@@ -634,7 +634,7 @@
       var saved=await saveRes.json();
       if(!saveRes.ok || !saved.ok) throw new Error('save_failed');
 
-      var text=buildMsg();
+      var text=buildMsg()+'\n\nPawApp Case: PAW-'+String(saved.case_id).padStart(4,'0');
       var url='https://wa.me/'+WA+'?text='+encodeURIComponent(text);
       window.open(url,'_blank');
       $('#waLink').href=url;

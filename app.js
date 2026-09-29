@@ -1921,6 +1921,27 @@ function financialFollowupItems(c){
       }
     };
 
+
+    window.renderAdminAccess=function(){
+      const box=document.getElementById('adminAccessList');
+      if(!box) return;
+      const rows=Array.isArray(db.employees)?db.employees:[];
+      box.innerHTML=rows.length?rows.map(function(e){
+        return '<div class="card" style="box-shadow:none;margin-bottom:8px">'+
+          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+
+            '<div><b>'+esc(e.name||'موظف')+'</b><div class="hint">حساب الدخول: غير مفعّل بعد</div></div>'+
+            '<span class="status partial">بانتظار الإيميل</span>'+
+          '</div>'+
+        '</div>';
+      }).join(''):'<div class="hint">ما في موظفين مضافين حاليًا.</div>';
+    };
+
+    const showPageBeforeAdmin=window.showPage;
+    window.showPage=async function(id){
+      await showPageBeforeAdmin(id);
+      if(id==='admin') window.renderAdminAccess();
+    };
+
 (async()=>{
       try{
         await loadData();

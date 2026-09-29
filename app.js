@@ -1680,6 +1680,139 @@ window.sourceLabel = function(src){
       }
     };
 
+
+    function workflowMissingKey(label){
+      if(label.includes('الموظف')) return 'employee';
+      if(label.includes('موقع الاستلام')) return 'pickup';
+      if(label.includes('موقع التوصيل')) return 'dropoff';
+      if(label.includes('الشركة')) return 'provider';
+      if(label.includes('اختيار الخدمة')) return 'service';
+      if(label.includes('السعر')) return 'price';
+      if(label.includes('نوع الحيوان')) return 'pet';
+      if(label.includes('الموقع / المنطقة')) return 'location';
+      return 'other';
+    }
+
+    window.openMissingTask=function(caseId){
+      const row=db.cases.find(function(x){return String(x.id)===String(caseId)});
+      if(!row) return;
+      const missing=missingFollowupItems(row);
+      if(!missing.length){toast('ما في بيانات ناقصة');return}
+      const label=missing[0];
+      const key=workflowMissingKey(label);
+      const title=document.getElementById('workflowTaskModalTitle');
+      const summary=document.getElementById('workflowTaskSummary');
+      const fields=document.getElementById('workflowTaskFields');
+      document.getElementById('workflowTaskCaseId').value=String(caseId);
+      if(title) title.textContent='استكمال البيانات';
+      if(summary) summary.innerHTML='<div class="hint">المطلوب الآن</div><b>'+esc(label)+'</b><div class="hint" style="margin-top:5px">PAW-'+String(row.id).padStart(4,'0')+' • '+esc(row.client_name||'عميل')+'</div>';
+
+      let html='';
+      if(key==='employee'){
+        html='<div class="field"><label>الموظف المسؤول</label><select id="wfEmployee"><option value="">اختاري الموظف المسؤول</option>'+
+          db.employees.map(function(e){return '<option value="'+e.id+'">'+esc(e.name)+'</option>'}).join('')+
+          '</select></div>';
+      }else if(key==='pickup'){
+        html='<div class="field"><label>مكان الاستلام Pickup</label><input id="wfPickup" value="'+esc(row.pickup_location||'')+'" placeholder="اكتبي موقع الاستلام"></div>';
+      }else if(key==='dropoff'){
+        html='<div class="field"><label>مكان التوصيل Drop-off</label><input id="wfDropoff" value="'+esc(row.dropoff_location||'')+'" placeholder="اكتبي موقع التوصيل"></div>';
+      }else if(key==='provider'){
+        html='<div class="field"><label>الشركة / الفريلانسر</label><select id="wfProvider"><option value="">اختاري الشركة / الفريلانسر</option>'+
+          db.providers.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('')+
+          '</select></div>';
+      }else if(key==='service'){
+        const p=db.providers.find(function(x){return x.id===row.providerId});
+        const services=p&&Array.isArray(p.services)?p.services:[];
+        html='<div class="field"><label>الخدمة</label><select id="wfService"><option value="">اختاري الخدمة</option>'+
+          services.map(function(s){return '<option>'+esc(s)+'</option>'}).join('')+
+          '</select></div>';
+      }else if(key==='price'){
+        html='<div class="field"><label>إجمالي ما يدفعه العميل (د.ك)</label><input id="wfPrice" type="number" min="0" step="0.001" value="'+Number(row.total_amount||0)+'"></div>'+
+          '<div class="field"><label>طريقة حصة PawApp</label><select id="wfFeeType"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت</option></select></div>'+
+          '<div class="field"><label>حصة PawApp</label><input id="wfFeeValue" type="number" min="0" step="0.001" value="'+Number(row.fee_value||0)+'"></div>';
+      }else if(key==='pet'){
+        html='<div class="field"><label>نوع الحيوان</label><select id="wfPetType"><option value="">اختاري</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>';
+      }else if(key==='location'){
+        html='<div class="field"><label>المنطقة / الموقع</label><input id="wfLocation" value="'+esc(row.location||'')+'" placeholder="اكتبي المنطقة أو الموقع"></div>';
+      }else{
+        html='<div class="card">افتحي العملية لاستكمال البيانات.</div>';
+      }
+      fields.innerHTML=html;
+      fields.dataset.taskKey=key;
+      const modal=document.getElementById('workflowTaskModal');
+      if(modal) modal.classList.add('show');
+    };
+
+    window.saveWorkflowTask=async function(){
+      const caseId=document.getElementById('workflowTaskCaseId')?.value;
+      const fields=document.getElementById('workflowTaskFields');
+      const key=fields?.dataset.taskKey||'';
+      const row=db.cases.find(function(x){return String(x.id)===String(caseId)});
+      if(!caseId||!row) return;
+      const payload={};
+
+      if(key==='employee'){
+        const v=document.getElementById('wfEmployee')?.value||'';
+        if(!v){alert('اختاري الموظف المسؤول');return}
+        payload.employee_id=v;
+      }else if(key==='pickup'){
+        const v=document.getElementById('wfPickup')?.value.trim()||'';
+        if(!v){alert('اكتبي موقع الاستلام');return}
+        payload.pickup_location=v;
+      }else if(key==='dropoff'){
+        const v=document.getElementById('wfDropoff')?.value.trim()||'';
+        if(!v){alert('اكتبي موقع التوصيل');return}
+        payload.dropoff_location=v;
+      }else if(key==='provider'){
+        const v=document.getElementById('wfProvider')?.value||'';
+        if(!v){alert('اختاري الشركة / الفريلانسر');return}
+        payload.provider_id=v;
+      }else if(key==='service'){
+        const v=document.getElementById('wfService')?.value||'';
+        if(!v){alert('اختاري الخدمة');return}
+        payload.service_name=v;
+      }else if(key==='price'){
+        const total=Number(document.getElementById('wfPrice')?.value||0);
+        const feeType=document.getElementById('wfFeeType')?.value||'percent';
+        const feeValue=Number(document.getElementById('wfFeeValue')?.value||0);
+        if(total<=0){alert('اكتبي السعر');return}
+        const pawAmount=feeType==='fixed'?feeValue:total*feeValue/100;
+        payload.total_amount=total;payload.fee_type=feeType;payload.fee_value=feeValue;
+        payload.pawapp_amount=pawAmount;payload.provider_amount=Math.max(0,total-pawAmount);
+      }else if(key==='pet'){
+        const v=document.getElementById('wfPetType')?.value||'';
+        if(!v){alert('اختاري نوع الحيوان');return}
+        payload.pet_type=v;
+      }else if(key==='location'){
+        const v=document.getElementById('wfLocation')?.value.trim()||'';
+        if(!v){alert('اكتبي المنطقة / الموقع');return}
+        payload.location=v;
+      }else{
+        closeModal('workflowTaskModal');
+        openCaseDetails(caseId);
+        return;
+      }
+
+      try{
+        await api('cases?id=eq.'+encodeURIComponent(caseId),{
+          method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)
+        });
+        closeModal('workflowTaskModal');
+        await loadData();
+        window.renderAutomaticFollowups();
+        const updated=db.cases.find(function(x){return String(x.id)===String(caseId)});
+        const next=updated?missingFollowupItems(updated):[];
+        if(next.length){
+          toast('تم الحفظ • باقي: '+next[0]);
+        }else{
+          toast('تم استكمال البيانات');
+        }
+      }catch(e){
+        console.error(e);
+        alert('تعذر حفظ البيانات');
+      }
+    };
+
 function financialFollowupItems(c){
       const items=[];
       const paid=v2ClientPaid(c);
@@ -1817,7 +1950,7 @@ function financialFollowupItems(c){
         const c=x.c;
         return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial">بيانات ناقصة</span>')+
           '<div style="margin-top:10px">'+x.items.map(function(r){return '<div class="kpi-line"><span>'+esc(r)+'</span></div>'}).join('')+'</div>'+
-          '<div class="actions"><button class="btn primary" onclick="openCaseWorkflow(\''+c.id+'\'','missing')">استكمال البيانات</button></div></div>';
+          '<div class="actions"><button class="btn primary" onclick="openMissingTask(\''+c.id+'\')">استكمال البيانات</button></div></div>';
       }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في بيانات أساسية ناقصة.</div></div>';
     };
 

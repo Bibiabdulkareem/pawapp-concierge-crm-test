@@ -1252,6 +1252,7 @@ window.sourceLabel = function(src){
       try{
         await api('cases?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({
           client_phone:document.getElementById('ePhone').value.trim(),
+          employee_id:document.getElementById('eEmployee')?.value||null,
           location:document.getElementById('eLocation').value.trim()||null,
           pet_type:document.getElementById('ePetType').value||null,
           breed:document.getElementById('eBreed').value.trim()||null,
@@ -1536,7 +1537,88 @@ window.sourceLabel = function(src){
       }catch(e){console.error(e);alert('تم حفظ العملية لكن تعذر حفظ بيانات Pickup / Drop-off')}
     };
 
-    function financialFollowupItems(c){
+    
+    function workflowState(c){
+      const missing=missingFollowupItems(c);
+      if(missing.length){
+        return {stage:'استكمال البيانات',task:missing[0],focus:'missing'};
+      }
+      const appointments=appointmentFollowupItems(c);
+      if(appointments.length){
+        return {stage:'تذكير الموعد',task:appointments[0].label+' • '+formatFollowupDate(appointments[0].at),focus:'appointment'};
+      }
+      const financial=financialFollowupItems(c);
+      if(financial.length){
+        return {stage:'المستحقات والمدفوعات',task:financial[0].label,focus:'finance'};
+      }
+      return {stage:'مكتملة',task:'لا يوجد إجراء مطلوب حاليًا',focus:'complete'};
+    }
+
+    function populateEditEmployees(selectedId){
+      const sel=document.getElementById('eEmployee');
+      if(!sel) return;
+      sel.innerHTML='<option value="">اختاري الموظف المسؤول</option>';
+      db.employees.forEach(function(emp){
+        sel.innerHTML+='<option value="'+emp.id+'">'+esc(emp.name)+'</option>';
+      });
+      sel.value=selectedId||'';
+    }
+
+    function setEditSectionVisible(id,show){
+      const el=document.getElementById(id);
+      if(el) el.style.display=show?'':'none';
+    }
+
+    window.showAllCaseEditSections=function(){
+      ['editClientSectionTitle','editClientSection','editServiceSectionTitle','editServiceSection','editPaymentSectionTitle','editPaymentSection','caseAttachmentsBox','caseFollowupBox'].forEach(function(id){
+        setEditSectionVisible(id,true);
+      });
+      const btn=document.getElementById('workflowShowAllBtn');
+      if(btn) btn.style.display='none';
+    };
+
+    function focusCaseEditor(c,mode){
+      const state=workflowState(c);
+      const stage=document.getElementById('workflowStageLabel');
+      const task=document.getElementById('workflowTaskLabel');
+      if(stage) stage.textContent=state.stage;
+      if(task) task.textContent=state.task;
+
+      window.showAllCaseEditSections();
+      if(!mode || mode==='all' || state.focus==='complete') return;
+
+      const ids=['editClientSectionTitle','editClientSection','editServiceSectionTitle','editServiceSection','editPaymentSectionTitle','editPaymentSection','caseAttachmentsBox','caseFollowupBox'];
+      ids.forEach(function(id){setEditSectionVisible(id,false)});
+      const showAll=document.getElementById('workflowShowAllBtn');
+      if(showAll) showAll.style.display='block';
+
+      if(mode==='missing'){
+        const first=missingFollowupItems(c)[0]||'';
+        if(first.includes('الموظف')||first.includes('نوع الحيوان')||first.includes('الموقع')){
+          setEditSectionVisible('editClientSectionTitle',true);
+          setEditSectionVisible('editClientSection',true);
+        }else{
+          setEditSectionVisible('editServiceSectionTitle',true);
+          setEditSectionVisible('editServiceSection',true);
+        }
+      }else if(mode==='finance'){
+        setEditSectionVisible('editPaymentSectionTitle',true);
+        setEditSectionVisible('editPaymentSection',true);
+        setEditSectionVisible('caseAttachmentsBox',true);
+      }else if(mode==='appointment'){
+        setEditSectionVisible('editPaymentSectionTitle',true);
+        setEditSectionVisible('editPaymentSection',true);
+        setEditSectionVisible('caseFollowupBox',true);
+      }
+    }
+
+    window.openCaseWorkflow=function(id,mode){
+      window.openCaseDetails(id);
+      const row=db.cases.find(function(x){return String(x.id)===String(id)});
+      if(row) focusCaseEditor(row,mode||workflowState(row).focus);
+    };
+
+function financialFollowupItems(c){
       const items=[];
       const paid=v2ClientPaid(c);
       if(!paid && clientRem(c)>0.0001){
@@ -1740,6 +1822,10 @@ window.sourceLabel = function(src){
       const el=document.getElementById('eAppointmentAt');
       if(el&&row){
         el.value=row.appointment_at?new Date(row.appointment_at).toISOString().slice(0,16):'';
+      }
+      if(row){
+        populateEditEmployees(row.employee_id||row.employeeId||'');
+        focusCaseEditor(row,'all');
       }
     };
 

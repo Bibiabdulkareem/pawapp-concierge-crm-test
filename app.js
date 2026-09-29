@@ -55,8 +55,9 @@
         if(pf!=='all'&&c.providerId!==pf)return;
         if(sf==='client_unpaid'&&clientPaid)return;
         if(sf==='client_paid'&&!clientPaid)return;
-        if(sf==='vendor_unpaid'&&vendorPaid)return;
-        if(sf==='vendor_paid'&&!vendorPaid)return;
+        const providerOutstanding=clientPaid&&c.client_paid_to==='pawapp'&&v2PayProvider(c)>0.0001;
+        if(sf==='vendor_unpaid'&&!providerOutstanding)return;
+        if(sf==='vendor_paid'&&providerOutstanding)return;
         const yesNo=v=>v===true?'نعم':v===false?'لا':'—';
         const missing=!c.providerId||!c.service||Number(c.total_amount||0)<=0||!c.pet_type||!c.location;
         const dueTxt=!clientPaid&&c.client_due_date?c.client_due_date:'—';
@@ -1334,7 +1335,7 @@ window.sourceLabel = function(src){
         pawTotal+=Number(c.pawapp_amount||0)+Number(c.transport_pawapp_amount||0);
         ours+=v2CollectFromProvider(c);
         theirs+=v2PayProvider(c);
-        if(!v2ClientPaid(c) || (v2ClientPaid(c)&&!c.client_paid_to) || v2CollectFromProvider(c)>0.0001 || v2PayProvider(c)>0.0001) needs++;
+        if(financialFollowupItems(c).length || missingFollowupItems(c).length || appointmentFollowupItems(c).length) needs++;
       });
 
       const set=function(id,val){const e=document.getElementById(id);if(e)e.textContent=val};
@@ -1624,6 +1625,13 @@ window.sourceLabel = function(src){
       set('fuFinance',financeRows.length);
       set('fuAppointments',appointmentRows.length);
       set('fuMissing',missingRows.length);
+      const navIds=new Set();
+      financeRows.concat(appointmentRows,missingRows).forEach(function(x){navIds.add(String(x.c.id))});
+      const navBadge=document.getElementById('followupNavBadge');
+      if(navBadge){
+        navBadge.textContent=String(navIds.size);
+        navBadge.style.display=navIds.size?'inline-block':'none';
+      }
 
       financeBox.innerHTML=financeRows.length?financeRows.map(function(x){
         const c=x.c,item=x.items[0];

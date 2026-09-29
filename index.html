@@ -218,6 +218,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   <div class="grid2">
     <div class="field"><label>الموظف المسؤول *</label><select id="cStaff"></select></div>
     <div class="field"><label>مصدر الطلب</label><select id="cSource"><option value="manual_test">إدخال داخلي</option><option value="whatsapp_quick">واتساب</option><option value="phone_call">مكالمة</option><option value="instagram">Instagram</option><option value="referral">تحويل / توصية</option></select></div>
+    <div class="field"><label>موعد العميل</label><input id="cAppointmentAt" type="datetime-local"><div class="hint">إذا فيه موعد، يظهر تلقائيًا في المتابعة.</div></div>
   </div>
 
   <details style="margin-top:12px">
@@ -287,36 +288,30 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 
 <section id="followups" class="page">
 <div class="title">
-  <div><h1>المتابعة</h1><p>كل عملية فيها شيء ناقص أو مبلغ يحتاج إجراء تظهر هنا تلقائيًا</p></div>
+  <div><h1>المتابعة</h1><p>مرتبة حسب الأولوية: المستحقات، المواعيد، ثم البيانات الناقصة</p></div>
 </div>
 
-<div class="cards" style="grid-template-columns:repeat(2,1fr)">
-  <div class="card stat"><span>تحتاج متابعة</span><b id="fuAll" class="red">0</b></div>
-  <div class="card stat"><span>تحصيل من العملاء</span><b id="fuClients" class="red">0</b></div>
-  <div class="card stat"><span>حسابات الشركات</span><b id="fuProviders" class="blue">0</b></div>
-  <div class="card stat"><span>بيانات / مستندات ناقصة</span><b id="fuIncomplete">0</b></div>
+<div class="cards" style="grid-template-columns:repeat(3,1fr)">
+  <div class="card stat"><span>مستحقات ومدفوعات</span><b id="fuFinance" class="red">0</b></div>
+  <div class="card stat"><span>مواعيد وريميندر</span><b id="fuAppointments" class="blue">0</b></div>
+  <div class="card stat"><span>بيانات ناقصة</span><b id="fuMissing">0</b></div>
 </div>
 
-<div class="section"><h2>الأشياء اللي تحتاج إجراء</h2></div>
-<div id="followupActionList" class="providerGrid"></div>
+<div class="section"><h2>1. المستحقات والمدفوعات</h2></div>
+<div id="followupFinanceList" class="providerGrid"></div>
 
-<details style="margin-top:14px">
-  <summary class="btn soft" style="cursor:pointer;list-style:none;text-align:center">متابعات مجدولة يدويًا</summary>
-  <div style="margin-top:10px">
-    <div id="followupAlertBanner" class="card" style="display:none;margin-bottom:10px;border:2px solid #c62828;background:#fff5f5">
-      <b style="color:#c62828">🔔 عندك متابعة مجدولة تحتاج انتباه</b>
-      <span id="followupAlertText" class="hint"></span>
-    </div>
-    <div class="cards" style="grid-template-columns:repeat(3,1fr)">
-      <div class="card stat"><span>اليوم</span><b id="followToday" class="blue">0</b></div>
-      <div class="card stat"><span>متأخرة</span><b id="followLate" class="red">0</b></div>
-      <div class="card stat"><span>قادمة</span><b id="followUpcoming" class="green">0</b></div>
-    </div>
-    <div id="followupUrgentList" class="providerGrid" style="margin-top:10px"></div>
-    <div id="followupList" class="providerGrid" style="margin-top:10px"></div>
-    <div id="followupHistoryList" style="display:none"></div>
-  </div>
-</details>
+<div class="section"><h2>2. المواعيد والريميندر</h2></div>
+<div id="followupAppointmentList" class="providerGrid"></div>
+
+<div class="section"><h2>3. البيانات الناقصة</h2></div>
+<div id="followupMissingList" class="providerGrid"></div>
+
+<div style="display:none">
+  <div id="followupAlertBanner"></div><span id="followupAlertText"></span>
+  <span id="followToday"></span><span id="followLate"></span><span id="followUpcoming"></span>
+  <div id="followupUrgentList"></div><div id="followupList"></div><div id="followupHistoryList"></div>
+  <span id="fuAll"></span><span id="fuClients"></span><span id="fuProviders"></span><span id="fuIncomplete"></span>
+</div>
 </section>
 
 <section id="cases" class="page">
@@ -408,13 +403,15 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="field"><label id="eFeeValueLabel">نسبة PawApp %</label><input id="eFeeValue" type="number" min="0" step="0.001" oninput="calcEditCase()"></div>
 <div class="field"><label>مستحق الشركة / الفريلانسر</label><input id="eProviderAmount" readonly></div>
 </div>
-<div class="section"><h2>سداد العميل</h2></div>
+<div class="section"><h2>الدفع والمستحقات</h2></div>
 <div class="grid2">
-<div class="field"><label>حالة العميل</label><select id="eClientPaid" onchange="toggleEditPaymentFields()"><option value="unpaid">لم يسدد</option><option value="paid">تم السداد بالكامل</option></select></div>
+<div class="field"><label>العميل دفع؟</label><select id="eClientPaid" onchange="toggleEditPaymentFields()"><option value="unpaid">لا</option><option value="paid">نعم</option></select></div>
 <div class="field" id="ePaidToWrap" style="display:none"><label>العميل دفع لمن؟</label><select id="ePaidTo" onchange="toggleEditPaymentFields()"><option value="pawapp">PawApp</option><option value="provider">العيادة / الشركة / الفريلانسر مباشرة</option></select></div>
 <div class="field" id="eDueDateWrap"><label>موعد متابعة السداد</label><input id="eClientDueDate" type="date"><div class="hint">إذا لم يسدد، يظهر كتذكير للموظف.</div></div>
+
+<div class="field"><label>موعد العميل</label><input id="eAppointmentAt" type="datetime-local"><div class="hint">يظهر كرينمايندر للموظفة.</div></div>
 <div class="field"><label>طريقة الدفع</label><select id="ePaymentMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
-<div class="field" id="ePawappCollectedWrap" style="display:none"><label>هل استلمت PawApp حصتها من الشركة؟</label><select id="ePawappCollected" onchange="toggleEditPaymentFields()"><option value="no">لا، لازالت مستحقة</option><option value="yes">نعم، تم الاستلام</option></select></div>
+<div class="field" id="ePawappCollectedWrap" style="display:none"><label>تم استلام حصة PawApp من الشركة؟</label><select id="ePawappCollected" onchange="toggleEditPaymentFields()"><option value="no">لا</option><option value="yes">نعم</option></select></div>
 <div class="field full"><div id="eFinancialSummary" class="card" style="box-shadow:none;margin:0;background:#f8fafc"></div></div>
 </div>
 <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCaseDetails()">حفظ كل التعديلات</button>

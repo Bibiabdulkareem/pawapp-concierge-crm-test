@@ -1925,18 +1925,29 @@ function financialFollowupItems(c){
     window.renderAdminAccess=async function(){
       const box=document.getElementById('adminAccessList');
       const employeeSelect=document.getElementById('adminEmployeeSelect');
+      const client=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.client;
+
+      let rows=[];
+      try{
+        if(client){
+          const empRes=await client.from('test_employees').select('id,name').order('name',{ascending:true});
+          if(!empRes.error && Array.isArray(empRes.data)) rows=empRes.data;
+        }
+      }catch(e){console.warn('admin employees load failed',e)}
+
+      if(!rows.length && Array.isArray(db.employees)) rows=db.employees;
+
       if(employeeSelect){
         employeeSelect.innerHTML='<option value="">اختاري الموظف</option>'+
-          (Array.isArray(db.employees)?db.employees:[]).map(function(e){
+          rows.map(function(e){
             return '<option value="'+e.id+'">'+esc(e.name||'موظف')+'</option>';
           }).join('');
       }
+
       if(!box) return;
 
-      const rows=Array.isArray(db.employees)?db.employees:[];
       let accessRows=[];
       try{
-        const client=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.client;
         if(client){
           const res=await client.from('test_employee_access')
             .select('employee_id,email,role,is_active,auth_user_id,updated_at')
@@ -1957,7 +1968,7 @@ function financialFollowupItems(c){
             '<span class="status '+cls+'">'+esc(state)+'</span>'+
           '</div>'+
         '</div>';
-      }).join(''):'<div class="hint">ما في موظفين مضافين حاليًا.</div>';
+      }).join(''):'<div class="hint">تعذر تحميل أسماء الموظفين. جربي Refresh.</div>';
     };
 
     const showPageBeforeAdmin=window.showPage;

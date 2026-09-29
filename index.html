@@ -159,7 +159,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   <div class="grid2">
     <div class="field"><label>الشركة / الفريلانسر *</label><select id="cProvider" onchange="providerChanged()"></select></div>
     <div class="field"><label>الخدمة *</label><select id="cService"></select></div>
-    <div class="field"><label>سعر الخدمة *</label><input id="cAmount" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcCase()"></div>
+    <div class="field"><label id="cAmountLabel">سعر الخدمة *</label><input id="cAmount" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcCase()"></div>
     <div class="field"><label>طريقة حصة PawApp *</label><select id="cFeeType" onchange="toggleCasePricing()"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت</option></select></div>
     <div class="field"><label id="cCommissionLabel">نسبة PawApp % *</label><input id="cCommission" type="number" min="0" step="0.001" oninput="calcCase()"></div>
     <div class="field"><label>تاريخ العملية *</label><input id="cDate" type="date"></div>

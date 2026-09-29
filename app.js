@@ -1973,6 +1973,10 @@ function financialFollowupItems(c){
 
     const showPageBeforeAdmin=window.showPage;
     window.showPage=async function(id){
+      if(id==='admin' && !(window.pawIsAdmin&&window.pawIsAdmin())){
+        toast('هذه الصفحة للـ Admin فقط');
+        return;
+      }
       await showPageBeforeAdmin(id);
       if(id==='admin') window.renderAdminAccess();
     };

@@ -1568,17 +1568,25 @@ window.sourceLabel = function(src){
 
     function appointmentFollowupItems(c){
       const out=[];
-      if(c.appointment_at){
-        const d=new Date(c.appointment_at);
-        if(Number.isFinite(d.getTime()) && d.getTime()>=Date.now()-24*60*60*1000){
-          out.push({at:d,type:'appointment',label:'موعد العميل'});
-        }
-      }else if(c.source==='booking_form_test' && c.preferred_date){
-        const d=new Date(String(c.preferred_date)+'T12:00:00');
-        if(Number.isFinite(d.getTime()) && d.getTime()>=Date.now()-24*60*60*1000){
-          out.push({at:d,type:'preferred',label:'موعد مفضل من النموذج'});
+      const completedAt=c.appointment_followed_up_at?new Date(c.appointment_followed_up_at):null;
+      const reminderAt=c.appointment_reminder_at?new Date(c.appointment_reminder_at):null;
+
+      if(reminderAt && Number.isFinite(reminderAt.getTime()) && (!completedAt || reminderAt>completedAt)){
+        out.push({at:reminderAt,type:'snoozed',label:'تذكير مؤجل'});
+      }else if(!completedAt){
+        if(c.appointment_at){
+          const d=new Date(c.appointment_at);
+          if(Number.isFinite(d.getTime()) && d.getTime()>=Date.now()-24*60*60*1000){
+            out.push({at:d,type:'appointment',label:'موعد العميل'});
+          }
+        }else if(c.source==='booking_form_test' && c.preferred_date){
+          const d=new Date(String(c.preferred_date)+'T12:00:00');
+          if(Number.isFinite(d.getTime()) && d.getTime()>=Date.now()-24*60*60*1000){
+            out.push({at:d,type:'preferred',label:'موعد مفضل من النموذج'});
+          }
         }
       }
+
       (db.followups||[]).filter(function(f){
         return String(f.case_id)===String(c.id) && !(f.status==='done'||f.status==='cancelled');
       }).forEach(function(f){
@@ -1654,7 +1662,11 @@ window.sourceLabel = function(src){
         const badge=overdue?'<span class="status unpaid">متأخر</span>':soon?'<span class="status partial">خلال 24 ساعة</span>':'<span class="status paid">قادم</span>';
         return '<div class="card provider">'+followupCaseHeader(c,badge)+
           '<div style="margin-top:10px"><b>'+esc(item.label)+'</b><div class="hint">'+esc(formatFollowupDate(item.at))+'</div></div>'+
-          '<div class="actions"><button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button></div></div>';
+          '<div class="actions">'+
+            '<button class="btn primary" onclick="completeAppointmentFollowup(\''+c.id+'\')">✓ تمت متابعة الموعد</button>'+
+            '<button class="btn soft" onclick="openAppointmentReminder(\''+c.id+'\')">تأجيل التذكير</button>'+
+            '<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>'+
+          '</div></div>';
       }).join(''):'<div class="card"><div class="hint">ما في مواعيد أو ريميندر قادمة.</div></div>';
 
       missingBox.innerHTML=missingRows.length?missingRows.map(function(x){
@@ -1663,6 +1675,62 @@ window.sourceLabel = function(src){
           '<div style="margin-top:10px">'+x.items.map(function(r){return '<div class="kpi-line"><span>'+esc(r)+'</span></div>'}).join('')+'</div>'+
           '<div class="actions"><button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">استكمال البيانات</button></div></div>';
       }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في بيانات أساسية ناقصة.</div></div>';
+    };
+
+
+    window.completeAppointmentFollowup=async function(caseId){
+      try{
+        await api('cases?id=eq.'+encodeURIComponent(caseId),{
+          method:'PATCH',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify({
+            appointment_followed_up_at:new Date().toISOString(),
+            appointment_reminder_at:null
+          })
+        });
+        await loadData();
+        window.renderAutomaticFollowups();
+        toast('تمت متابعة الموعد');
+      }catch(e){
+        console.error(e);
+        alert('تعذر تحديث متابعة الموعد');
+      }
+    };
+
+    window.openAppointmentReminder=function(caseId){
+      const id=document.getElementById('appointmentReminderCaseId');
+      const at=document.getElementById('appointmentReminderAt');
+      if(id) id.value=caseId;
+      if(at){
+        const d=new Date(Date.now()+24*60*60*1000);
+        const local=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+        at.value=local;
+      }
+      const modal=document.getElementById('appointmentReminderModal');
+      if(modal) modal.classList.add('show');
+    };
+
+    window.saveAppointmentReminder=async function(){
+      const caseId=document.getElementById('appointmentReminderCaseId')?.value;
+      const raw=document.getElementById('appointmentReminderAt')?.value;
+      if(!caseId||!raw){alert('اختاري تاريخ ووقت التذكير');return}
+      try{
+        await api('cases?id=eq.'+encodeURIComponent(caseId),{
+          method:'PATCH',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify({
+            appointment_reminder_at:new Date(raw).toISOString(),
+            appointment_followed_up_at:null
+          })
+        });
+        closeModal('appointmentReminderModal');
+        await loadData();
+        window.renderAutomaticFollowups();
+        toast('تم تأجيل التذكير');
+      }catch(e){
+        console.error(e);
+        alert('تعذر حفظ التذكير');
+      }
     };
 
     const openCaseBeforeAppointment=window.openCaseDetails;

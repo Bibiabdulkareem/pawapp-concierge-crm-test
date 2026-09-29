@@ -1525,6 +1525,66 @@ window.sourceLabel = function(src){
       }catch(e){console.error(e);alert('تم حفظ العملية لكن تعذر حفظ بيانات Pickup / Drop-off')}
     };
 
+    function autoFollowupReason(c){
+      const reasons=[];
+      const paid=v2ClientPaid(c);
+      if(!paid && clientRem(c)>0.0001) reasons.push('العميل لم يسدد '+money(clientRem(c)));
+      if(paid && !c.client_paid_to) reasons.push('حددوا دفع لمن');
+      if(c.client_paid_to==='provider' && v2CollectFromProvider(c)>0.0001) reasons.push('تحصيل حصة PawApp من الشركة '+money(v2CollectFromProvider(c)));
+      if(c.client_paid_to==='pawapp' && v2PayProvider(c)>0.0001) reasons.push('تحويل مستحق الشركة '+money(v2PayProvider(c)));
+      if(!c.providerId) reasons.push('الشركة / الفريلانسر غير محدد');
+      if(!(c.service||c.requested_service)) reasons.push('الخدمة غير محددة');
+      if(Number(c.total_amount||0)<=0) reasons.push('السعر غير مكتمل');
+      if(!c.pet_type) reasons.push('بيانات الحيوان ناقصة');
+      if(!c.location) reasons.push('الموقع ناقص');
+      return reasons;
+    }
+
+    window.renderAutomaticFollowups=function(){
+      const list=document.getElementById('followupActionList');
+      if(!list) return;
+      const rows=db.cases.slice().reverse().map(function(c){
+        const reasons=autoFollowupReason(c);
+        return {c:c,reasons:reasons};
+      }).filter(function(x){return x.reasons.length});
+
+      let clientN=0,providerN=0,incompleteN=0;
+      rows.forEach(function(x){
+        if(x.reasons.some(function(r){return r.includes('العميل لم يسدد')})) clientN++;
+        if(x.reasons.some(function(r){return r.includes('حصة PawApp')||r.includes('مستحق الشركة')||r.includes('دفع لمن')})) providerN++;
+        if(x.reasons.some(function(r){return r.includes('غير محدد')||r.includes('غير محددة')||r.includes('ناقص')||r.includes('غير مكتمل')})) incompleteN++;
+      });
+      const set=function(id,v){const e=document.getElementById(id);if(e)e.textContent=String(v)};
+      set('fuAll',rows.length);set('fuClients',clientN);set('fuProviders',providerN);set('fuIncomplete',incompleteN);
+
+      list.innerHTML=rows.length?rows.map(function(x){
+        const c=x.c,pr=byProvider(c.providerId);
+        return '<div class="card provider">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><h3 style="margin:0">'+esc(c.client_name||'عميل')+'</h3><div class="hint">PAW-'+String(c.id).padStart(4,'0')+' • '+esc(pr.name)+'</div></div><span class="status unpaid">● تحتاج متابعة</span></div>'+
+          '<div style="margin-top:10px">'+x.reasons.map(function(r){return '<div class="kpi-line"><span>'+esc(r)+'</span></div>'}).join('')+'</div>'+
+          '<div class="actions"><button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">تعديل العملية</button></div>'+
+          '</div>';
+      }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في عمليات تحتاج متابعة حاليًا.</div></div>';
+    };
+
+    const showPageBeforeAutoFollowup=window.showPage;
+    window.showPage=async function(id){
+      await showPageBeforeAutoFollowup(id);
+      if(id==='followups') window.renderAutomaticFollowups();
+    };
+
+    const loadDataBeforeAutoFollowup=window.loadData;
+    window.loadData=async function(){
+      await loadDataBeforeAutoFollowup();
+      if(document.getElementById('followupActionList')) window.renderAutomaticFollowups();
+    };
+
+    const saveCaseDetailsBeforeAutoFollowup=window.saveCaseDetails;
+    window.saveCaseDetails=async function(){
+      await saveCaseDetailsBeforeAutoFollowup();
+      if(document.getElementById('followupActionList')) window.renderAutomaticFollowups();
+    };
+
 (async()=>{
       try{
         await loadData();

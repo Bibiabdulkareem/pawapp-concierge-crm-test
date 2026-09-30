@@ -1734,6 +1734,12 @@ function financialFollowupItems(c){
     }
 
     function appointmentFollowupItems(c){
+      const status=c.workflow_status||'new_request';
+      // Once the service/appointment is completed, the appointment reminder is finished
+      // and must disappear from Follow-up. Financial items continue separately.
+      if(status==='appointment_completed'||status==='payment_completed'||status==='closed'||status==='cancelled'){
+        return [];
+      }
       const out=[];
       const completedAt=c.appointment_followed_up_at?new Date(c.appointment_followed_up_at):null;
       const reminderAt=c.appointment_reminder_at?new Date(c.appointment_reminder_at):null;

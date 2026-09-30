@@ -505,7 +505,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div id="editPaymentSectionTitle" class="section"><h2>الدفع والمستحقات</h2></div>
 <div id="editPaymentSection" class="grid2">
 <div class="field"><label>العميل دفع؟</label><select id="eClientPaid" onchange="toggleEditPaymentFields()"><option value="unpaid">لا</option><option value="paid">نعم</option></select></div>
-<div class="field" id="ePaidToWrap" style="display:none"><label>العميل دفع لمن؟</label><select id="ePaidTo" onchange="toggleEditPaymentFields()"><option value="pawapp">PawApp</option><option value="provider">العيادة / الشركة / الفريلانسر مباشرة</option></select></div>
+<div class="field" id="ePaidToWrap" style="display:none"><label>العميل دفع لمن؟</label><select id="ePaidTo" onchange="toggleEditPaymentFields()"><option value="">اختاري جهة الدفع</option><option value="pawapp">PawApp</option><option value="provider">العيادة / الشركة / الفريلانسر مباشرة</option></select></div>
 <div class="field" id="eDueDateWrap"><label>موعد متابعة السداد</label><input id="eClientDueDate" type="date"><div class="hint">إذا لم يسدد، يظهر كتذكير للموظف.</div></div>
 
 <div class="field"><label>موعد العميل</label><input id="eAppointmentAt" type="datetime-local"><div class="hint">يظهر كرينمايندر للموظفة.</div></div>

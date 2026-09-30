@@ -1763,8 +1763,10 @@ function financialFollowupItems(c){
 
     function followupCaseHeader(c,badge){
       const pr=byProvider(c.providerId);
-      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'+
-        '<div><h3 style="margin:0">'+esc(c.client_name||'عميل')+'</h3><div class="hint">PAW-'+String(c.id).padStart(4,'0')+' • '+esc(pr.name)+'</div></div>'+
+      return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'+
+        '<div><h3 style="margin:0">'+esc(c.client_name||'عميل')+'</h3>'+
+        '<div class="hint">PAW-'+String(c.id).padStart(4,'0')+' • '+esc(pr.name)+'</div>'+
+        '<div style="margin-top:6px"><span class="status partial">'+esc(workflowLabel(c.workflow_status))+'</span></div></div>'+
         badge+'</div>';
     }
 

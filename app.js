@@ -1139,7 +1139,7 @@ window.sourceLabel = function(src){
     };
     window.toggleEditPaymentFields=function(){
       const paid=document.getElementById('eClientPaid')&&document.getElementById('eClientPaid').value==='paid';
-      const route=document.getElementById('ePaidTo')?document.getElementById('ePaidTo').value:'pawapp';
+      const route=document.getElementById('ePaidTo')?document.getElementById('ePaidTo').value:'';
       const a=document.getElementById('ePaidToWrap'),b=document.getElementById('eDueDateWrap'),d=document.getElementById('ePawappCollectedWrap');
       if(a)a.style.display=paid?'flex':'none';
       if(b)b.style.display=paid?'none':'flex';
@@ -1149,12 +1149,20 @@ window.sourceLabel = function(src){
       const row=db.cases.find(function(x){return String(x.id)===String(id)});
       const s=document.getElementById('eFinancialSummary');
       if(s&&row){
-        if(!paid)s.innerHTML='<b class="red">العميل لم يسدد</b><div class="hint">المتبقي '+money(clientRem(row))+'</div>';
-        else if(route==='provider'){
+        if(!paid){
+          s.innerHTML='<b class="red">المعلق فقط: تحصيل من العميل</b><div class="hint">متبقي على العميل '+money(clientRem(row))+'</div>';
+        }else if(!route){
+          s.innerHTML='<b class="red">العميل مسدد ✓ لكن ناقص تحديد جهة الدفع</b><div class="hint">اختاري فوق: دفع لـ PawApp أو دفع للشركة / العيادة مباشرة.</div>';
+        }else if(route==='provider'){
           const left=Math.max(0,Number(row.pawapp_amount||0)-(document.getElementById('ePawappCollected').value==='yes'?Number(row.pawapp_amount||0):Number(row.pawapp_received_from_provider||0)));
-          s.innerHTML='<b>دفع للشركة / الفريلانسر</b><div class="hint">حصة PawApp '+money(row.pawapp_amount)+' • '+(left>0?'لنا عندهم '+money(left):'تم استلام حصة PawApp')+'</div>';
-        } else {
-          s.innerHTML='<b>دفع لـ PawApp</b><div class="hint">مستحق الشركة / الفريلانسر '+money(row.provider_amount)+' • '+(v2PayProvider(row)>0?'لهم عندنا '+money(v2PayProvider(row)):'تمت التسوية')+'</div>';
+          s.innerHTML=left>0
+            ?'<b class="red">العميل مسدد ✓ — المعلق فقط: تحصيل حصة PawApp من الشركة</b><div class="hint">المبلغ المطلوب تحصيله '+money(left)+' • بعد التحصيل اختاري "نعم" في: تم استلام حصة PawApp من الشركة؟</div>'
+            :'<b class="green">العميل مسدد ✓ وحصة PawApp مستلمة ✓</b><div class="hint">لا يوجد تحصيل مالي ناقص من الشركة.</div>';
+        }else{
+          const left=v2PayProvider(row);
+          s.innerHTML=left>0
+            ?'<b class="red">العميل مسدد لـ PawApp ✓ — المعلق فقط: دفع مستحق الشركة</b><div class="hint">المبلغ المطلوب دفعه للشركة '+money(left)+'</div>'
+            :'<b class="green">العميل مسدد ✓ وتمت تسوية مستحق الشركة ✓</b><div class="hint">لا يوجد سداد مالي ناقص.</div>';
         }
       }
     };
@@ -1167,7 +1175,7 @@ window.sourceLabel = function(src){
       if(!row)return;
       const paid=v2ClientPaid(row);
       if(document.getElementById('eClientPaid'))document.getElementById('eClientPaid').value=paid?'paid':'unpaid';
-      if(document.getElementById('ePaidTo'))document.getElementById('ePaidTo').value=row.client_paid_to||'pawapp';
+      if(document.getElementById('ePaidTo'))document.getElementById('ePaidTo').value=row.client_paid_to||'';
       if(document.getElementById('ePawappCollected'))document.getElementById('ePawappCollected').value=(Number(row.pawapp_amount||0)>0&&Number(row.pawapp_received_from_provider||0)>=Number(row.pawapp_amount||0)-0.0001)?'yes':'no';
       window.toggleEditPaymentFields();
     };

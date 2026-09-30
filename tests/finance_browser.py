@@ -1,3 +1,4 @@
+import re
 """Browser integration with an in-memory RPC fixture. No real financial records are touched."""
 import copy,csv,functools,http.server,io,json,os,pathlib,threading
 from decimal import Decimal,ROUND_HALF_UP
@@ -78,6 +79,11 @@ class Fixture:
 class Quiet(http.server.SimpleHTTPRequestHandler):
  def log_message(self,*args):pass
 
+def save_payment(page):
+ page.click('#financeActionSave')
+ expect(page.locator('#financeActionModal')).not_to_have_class(re.compile(r'\bshow\b'))
+ expect(page.locator('#financeActionSave')).to_be_enabled()
+
 def run(browser_type,name,url,role='admin',mobile=False):
  f=Fixture(role);kwargs={'headless':True}
  if name=='chromium' and os.path.exists('/usr/bin/chromium'):kwargs['executable_path']='/usr/bin/chromium'
@@ -91,7 +97,7 @@ def run(browser_type,name,url,role='admin',mobile=False):
   page.set_content((ROOT/'index.html').read_text().replace('<head>','<head><base href="https://qa-fixture.invalid/">'),wait_until='domcontentloaded')
  page.wait_for_function('window.PAW_FINANCE_READY === true || window.PAW_FINANCE_BOOT_ERROR',timeout=25000)
  assert not page.evaluate('window.PAW_FINANCE_BOOT_ERROR'),page.evaluate('window.PAW_FINANCE_BOOT_ERROR')
- for key,value in [('Total','135.000'),('Share','17.000'),('ProviderShare','118.000')]:expect(page.locator('#finDash'+key)).to_contain_text(value)
+ for key,value in [('Total','135.000'),('Share','17.000'),('ProviderShare','118.000')]:expect(page.locator('#finDash'+key)).to_have_text(re.compile(r'^'+re.escape(value)+r'\s'))
  assert page.locator('#kCustomers').inner_text()=='1'
  if role not in ['admin','operations']:
   page.evaluate("showPage('followups')");assert page.locator('#followupFinanceList .btn.primary').count()==0
@@ -99,27 +105,27 @@ def run(browser_type,name,url,role='admin',mobile=False):
   assert not any(n=='test_finance_action' for n,_ in f.calls)
  else:
   page.evaluate("showPage('followups');pawFinanceOpen('1','transport')")
-  page.select_option('#finConfirmPaid','yes');page.select_option('#finRecipient','provider');page.click('#financeActionSave')
-  expect(page.locator('#finDashOurs')).to_contain_text('2.000')
-  page.evaluate("pawFinanceOpen('1','main')");page.click('#financeActionSave');expect(page.locator('#finDashTheirs')).to_contain_text('0.000')
-  page.evaluate("pawFinanceOpen('1','transport')");page.click('#financeActionSave');expect(page.locator('#finDashOurs')).to_contain_text('0.000')
-  page.evaluate("pawFinanceOpen('2','main')");page.select_option('#finRecipient','pawapp');page.click('#financeActionSave');expect(page.locator('#finDashTheirs')).to_contain_text('20.000')
-  page.evaluate("pawFinanceOpen('2','main')");page.click('#financeActionSave');expect(page.locator('#finDashTheirs')).to_contain_text('0.000')
-  page.evaluate("openProviderCRM('p2')");expect(page.locator('#pdSales')).to_contain_text('10.000');expect(page.locator('#finProviderShare')).to_contain_text('8.000')
+  page.select_option('#finConfirmPaid','yes');page.select_option('#finRecipient','provider');save_payment(page)
+  expect(page.locator('#finDashOurs')).to_have_text(re.compile(r'^2\.000\s'))
+  page.evaluate("pawFinanceOpen('1','main')");save_payment(page);expect(page.locator('#finDashTheirs')).to_have_text(re.compile(r'^0\.000\s'))
+  page.evaluate("pawFinanceOpen('1','transport')");save_payment(page);expect(page.locator('#finDashOurs')).to_have_text(re.compile(r'^0\.000\s'))
+  page.evaluate("pawFinanceOpen('2','main')");page.select_option('#finRecipient','pawapp');save_payment(page);expect(page.locator('#finDashTheirs')).to_have_text(re.compile(r'^20\.000\s'))
+  page.evaluate("pawFinanceOpen('2','main')");save_payment(page);expect(page.locator('#finDashTheirs')).to_have_text(re.compile(r'^0\.000\s'))
+  page.evaluate("openProviderCRM('p2')");expect(page.locator('#pdSales')).to_have_text(re.compile(r'^10\.000\s'));expect(page.locator('#finProviderShare')).to_have_text(re.compile(r'^8\.000\s'))
   with page.expect_download() as dl:page.click('#pdExportBtn')
   rows=list(csv.reader(io.StringIO(pathlib.Path(dl.value.path()).read_text(encoding='utf-8-sig'))))
   assert all(len(r)==len(rows[0]) for r in rows),rows
   assert 'Date' in rows[0] and rows[-1][-1]=='CHECKED',rows
   assert rows[-1][rows[0].index('Total KD')]=='10.000'
-  page.evaluate("showPage('followups');completeAppointmentFollowup('1')");page.wait_for_timeout(200)
+  page.evaluate("showPage('followups')");page.evaluate("completeAppointmentFollowup('1')")
   assert page.locator('#followupAppointmentList button').count()==0
   page.evaluate("openCaseDetails('1')");assert page.input_value('#eFinPickup')=='Home';assert page.input_value('#eFinTransportAt')=='2026-10-02T12:00'
   page.evaluate("closeModal('completeCaseModal');openNewCase()")
   page.fill('#cClient','QA New');page.fill('#cPhone','55550001');page.select_option('#cPetType',index=1);page.select_option('#cStaff','e1');page.select_option('#cProvider','p1');page.select_option('#cService','Exam');page.fill('#cLocation','New place');page.fill('#cAmount','20');page.select_option('#cFeeType','fixed');page.fill('#cCommission','5')
   page.select_option('#cTransportNeeded','yes');page.select_option('#cTransportProvider','p2');page.select_option('#cTransportDirection','both');page.fill('#cTransportTotal','10');page.select_option('#cFinTransportFeeType','percent');page.fill('#cTransportPaw','10');page.fill('#cPickupLocation','New Home');page.fill('#cDropoffLocation','New Clinic')
-  page.evaluate('calcCase();calcTransportAddon()');expect(page.locator('#financeGrandTotal')).to_contain_text('35.000')
+  page.evaluate('calcCase();calcTransportAddon()');expect(page.locator('#financeGrandTotal')).to_have_text(re.compile(r'^35\.000\s'))
   page.evaluate('saveCase()');page.wait_for_function("document.getElementById('kOps').textContent==='3'")
-  expect(page.locator('#finDashTotal')).to_contain_text('170.000');expect(page.locator('#finDashShare')).to_contain_text('23.000');assert page.locator('#kCustomers').inner_text()=='2'
+  expect(page.locator('#finDashTotal')).to_have_text(re.compile(r'^170\.000\s'));expect(page.locator('#finDashShare')).to_have_text(re.compile(r'^23\.000\s'));assert page.locator('#kCustomers').inner_text()=='2'
   page.evaluate("showPage('dashboard')");page.wait_for_timeout(1800)
   (ROOT/'tests/results').mkdir(exist_ok=True);page.screenshot(path=str(ROOT/'tests/results'/(f'{name}-{role}-'+('mobile.png' if mobile else 'desktop.png'))))
  assert not errors,errors

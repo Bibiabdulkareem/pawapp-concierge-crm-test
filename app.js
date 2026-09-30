@@ -1886,40 +1886,19 @@ function financialFollowupItems(c){
     };
 
     window.renderAutomaticFollowups=function(){
-      const stageBox=document.getElementById('followupStageList');
       const financeBox=document.getElementById('followupFinanceList');
       const appointmentBox=document.getElementById('followupAppointmentList');
       const missingBox=document.getElementById('followupMissingList');
-      if(!stageBox||!financeBox||!appointmentBox||!missingBox) return;
+      if(!financeBox||!appointmentBox||!missingBox) return;
 
-      const stageRows=[],financeRows=[],appointmentRows=[],missingRows[];
-
+      const financeRows=[],appointmentRows=[],missingRows=[];
       db.cases.slice().reverse().forEach(function(c){
-        const status=c.workflow_status||'new_request';
-        if(status==='closed'||status==='cancelled') return;
-
-        const missing=missingFollowupItems(c);
-        if(missing.length){
-          missingRows.push({c:c,items:missing});
-          return;
-        }
-
         const financial=financialFollowupItems(c);
+        if(financial.length) financeRows.push({c:c,items:financial});
         const appointments=appointmentFollowupItems(c);
-
-        // If a case was advanced too far but money is still pending, keep the financial task visible.
-        if((status==='appointment_completed'||status==='payment_completed') && financial.length){
-          financeRows.push({c:c,items:financial});
-          return;
-        }
-
-        if(status==='provider_confirmed' && appointments.length){
-          appointmentRows.push({c:c,items:appointments});
-          return;
-        }
-
-        const state=workflowState(c);
-        stageRows.push({c:c,state:state});
+        if(appointments.length) appointmentRows.push({c:c,items:appointments});
+        const missing=missingFollowupItems(c);
+        if(missing.length) missingRows.push({c:c,items:missing});
       });
 
       appointmentRows.sort(function(a,b){
@@ -1927,34 +1906,30 @@ function financialFollowupItems(c){
       });
 
       const set=function(id,v){const e=document.getElementById(id);if(e)e.textContent=String(v)};
-      set('fuStage',stageRows.length);
       set('fuFinance',financeRows.length);
       set('fuAppointments',appointmentRows.length);
       set('fuMissing',missingRows.length);
-
       const navIds=new Set();
-      stageRows.concat(financeRows,appointmentRows,missingRows).forEach(function(x){navIds.add(String(x.c.id))});
+      financeRows.concat(appointmentRows,missingRows).forEach(function(x){navIds.add(String(x.c.id))});
       const navBadge=document.getElementById('followupNavBadge');
       if(navBadge){
         navBadge.textContent=String(navIds.size);
         navBadge.style.display=navIds.size?'inline-block':'none';
       }
 
-      stageBox.innerHTML=stageRows.length?stageRows.map(function(x){
-        const c=x.c,state=x.state;
-        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial">Workflow</span>')+
-          '<div style="margin-top:10px"><b>'+esc(state.task)+'</b></div>'+
-          '<div class="actions"><button class="btn primary" onclick="openCaseWorkflow(\''+c.id+'\',\''+(state.focus||'all')+'\')">فتح المطلوب</button></div></div>';
-      }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في حالات تحتاج إجراء مرحلة حاليًا.</div></div>';
-
-      missingBox.innerHTML=missingRows.length?missingRows.map(function(x){
-        const c=x.c;
-        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial">بيانات ناقصة</span>')+
-          '<div style="margin-top:10px"><b>المطلوب الآن: '+esc(x.items[0])+'</b>'+
-          (x.items.length>1?'<div class="hint">وبعدها: '+x.items.slice(1).map(esc).join(' • ')+'</div>':'')+
-          '</div>'+
-          '<div class="actions"><button class="btn primary" onclick="openMissingTask(\''+c.id+'\')">استكمال المطلوب</button></div></div>';
-      }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في بيانات أساسية ناقصة.</div></div>';
+      financeBox.innerHTML=financeRows.length?financeRows.map(function(x){
+        const c=x.c,item=x.items[0];
+        let action='';
+        if(item.action==='settle'){
+          action='<button class="btn primary" onclick="openSettlement(\''+c.id+'\')">تسجيل دفع للشركة</button>'+
+                 '<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>';
+        }else{
+          action='<button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">تعديل الدفع</button>';
+        }
+        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status unpaid">أولوية مالية</span>')+
+          '<div style="margin-top:10px"><b>'+esc(item.label)+'</b><div class="hint">'+esc(item.detail)+'</div></div>'+
+          '<div class="actions">'+action+'</div></div>';
+      }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في مستحقات تحتاج إجراء حاليًا.</div></div>';
 
       appointmentBox.innerHTML=appointmentRows.length?appointmentRows.map(function(x){
         const c=x.c,item=x.items[0],now=Date.now();
@@ -1966,24 +1941,18 @@ function financialFollowupItems(c){
           '<div class="actions">'+
             '<button class="btn primary" onclick="completeAppointmentFollowup(\''+c.id+'\')">✓ تمت متابعة الموعد</button>'+
             '<button class="btn soft" onclick="openAppointmentReminder(\''+c.id+'\')">تأجيل التذكير</button>'+
-            '<button class="btn soft" onclick="openCaseWorkflow(\''+c.id+'\',\'appointment\')">فتح العملية</button>'+
+            '<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>'+
           '</div></div>';
-      }).join(''):'<div class="card"><div class="hint">ما في مواعيد أو ريميندر تحتاج إجراء حاليًا.</div></div>';
+      }).join(''):'<div class="card"><div class="hint">ما في مواعيد أو ريميندر قادمة.</div></div>';
 
-      financeBox.innerHTML=financeRows.length?financeRows.map(function(x){
-        const c=x.c,item=x.items[0];
-        let action='';
-        if(item.action==='settle'){
-          action='<button class="btn primary" onclick="openSettlement(\''+c.id+'\')">تسجيل دفع للشركة</button>'+
-                 '<button class="btn soft" onclick="openCaseWorkflow(\''+c.id+'\',\'finance\')">فتح العملية</button>';
-        }else{
-          action='<button class="btn primary" onclick="openCaseWorkflow(\''+c.id+'\',\'finance\')">تعديل الدفع</button>';
-        }
-        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status unpaid">أولوية مالية</span>')+
-          '<div style="margin-top:10px"><b>'+esc(item.label)+'</b><div class="hint">'+esc(item.detail)+'</div></div>'+
-          '<div class="actions">'+action+'</div></div>';
-      }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في مستحقات تحتاج إجراء حاليًا.</div></div>';
+      missingBox.innerHTML=missingRows.length?missingRows.map(function(x){
+        const c=x.c;
+        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial">بيانات ناقصة</span>')+
+          '<div style="margin-top:10px">'+x.items.map(function(r){return '<div class="kpi-line"><span>'+esc(r)+'</span></div>'}).join('')+'</div>'+
+          '<div class="actions"><button class="btn primary" onclick="openMissingTask(\''+c.id+'\')">استكمال المطلوب</button><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button></div></div>';
+      }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في بيانات أساسية ناقصة.</div></div>';
     };
+
 
     window.completeAppointmentFollowup=async function(caseId){
       try{

@@ -602,157 +602,110 @@ window.sourceLabel = function(src){
       }[v]||'مرفق';
     }
 
+    async function attachmentAuthHeaders(){
+      const token=window.PAWAPP_AUTH?.session?.access_token;
+      if(!token) throw new Error('لازم تسجيل الدخول');
+      return {Authorization:'Bearer '+token};
+    }
+
+    function canEditAttachments(){
+      const role=window.PAWAPP_AUTH?.access?.role||'';
+      return role==='admin'||role==='operations';
+    }
+
     function ensureAttachmentUI(){
       if(document.getElementById('caseAttachmentsBox')) return;
       const modal=document.querySelector('#completeCaseModal .modal');
       const saveBtn=modal&&Array.from(modal.querySelectorAll('button')).find(b=>b.textContent.includes('حفظ كل التعديلات'));
       if(!modal||!saveBtn) return;
-
+      const writable=canEditAttachments();
       const box=document.createElement('div');
       box.id='caseAttachmentsBox';
       box.innerHTML=
         '<div class="section"><h2>الفواتير والمرفقات</h2></div>'+
         '<div class="card" style="box-shadow:none">'+
-          '<div id="attachmentLock">'+
-            '<div class="grid2">'+
-              '<div class="field"><label>PIN المرفقات</label><input id="attachmentPin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>'+
-              '<div class="field" style="justify-content:flex-end"><button class="btn soft" type="button" onclick="unlockCaseAttachments()">فتح المرفقات</button></div>'+
-            '</div>'+
+          (writable?'<div class="grid2">'+
+            '<div class="field"><label>نوع المرفق</label><select id="caseAttachmentType">'+
+              '<option value="client_invoice">فاتورة العميل</option>'+
+              '<option value="client_receipt">إيصال دفع العميل</option>'+
+              '<option value="vendor_invoice">فاتورة الشركة / الفريلانسر</option>'+
+              '<option value="vendor_receipt">إيصال دفع الشركة / الفريلانسر</option>'+
+              '<option value="other">مرفق آخر</option>'+
+            '</select></div>'+
+            '<div class="field"><label>اختيار الملف</label><input id="caseAttachmentFile" type="file" accept="image/*,.pdf"></div>'+
           '</div>'+
-          '<div id="attachmentControls" style="display:none">'+
-            '<div class="grid2">'+
-              '<div class="field"><label>نوع المرفق</label><select id="caseAttachmentType">'+
-                '<option value="client_invoice">فاتورة العميل</option>'+
-                '<option value="client_receipt">إيصال دفع العميل</option>'+
-                '<option value="vendor_invoice">فاتورة الشركة / الفريلانسر</option>'+
-                '<option value="vendor_receipt">إيصال دفع الشركة / الفريلانسر</option>'+
-                '<option value="other">مرفق آخر</option>'+
-              '</select></div>'+
-              '<div class="field"><label>اختيار الملف</label><input id="caseAttachmentFile" type="file" accept="image/*,.pdf"></div>'+
-            '</div>'+
-            '<button class="btn soft" style="width:100%;margin-top:10px" type="button" onclick="uploadCaseAttachment()">+ رفع المرفق</button>'+
-            '<div id="caseAttachmentList" style="margin-top:10px"></div>'+
-            '<div class="hint">يدعم الصور وPDF حتى 10MB. الملفات خاصة في نسخة TEST.</div>'+
-          '</div>'+
+          '<button class="btn soft" style="width:100%;margin-top:10px" type="button" onclick="uploadCaseAttachment()">+ رفع المرفق</button>':'')+
+          '<div id="caseAttachmentList" style="margin-top:10px"></div>'+
+          '<div class="hint">الصور وPDF حتى 10MB • الوصول حسب حساب الموظف وصلاحيته.</div>'+
         '</div>';
       saveBtn.parentNode.insertBefore(box,saveBtn);
-
-      const saved=sessionStorage.getItem('pawapp_attachment_pin');
-      if(saved){
-        document.getElementById('attachmentPin').value=saved;
-        document.getElementById('attachmentLock').style.display='none';
-        document.getElementById('attachmentControls').style.display='block';
-      }
     }
 
     async function attachmentJson(payload){
-      const r=await fetch(ATTACHMENT_API,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload)
-      });
+      const headers=await attachmentAuthHeaders();
+      headers['Content-Type']='application/json';
+      const r=await fetch(ATTACHMENT_API,{method:'POST',headers,body:JSON.stringify(payload)});
       const data=await r.json().catch(()=>({}));
       if(!r.ok) throw new Error(data.error||'تعذر تنفيذ الطلب');
       return data;
     }
 
-    window.unlockCaseAttachments=async function(){
-      ensureAttachmentUI();
-      const pin=document.getElementById('attachmentPin').value.trim();
-      if(!pin){alert('اكتبي PIN المرفقات');return}
-      const id=document.getElementById('editCaseId').value;
-      try{
-        await attachmentJson({action:'list',case_id:Number(id),pin});
-        sessionStorage.setItem('pawapp_attachment_pin',pin);
-        document.getElementById('attachmentLock').style.display='none';
-        document.getElementById('attachmentControls').style.display='block';
-        await loadCaseAttachments(id);
-      }catch(e){
-        alert(e.message||'PIN غير صحيح');
-      }
-    };
-
     window.loadCaseAttachments=async function(id){
       ensureAttachmentUI();
-      const pin=sessionStorage.getItem('pawapp_attachment_pin');
       const list=document.getElementById('caseAttachmentList');
       if(!list) return;
-      if(!pin){
-        list.innerHTML='';
-        document.getElementById('attachmentLock').style.display='block';
-        document.getElementById('attachmentControls').style.display='none';
-        return;
-      }
       list.innerHTML='<div class="hint">جاري تحميل المرفقات...</div>';
       try{
-        const data=await attachmentJson({action:'list',case_id:Number(id),pin});
+        const data=await attachmentJson({action:'list',case_id:Number(id)});
         const rows=data.attachments||[];
-        list.innerHTML=rows.length?rows.map(a=>
-          '<div class="card" style="box-shadow:none;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
-            '<div style="flex:1;min-width:180px"><b>'+esc(attachmentTypeLabel(a.attachment_type))+'</b><div class="hint">'+esc(a.file_name||'ملف')+'</div></div>'+
-            (a.signed_url?'<a class="btn soft" style="text-decoration:none" target="_blank" rel="noopener" href="'+a.signed_url+'">فتح</a>':'')+
-            '<button class="btn danger" type="button" onclick="deleteCaseAttachment(\''+a.id+'\')">حذف</button>'+
-          '</div>'
-        ).join(''):'<div class="hint">ما في فواتير أو مرفقات على هذه الحالة للحين.</div>';
-      }catch(e){
-        sessionStorage.removeItem('pawapp_attachment_pin');
-        document.getElementById('attachmentLock').style.display='block';
-        document.getElementById('attachmentControls').style.display='none';
-        list.innerHTML='';
-        alert(e.message||'تعذر تحميل المرفقات');
-      }
+        list.innerHTML=rows.length?rows.map(x=>
+          '<div class="card" style="box-shadow:none;margin-top:7px">'+
+            '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">'+
+              '<div><b>'+esc(attachmentTypeLabel(x.attachment_type))+'</b><div class="hint">'+esc(x.file_name||'ملف')+'</div></div>'+
+              '<div style="display:flex;gap:6px">'+
+                (x.signed_url?'<a class="btn soft" href="'+esc(x.signed_url)+'" target="_blank" rel="noopener">فتح</a>':'')+
+                (canEditAttachments()?'<button class="btn danger" type="button" onclick="deleteCaseAttachment(\''+x.id+'\')">حذف</button>':'')+
+              '</div>'+
+            '</div>'+
+          '</div>').join(''):'<div class="hint">ما في مرفقات على هالحالة.</div>';
+      }catch(e){list.innerHTML='<div class="hint">'+esc(e.message||'تعذر تحميل المرفقات')+'</div>';}
     };
 
     window.uploadCaseAttachment=async function(){
+      if(!canEditAttachments()){alert('ما عندج صلاحية رفع مرفقات');return}
       const id=document.getElementById('editCaseId').value;
-      const pin=sessionStorage.getItem('pawapp_attachment_pin');
-      const file=document.getElementById('caseAttachmentFile').files[0];
-      const type=document.getElementById('caseAttachmentType').value;
-      if(!pin){alert('افتحي المرفقات بالـPIN أول');return}
+      const file=document.getElementById('caseAttachmentFile')?.files[0];
+      const type=document.getElementById('caseAttachmentType')?.value||'other';
       if(!file){alert('اختاري صورة أو PDF');return}
       const fd=new FormData();
-      fd.append('pin',pin);
-      fd.append('case_id',id);
-      fd.append('attachment_type',type);
-      fd.append('file',file);
+      fd.append('case_id',id); fd.append('attachment_type',type); fd.append('file',file);
       try{
-        const r=await fetch(ATTACHMENT_API,{method:'POST',body:fd});
-        const data=await r.json().catch(()=>({}));
-        if(!r.ok) throw new Error(data.error||'تعذر رفع الملف');
+        const headers=await attachmentAuthHeaders();
+        const rr=await fetch(ATTACHMENT_API,{method:'POST',headers,body:fd});
+        const data=await rr.json().catch(()=>({}));
+        if(!rr.ok) throw new Error(data.error||'تعذر رفع الملف');
         document.getElementById('caseAttachmentFile').value='';
         await loadCaseAttachments(id);
         toast('تم رفع المرفق');
-      }catch(e){
-        alert(e.message||'تعذر رفع المرفق');
-      }
+      }catch(e){alert(e.message||'تعذر رفع المرفق')}
     };
 
     window.deleteCaseAttachment=async function(attachmentId){
+      if(!canEditAttachments()){alert('ما عندج صلاحية حذف المرفقات');return}
       if(!confirm('حذف هذا المرفق؟')) return;
       const id=document.getElementById('editCaseId').value;
-      const pin=sessionStorage.getItem('pawapp_attachment_pin');
       try{
-        await attachmentJson({action:'delete',id:attachmentId,pin});
+        await attachmentJson({action:'delete',id:attachmentId});
         await loadCaseAttachments(id);
         toast('تم حذف المرفق');
-      }catch(e){
-        alert(e.message||'تعذر حذف المرفق');
-      }
+      }catch(e){alert(e.message||'تعذر حذف المرفق')}
     };
 
     const originalOpenCaseDetailsForAttachments=window.openCaseDetails;
     window.openCaseDetails=function(id){
       originalOpenCaseDetailsForAttachments(id);
       ensureAttachmentUI();
-      const saved=sessionStorage.getItem('pawapp_attachment_pin');
-      if(saved){
-        document.getElementById('attachmentLock').style.display='none';
-        document.getElementById('attachmentControls').style.display='block';
-        loadCaseAttachments(id);
-      }else{
-        document.getElementById('attachmentLock').style.display='block';
-        document.getElementById('attachmentControls').style.display='none';
-      }
+      loadCaseAttachments(id);
     };
 
     

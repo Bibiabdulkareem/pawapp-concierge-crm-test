@@ -1373,7 +1373,7 @@ window.sourceLabel = function(src){
           '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">'+esc(c.client_name)+'</h3>'+(needsAttention?'<span class="status unpaid">● تحتاج متابعة</span>':'<span class="status paid">مكتملة</span>')+'</div>'+
           '<p>PAW-'+String(c.id).padStart(4,'0')+'</p>'+
           '<div><b>'+esc(c.service||c.requested_service||'—')+'</b><div class="hint">'+esc(pr.name)+'</div>'+transport+'</div>'+
-          '<div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button></div></div>';
+          '<div class="actions"><button class="btn soft" onclick="openCaseWorkflow(\''+c.id+'\',\'missing\')">فتح المطلوب فقط</button></div></div>';
       });
       const box=document.getElementById('dashboardRecentCards');
       if(box)box.innerHTML=recent||'<div class="card">لا توجد عمليات.</div>';
@@ -1589,10 +1589,10 @@ window.sourceLabel = function(src){
 
       const financial=financialFollowupItems(c);
       if(status==='appointment_completed' && financial.length){
-        return {stage:workflowLabel(status),task:financial[0].label,focus:'finance'};
+        return {stage:workflowLabel(status),task:financial[0].label+' — '+financial[0].detail,focus:'finance'};
       }
       if(status==='appointment_completed'){
-        return {stage:workflowLabel(status),task:'الدفع والتسويات مكتملة — غيّري المرحلة إلى Payment Completed',focus:'finance'};
+        return {stage:workflowLabel(status),task:'الدفع والتسويات مكتملة — لا توجد معلومات مالية ناقصة',focus:'finance'};
       }
       if(status==='payment_completed'){
         return {stage:workflowLabel(status),task:'راجعي الحالة ثم غيّري المرحلة إلى Closed',focus:'all'};
@@ -1921,9 +1921,9 @@ function financialFollowupItems(c){
         let action='';
         if(item.action==='settle'){
           action='<button class="btn primary" onclick="openSettlement(\''+c.id+'\')">تسجيل دفع للشركة</button>'+
-                 '<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>';
+                 '<button class="btn soft" onclick="openCaseWorkflow(\''+c.id+'\',\'finance\')">فتح المطلوب فقط</button>';
         }else{
-          action='<button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">تعديل الدفع</button>';
+          action='<button class="btn primary" onclick="openCaseWorkflow(\''+c.id+'\',\'finance\')">'+esc(item.label)+'</button>';
         }
         return '<div class="card provider">'+followupCaseHeader(c,'<span class="status unpaid">أولوية مالية</span>')+
           '<div style="margin-top:10px"><b>'+esc(item.label)+'</b><div class="hint">'+esc(item.detail)+'</div></div>'+

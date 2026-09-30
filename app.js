@@ -19,6 +19,12 @@
     const method = String((init && init.method) || (typeof input !== 'string' && input && input.method) || 'GET').toUpperCase();
 
     if (url && url.indexOf('/rest/v1/') !== -1) {
+      const token=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.session&&window.PAWAPP_AUTH.session.access_token;
+      if(token){
+        const h=new Headers((init&&init.headers)||(typeof input!=='string'&&input&&input.headers)||{});
+        h.set('Authorization','Bearer '+token);
+        init=Object.assign({},init||{},{headers:h});
+      }
       const isFinanceSnapshotRead = method === 'POST' && /\/rest\/v1\/rpc\/test_finance_snapshot(?:[?#]|$)/.test(url);
       if (document.body && ['read_only','accountant'].includes(document.body.dataset.pawRole) && !['GET','HEAD'].includes(method) && !isFinanceSnapshotRead) {
         return Promise.resolve(new Response(JSON.stringify({message:'Read only access'}), {
@@ -2079,16 +2085,22 @@ function financialFollowupItems(c){
       if(!box||!window.pawIsAdmin||!window.pawIsAdmin()) return;
       const q=(document.getElementById('activitySearch')?.value||'').trim().toLowerCase();
       try{
-        const rows=await api('activity_log?select=*&order=created_at.desc&limit=200');
-        const filtered=(rows||[]).filter(function(x){
-          const hay=[x.actor_email,x.action,'PAW-'+String(x.case_id||'').padStart(4,'0'),activityDetailsText(x)].join(' ').toLowerCase();
+        box.innerHTML='<div class="hint">جاري تحميل سجل التعديلات...</div>';
+        const client=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.client;
+        if(!client) throw new Error('لا توجد جلسة دخول');
+        const res=await client.from('test_activity_log').select('*').order('created_at',{ascending:false}).limit(200);
+        if(res.error) throw res.error;
+        const rows=Array.isArray(res.data)?res.data:[];
+        const filtered=rows.filter(function(x){
+          const emp=(db.staff||[]).find(function(e){return String(e.id)===String(x.employee_id)});
+          const hay=[x.actor_email,emp&&emp.name,x.action,'PAW-'+String(x.case_id||'').padStart(4,'0'),activityDetailsText(x)].join(' ').toLowerCase();
           return !q||hay.includes(q);
         });
         box.innerHTML=filtered.length?filtered.map(function(x){
           const dt=new Date(x.created_at);
           const when=Number.isFinite(dt.getTime())?dt.toLocaleString('ar-KW',{dateStyle:'medium',timeStyle:'short'}):String(x.created_at||'');
           const emp=(db.staff||[]).find(function(e){return String(e.id)===String(x.employee_id)});
-          const actor=x.actor_email||(emp&&emp.name)||'النظام / سجل قديم';
+          const actor=x.actor_email||(emp&&emp.name)||'سجل قديم — الموظف غير متوفر';
           return '<div class="card" style="box-shadow:none;margin-top:7px">'+
             '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+esc(activityActionLabel(x.action))+'</b><span class="status">PAW-'+String(x.case_id||'').padStart(4,'0')+'</span></div>'+
             '<div style="margin-top:6px">'+esc(activityDetailsText(x))+'</div>'+
@@ -2104,6 +2116,11 @@ function financialFollowupItems(c){
       if(id==='admin'&&window.pawIsAdmin&&window.pawIsAdmin()) renderActivityLog();
     };
 
+
+    setTimeout(function(){
+      const admin=document.getElementById('admin');
+      if(admin&&admin.classList.contains('active')&&window.pawIsAdmin&&window.pawIsAdmin()) renderActivityLog();
+    },600);
 
     window.downloadTestBackup=async function(ev){
       const status=document.getElementById('testBackupStatus');

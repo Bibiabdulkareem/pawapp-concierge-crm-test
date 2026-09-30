@@ -1344,16 +1344,27 @@ window.sourceLabel = function(src){
       };
     }
 
-    window.renderDashboard=function(){
-      const customerKeys=new Set();
-      let clientPaidTotal=0,clientUnpaidTotal=0,ours=0,theirs=0,pawTotal=0,needs=0;
+    function financialDashboardTotals(){
+      let clientPaidTotal=0,clientUnpaidTotal=0,ours=0,theirs=0,pawTotal=0;
       db.cases.forEach(function(c){
-        customerKeys.add(String(c.client_phone||c.client_name||c.id).toLowerCase());
         clientPaidTotal+=clientPaidAmt(c);
         clientUnpaidTotal+=clientRem(c);
         pawTotal+=Number(c.pawapp_amount||0)+Number(c.transport_pawapp_amount||0);
+        // Same source of truth used by Follow-up:
+        // client paid provider -> PawApp share still collectible from provider.
+        // client paid PawApp -> provider share still payable by PawApp.
         ours+=v2CollectFromProvider(c);
         theirs+=v2PayProvider(c);
+      });
+      return {clientPaidTotal:clientPaidTotal,clientUnpaidTotal:clientUnpaidTotal,ours:ours,theirs:theirs,pawTotal:pawTotal};
+    }
+
+    window.renderDashboard=function(){
+      const customerKeys=new Set();
+      const ft=financialDashboardTotals();
+      let clientPaidTotal=ft.clientPaidTotal,clientUnpaidTotal=ft.clientUnpaidTotal,ours=ft.ours,theirs=ft.theirs,pawTotal=ft.pawTotal,needs=0;
+      db.cases.forEach(function(c){
+        customerKeys.add(String(c.client_phone||c.client_name||c.id).toLowerCase());
         if(financialFollowupItems(c).length || missingFollowupItems(c).length || appointmentFollowupItems(c).length) needs++;
       });
 
@@ -2068,12 +2079,14 @@ function financialFollowupItems(c){
     window.loadData=async function(){
       await loadDataBeforeAutoFollowup();
       if(document.getElementById('followupFinanceList')) window.renderAutomaticFollowups();
+      if(typeof window.renderDashboard==='function' && document.getElementById('kOursFromProviders')) window.renderDashboard();
     };
 
     const saveCaseDetailsBeforeAutoFollowup=window.saveCaseDetails;
     window.saveCaseDetails=async function(){
       await saveCaseDetailsBeforeAutoFollowup();
       if(document.getElementById('followupFinanceList')) window.renderAutomaticFollowups();
+      if(typeof window.renderDashboard==='function') window.renderDashboard();
     };
 
 

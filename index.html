@@ -366,27 +366,23 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 
 <section id="followups" class="page">
 <div class="title">
-  <div><h1>المتابعة</h1><p>كل حالة تظهر مرة واحدة فقط حسب الإجراء المطلوب الآن في الـWorkflow.</p></div>
+  <div><h1>المتابعة</h1><p>مرتبة حسب الأولوية: المستحقات، المواعيد، ثم البيانات الناقصة</p></div>
 </div>
 
-<div class="cards" style="grid-template-columns:repeat(2,1fr)">
-  <div class="card stat"><span>إجراء المرحلة</span><b id="fuStage" class="blue">0</b></div>
-  <div class="card stat"><span>بيانات ناقصة</span><b id="fuMissing">0</b></div>
-  <div class="card stat"><span>تذكير المواعيد</span><b id="fuAppointments" class="blue">0</b></div>
+<div class="cards" style="grid-template-columns:repeat(3,1fr)">
   <div class="card stat"><span>مستحقات ومدفوعات</span><b id="fuFinance" class="red">0</b></div>
+  <div class="card stat"><span>تذكير المواعيد</span><b id="fuAppointments" class="blue">0</b></div>
+  <div class="card stat"><span>بيانات ناقصة</span><b id="fuMissing">0</b></div>
 </div>
 
-<div class="section"><h2>1. الإجراء المطلوب حسب المرحلة</h2></div>
-<div id="followupStageList" class="providerGrid"></div>
+<div class="section"><h2>1. المستحقات والمدفوعات</h2></div>
+<div id="followupFinanceList" class="providerGrid"></div>
 
-<div class="section"><h2>2. البيانات الناقصة</h2></div>
-<div id="followupMissingList" class="providerGrid"></div>
-
-<div class="section"><h2>3. تذكير المواعيد</h2></div>
+<div class="section"><h2>2. تذكير المواعيد</h2></div>
 <div id="followupAppointmentList" class="providerGrid"></div>
 
-<div class="section"><h2>4. المستحقات والمدفوعات</h2></div>
-<div id="followupFinanceList" class="providerGrid"></div>
+<div class="section"><h2>3. البيانات الناقصة</h2></div>
+<div id="followupMissingList" class="providerGrid"></div>
 
 <div style="display:none">
   <div id="followupAlertBanner"></div><span id="followupAlertText"></span>

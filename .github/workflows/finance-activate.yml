@@ -1,0 +1,74 @@
+name: Validate and integrate TEST finance 3.1
+on:
+  push:
+    branches: ["audit/finance-customer-pets-20260930"]
+    paths:
+      - ".github/workflows/finance-activate.yml"
+      - "scripts/finance31_setup.py"
+      - "scripts/finance32_finalize.py"
+      - "scripts/finance33_read_role.py"
+      - "scripts/case-table31.js"
+      - "tests/finance_browser.py"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: test-finance-integration
+  cancel-in-progress: false
+jobs:
+  integrate:
+    if: github.repository == 'Bibiabdulkareem/pawapp-concierge-crm-test' && github.ref_name == 'audit/finance-customer-pets-20260930'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/finance-customer-pets-20260930
+      - name: Prepare reviewed TEST assets and snapshot permission guard
+        run: |
+          python scripts/finance31_setup.py
+          python scripts/finance32_finalize.py
+          python scripts/finance33_read_role.py
+          node --check app.js
+          node --check finance-core.js
+          node --check finance-ui.js
+          node --check finance-entry.js
+          node --check auth.js
+      - name: Obtain immutable legacy script for offline browser fixture
+        run: |
+          node <<'NODE'
+          const fs=require('node:fs');
+          const match=fs.readFileSync('app.js','utf8').match(/script\.src\s*=\s*'([^']+\/app\.js)'/);
+          if(!match || !match[1].startsWith('https://cdn.jsdelivr.net/gh/Bibiabdulkareem/pop-up-concierge-operation@')) throw Error('Unexpected legacy dependency');
+          fetch(match[1]).then(async r=>{if(!r.ok)throw Error('Legacy download failed');fs.writeFileSync('tests/base-app.js',await r.text());}).catch(e=>{console.error(e);process.exitCode=1});
+          NODE
+          node --check tests/base-app.js
+      - name: Install browser test dependencies
+        run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium webkit
+      - name: Test actual screens with isolated financial fixtures
+        env:
+          BROWSERS: chromium,webkit
+        run: python tests/finance_browser.py
+      - name: Commit validated assets to TEST audit branch only
+        run: |
+          test "$GITHUB_REPOSITORY" = 'Bibiabdulkareem/pawapp-concierge-crm-test'
+          test "$GITHUB_REF_NAME" = 'audit/finance-customer-pets-20260930'
+          git add app.js auth.js index.html finance-core.js finance-ui.js tests/finance_browser.py
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Activate exact-balance browser-validated TEST finance'
+            git push origin HEAD:refs/heads/audit/finance-customer-pets-20260930
+          fi
+          git rev-parse HEAD > tests/results/integration-head.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: finance31-validation
+          retention-days: 7
+          path: |
+            *.js
+            index.html
+            tests/

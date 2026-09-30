@@ -1,0 +1,51 @@
+name: TEST finance checks
+on:
+  push:
+    branches: ["audit/finance-customer-pets-20260930"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  finance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax and deterministic accounting tests
+        shell: bash
+        run: |
+          node --check finance-core.js
+          node --check finance-ui.js
+          node --check app.js
+          node --check auth.js
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const F = require('./finance-core.js');
+          const str = q => Object.fromEntries(Object.entries(q).map(([k,v])=>[k,F.format(v)]));
+          assert.deepEqual(str(F.quote('100','percent','10')),{total:'100.000',paw:'10.000',provider:'90.000'});
+          assert.deepEqual(str(F.quote('20','fixed','5','provider_base')),{total:'25.000',paw:'5.000',provider:'20.000'});
+          assert.deepEqual(str(F.quote('25','fixed','5')),{total:'25.000',paw:'5.000',provider:'20.000'});
+          assert.equal(F.format(F.quote('0.005','percent','10').paw),'0.001');
+          assert.throws(()=>F.quote('10','percent','101'));
+          assert.throws(()=>F.quote('10','fixed','11'));
+          const row={id:1,client_name:'QA',client_phone:'99999999',provider_id:'provider-a',service_name:'Service',total_amount:'100',pawapp_amount:'10',provider_amount:'90',fee_type:'percent',fee_value:'10',client_paid:true,client_paid_to:'pawapp',main_paid_recorded:'100',main_provider_paid:'0',transport_provider_id:'provider-b',transport_total_amount:'10',transport_pawapp_amount:'2',transport_provider_amount:'8',transport_fee_type:'fixed',transport_fee_value:'2',transport_client_paid:false,transport_client_paid_to:null};
+          let ls=F.allLines([row]);let s=F.summarize(ls);
+          assert.equal(F.format(s.total),'110.000');assert.equal(F.format(s.paw),'12.000');assert.equal(F.format(s.provider),'98.000');assert.equal(F.format(s.theirs),'90.000');assert.equal(F.format(s.unpaid),'10.000');assert.equal(s.caseCount,1);assert.equal(s.customerCount,1);
+          row.main_provider_paid='90';row.transport_client_paid=true;row.transport_client_paid_to='provider';row.transport_paid_recorded='10';
+          ls=F.allLines([row]);s=F.summarize(ls);assert.equal(F.format(s.theirs),'0.000');assert.equal(F.format(s.ours),'2.000');
+          row.transport_pawapp_received_from_provider='2';s=F.summarize(F.allLines([row]));assert.equal(F.format(s.ours),'0.000');assert.equal(F.format(s.paw),'12.000');assert.equal(s.ready,true);
+          assert.throws(()=>F.allLines([row,row]));
+          assert.equal(F.phone('+965 9999-9999'),F.phone('99999999'));
+          const model=F.project({cases:[row],providers:[{id:'provider-a',name:'A'},{id:'provider-b',name:'B'}]});
+          assert.equal(model.providers.reduce((n,p)=>n+p.summary.total,0n),model.summary.total);
+          assert.ok(F.csv(model.providers[1].lines,'B').includes('10.000'));
+          console.log('PASS: pricing, fixed/percentage parity, rounding, independent transport, receipts/payouts, aggregate reconciliation, counts, duplicate guard, CSV');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: finance-tested-source
+          retention-days: 7
+          path: |
+            *.js
+            index.html
+            tests/
+            .github/workflows/finance-test.yml

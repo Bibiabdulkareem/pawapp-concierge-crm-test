@@ -452,6 +452,18 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div id="workflowNowBox" class="card" style="box-shadow:none;margin:0 0 12px;background:#f8fafc">
   <div class="hint">المرحلة الحالية</div>
   <b id="workflowStageLabel">—</b>
+  <div class="field" style="margin-top:10px">
+    <label>تغيير مرحلة الحالة</label>
+    <select id="eWorkflowStatus" onchange="saveWorkflowStatus()">
+      <option value="new_request">New — جديد</option>
+      <option value="client_contacted">Client Contacted — تم التواصل مع العميل</option>
+      <option value="provider_confirmed">Doctor / Provider Confirmed — تم تأكيد الطبيب / مقدم الخدمة</option>
+      <option value="appointment_completed">Appointment Completed — تم الموعد / الخدمة</option>
+      <option value="payment_completed">Payment Completed — اكتمل الدفع والتسويات</option>
+      <option value="closed">Closed — مغلقة</option>
+      <option value="cancelled">Cancelled — ملغاة</option>
+    </select>
+  </div>
   <div class="hint" style="margin-top:6px">المطلوب الآن</div>
   <b id="workflowTaskLabel">—</b>
   <button id="workflowShowAllBtn" class="btn soft" type="button" style="width:100%;margin-top:10px;display:none" onclick="showAllCaseEditSections()">عرض كل بيانات العملية</button>

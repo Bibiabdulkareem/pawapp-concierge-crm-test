@@ -529,6 +529,18 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveSettlement()">حفظ الدفعة</button>
 </div></div>
 
+<div id="missingTaskModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3 id="missingTaskTitle">استكمال المطلوب</h3><button class="close" onclick="closeModal('missingTaskModal')">×</button></div>
+<input id="missingTaskCaseId" type="hidden">
+<input id="missingTaskKey" type="hidden">
+<div class="card" style="box-shadow:none;margin-bottom:12px;background:#f8fafc">
+  <div class="hint">المطلوب الآن</div>
+  <b id="missingTaskLabel">—</b>
+</div>
+<div id="missingTaskField"></div>
+<button class="btn primary" style="width:100%;margin-top:12px" type="button" onclick="saveMissingTask()">حفظ ومتابعة</button>
+</div></div>
+
 <div id="appointmentReminderModal" class="modalBg"><div class="modal">
 <div class="modalHead"><h3>تأجيل تذكير الموعد</h3><button class="close" onclick="closeModal('appointmentReminderModal')">×</button></div>
 <input id="appointmentReminderCaseId" type="hidden">

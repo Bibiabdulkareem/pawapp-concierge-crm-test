@@ -2044,6 +2044,67 @@ function financialFollowupItems(c){
     };
 
 
+    function activityActionLabel(v){
+      return {
+        case_created:'إنشاء عملية',
+        case_updated:'تعديل العملية',
+        client_payment_added:'تحصيل من العميل',
+        vendor_payment_added:'دفع / تسوية الشركة',
+        attachment_added:'إضافة مرفق',
+        followup_added:'إضافة متابعة'
+      }[v]||v||'تعديل';
+    }
+
+    function activityDetailsText(row){
+      const d=row.details||{};
+      const parts=[];
+      if(d.workflow_from!==undefined||d.workflow_to!==undefined) parts.push('المرحلة: '+workflowLabel(d.workflow_from)+' ← '+workflowLabel(d.workflow_to));
+      if(d.total_from!==undefined||d.total_to!==undefined) parts.push('الإجمالي: '+Number(d.total_from||0).toFixed(3)+' ← '+Number(d.total_to||0).toFixed(3)+' د.ك');
+      if(d.finance_from||d.finance_to) parts.push('تعديل حصة PawApp / مستحق الشركة');
+      if(d.client_payment_from||d.client_payment_to) parts.push('تعديل حالة سداد العميل');
+      if(d.amount!==undefined) parts.push('المبلغ: '+Number(d.amount||0).toFixed(3)+' د.ك');
+      if(d.service_from!==undefined||d.service_to!==undefined) parts.push('الخدمة: '+String(d.service_from||'-')+' ← '+String(d.service_to||'-'));
+      if(d.provider_from!==undefined||d.provider_to!==undefined||d.provider_changed) parts.push('تغيير الشركة / مقدم الخدمة');
+      if(d.responsible_employee_from!==undefined||d.responsible_employee_to!==undefined) parts.push('تغيير الموظف المسؤول');
+      if(d.transport_updated) parts.push('تعديل Pickup / Drop-off');
+      if(d.appointment_updated) parts.push('تعديل الموعد');
+      if(d.client_or_pet_updated) parts.push('تعديل بيانات العميل / الحيوان');
+      if(d.file_name) parts.push('الملف: '+d.file_name);
+      if(d.client_name) parts.push('العميل: '+d.client_name);
+      return parts.join(' • ')||'تم تسجيل التعديل';
+    }
+
+    window.renderActivityLog=async function(){
+      const box=document.getElementById('activityLogList');
+      if(!box||!window.pawIsAdmin||!window.pawIsAdmin()) return;
+      const q=(document.getElementById('activitySearch')?.value||'').trim().toLowerCase();
+      try{
+        const rows=await api('activity_log?select=*&order=created_at.desc&limit=200');
+        const filtered=(rows||[]).filter(function(x){
+          const hay=[x.actor_email,x.action,'PAW-'+String(x.case_id||'').padStart(4,'0'),activityDetailsText(x)].join(' ').toLowerCase();
+          return !q||hay.includes(q);
+        });
+        box.innerHTML=filtered.length?filtered.map(function(x){
+          const dt=new Date(x.created_at);
+          const when=Number.isFinite(dt.getTime())?dt.toLocaleString('ar-KW',{dateStyle:'medium',timeStyle:'short'}):String(x.created_at||'');
+          const emp=(db.staff||[]).find(function(e){return String(e.id)===String(x.employee_id)});
+          const actor=x.actor_email||(emp&&emp.name)||'النظام / سجل قديم';
+          return '<div class="card" style="box-shadow:none;margin-top:7px">'+
+            '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+esc(activityActionLabel(x.action))+'</b><span class="status">PAW-'+String(x.case_id||'').padStart(4,'0')+'</span></div>'+
+            '<div style="margin-top:6px">'+esc(activityDetailsText(x))+'</div>'+
+            '<div class="hint" style="margin-top:5px">بواسطة: '+esc(actor)+' • '+esc(when)+'</div>'+
+          '</div>';
+        }).join(''):'<div class="hint">ما في سجلات مطابقة.</div>';
+      }catch(e){console.error(e);box.innerHTML='<div class="hint">تعذر تحميل Activity Log.</div>'}
+    };
+
+    const showPageBeforeActivityLog=window.showPage;
+    window.showPage=async function(id){
+      await showPageBeforeActivityLog(id);
+      if(id==='admin'&&window.pawIsAdmin&&window.pawIsAdmin()) renderActivityLog();
+    };
+
+
     window.downloadTestBackup=async function(ev){
       const status=document.getElementById('testBackupStatus');
       const btn=ev&&ev.currentTarget?ev.currentTarget:null;

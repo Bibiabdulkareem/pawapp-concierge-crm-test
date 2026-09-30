@@ -1,0 +1,41 @@
+name: TEST finance browser integration
+on:
+  push:
+    branches: ["audit/finance-customer-pets-20260930"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch immutable legacy dependency used by this TEST page
+        shell: bash
+        run: |
+          mkdir -p tests
+          node <<'NODE'
+          const fs=require('node:fs');
+          const app=fs.readFileSync('app.js','utf8');
+          const match=app.match(/script\.src\s*=\s*'([^']+\/app\.js)'/);
+          if(!match || !match[1].startsWith('https://cdn.jsdelivr.net/gh/Bibiabdulkareem/pop-up-concierge-operation@')) throw Error('Unexpected legacy dependency');
+          fetch(match[1]).then(async r=>{if(!r.ok)throw Error('Legacy dependency download failed');const text=await r.text();fs.writeFileSync('tests/base-app.js',text);}).catch(e=>{console.error(e);process.exitCode=1});
+          NODE
+          node --check tests/base-app.js
+      - name: Browser tests when present
+        shell: bash
+        run: |
+          if [ -f tests/finance_browser.py ]; then
+            pip install playwright==1.56.0
+            python -m playwright install --with-deps chromium webkit
+            python tests/finance_browser.py
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: finance-browser-source
+          retention-days: 7
+          path: |
+            *.js
+            index.html
+            tests/

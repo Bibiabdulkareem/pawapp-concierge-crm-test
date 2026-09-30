@@ -874,7 +874,7 @@ window.sourceLabel = function(src){
 
       const card=f=>{
         const ca=db.cases.find(x=>String(x.id)===String(f.case_id))||{};
-        const emp=db.employees.find(x=>x.id===f.employee_id);
+        const emp=(db.staff||[]).find(x=>x.id===f.employee_id);
         const dt=new Date(f.followup_at);
         const d=Number.isFinite(dt.getTime())?dt.toLocaleString('ar-KW',{dateStyle:'medium',timeStyle:'short'}):String(f.followup_at||'');
         const isOpen=!(f.status==='done'||f.status==='cancelled');
@@ -1568,7 +1568,7 @@ window.sourceLabel = function(src){
       const sel=document.getElementById('eEmployee');
       if(!sel) return;
       sel.innerHTML='<option value="">اختاري الموظف المسؤول</option>';
-      db.employees.forEach(function(emp){
+      (db.staff||[]).forEach(function(emp){
         sel.innerHTML+='<option value="'+emp.id+'">'+esc(emp.name)+'</option>';
       });
       sel.value=selectedId||'';
@@ -1748,7 +1748,7 @@ function financialFollowupItems(c){
         html='<div class="field"><label>إجمالي ما يدفعه العميل (د.ك)</label><input id="missingTaskValue" type="number" min="0" step="0.001" inputmode="decimal"></div>';
       }else if(key==='employee'){
         html='<div class="field"><label>الموظف المسؤول</label><select id="missingTaskValue"><option value="">اختاري</option>'+
-          (db.employees||[]).map(function(e){return '<option value="'+e.id+'">'+esc(e.name)+'</option>'}).join('')+
+          (db.staff||[]).map(function(e){return '<option value="'+e.id+'">'+esc(e.name)+'</option>'}).join('')+
           '</select></div>';
       }else if(key==='pet_type'){
         html='<div class="field"><label>نوع الحيوان</label><select id="missingTaskValue"><option value="">اختاري</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>';
@@ -2059,7 +2059,7 @@ function financialFollowupItems(c){
         }
       }catch(e){console.warn('admin employees load failed',e)}
 
-      if(!rows.length && Array.isArray(db.employees)) rows=db.employees;
+      if(!rows.length && Array.isArray(db.staff)) rows=db.staff;
 
       if(employeeSelect){
         employeeSelect.innerHTML='<option value="">اختاري الموظف</option>'+

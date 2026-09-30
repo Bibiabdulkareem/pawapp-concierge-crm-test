@@ -19,7 +19,8 @@
     const method = String((init && init.method) || (typeof input !== 'string' && input && input.method) || 'GET').toUpperCase();
 
     if (url && url.indexOf('/rest/v1/') !== -1) {
-      if (document.body && ['read_only','accountant'].includes(document.body.dataset.pawRole) && !['GET','HEAD'].includes(method)) {
+      const isFinanceSnapshotRead = method === 'POST' && /\/rest\/v1\/rpc\/test_finance_snapshot(?:[?#]|$)/.test(url);
+      if (document.body && ['read_only','accountant'].includes(document.body.dataset.pawRole) && !['GET','HEAD'].includes(method) && !isFinanceSnapshotRead) {
         return Promise.resolve(new Response(JSON.stringify({message:'Read only access'}), {
           status:403,
           headers:{'Content-Type':'application/json'}

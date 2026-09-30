@@ -50,7 +50,7 @@ class Fixture:
  def route(self,route):
   request=route.request;u=urlparse(request.url)
   if u.netloc=='qa-fixture.invalid' or u.netloc.startswith('127.0.0.1'):
-   if u.path.startswith('/mock/'):
+   if u.path.startswith('/rest/v1/rpc/'):
     try:result={'data':self.rpc(u.path.split('/')[-1],request.post_data_json or {}),'error':None}
     except Exception as e:result={'data':None,'error':{'message':str(e)}}
     route.fulfill(json=result,headers={'Access-Control-Allow-Origin':'*'});return
@@ -59,7 +59,7 @@ class Fixture:
    else:route.fulfill(status=404,body='Missing fixture file')
    return
   if 'supabase-js' in u.path:
-   code="""window.supabase={createClient(){const access=ACCESS;const auth={getSession:async()=>({data:{session:{user:{id:'qa-user',email:access.email}}}}),onAuthStateChange(){},signOut:async()=>({}),updateUser:async()=>({})};return{auth,from(name){const q={select(){return q},eq(){return q},order(){return q},limit(){return q},ilike(){return q},maybeSingle:async()=>({data:access,error:null}),then(resolve){return Promise.resolve({data:[],error:null}).then(resolve)}};return q},rpc:async(name,args={})=>fetch('/mock/'+name,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(args)}).then(r=>r.json())};}};""".replace('ACCESS',json.dumps(self.access))
+   code="""window.supabase={createClient(){const access=ACCESS;const auth={getSession:async()=>({data:{session:{user:{id:'qa-user',email:access.email}}}}),onAuthStateChange(){},signOut:async()=>({}),updateUser:async()=>({})};return{auth,from(name){const q={select(){return q},eq(){return q},order(){return q},limit(){return q},ilike(){return q},maybeSingle:async()=>({data:access,error:null}),then(resolve){return Promise.resolve({data:[],error:null}).then(resolve)}};return q},rpc:async(name,args={})=>fetch('/rest/v1/rpc/'+name,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(args)}).then(r=>r.json())};}};""".replace('ACCESS',json.dumps(self.access))
    route.fulfill(body=code,content_type='application/javascript');return
   if '/pop-up-concierge-operation@' in request.url:
    route.fulfill(path=str(ROOT/'tests/base-app.js'),content_type='application/javascript');return
@@ -103,6 +103,8 @@ def run(browser_type,name,url,role='admin',mobile=False):
   page.evaluate("showPage('followups')");assert page.locator('#followupFinanceList .btn.primary').count()==0
   page.evaluate("pawFinanceOpen('1','main')");assert page.locator('#financeActionModal').count()==0
   assert not any(n=='test_finance_action' for n,_ in f.calls)
+  denied=page.evaluate("fetch('/rest/v1/rpc/test_finance_action',{method:'POST',body:'{}'}).then(r=>r.status)")
+  assert denied==403, 'Read-only finance write was not blocked'
  else:
   page.evaluate("showPage('followups');pawFinanceOpen('1','transport')")
   page.select_option('#finConfirmPaid','yes');page.select_option('#finRecipient','provider');save_payment(page)

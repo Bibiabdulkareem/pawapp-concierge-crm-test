@@ -339,6 +339,14 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   </div>
 </div>
 
+<div class="section"><h2>Activity Log</h2></div>
+<div class="card" style="box-shadow:none">
+  <b>سجل التعديلات</b>
+  <div class="hint" style="margin-top:5px;line-height:1.7">يسجل منو سوّى التعديل، أي Case، شنو تغير، والوقت — خصوصًا الحالات والمدفوعات والتسويات والمرفقات.</div>
+  <input id="activitySearch" class="search" style="margin-top:10px" placeholder="بحث بالإيميل، Case ID أو نوع التعديل..." oninput="renderActivityLog()">
+  <div id="activityLogList" style="margin-top:10px"></div>
+</div>
+
 <div class="section"><h2>Backup & Restore</h2></div>
 <div class="card" style="box-shadow:none">
   <b>حماية الداتا</b>

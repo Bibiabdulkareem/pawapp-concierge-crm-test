@@ -1701,6 +1701,121 @@ function financialFollowupItems(c){
         badge+'</div>';
     }
 
+
+    function missingTaskKey(label){
+      if(label==='اختيار الشركة / الفريلانسر') return 'provider';
+      if(label==='اختيار الخدمة') return 'service';
+      if(label==='إدخال السعر') return 'price';
+      if(label==='تحديد الموظف المسؤول') return 'employee';
+      if(label==='نوع الحيوان') return 'pet_type';
+      if(label==='الموقع / المنطقة') return 'location';
+      if(label==='موقع الاستلام Pickup') return 'pickup_location';
+      if(label==='موقع التوصيل Drop-off') return 'dropoff_location';
+      return '';
+    }
+
+    window.openMissingTask=function(caseId){
+      const row=db.cases.find(function(x){return String(x.id)===String(caseId)});
+      if(!row) return;
+
+      const label=missingFollowupItems(row)[0]||'';
+      const key=missingTaskKey(label);
+      if(!key){
+        window.openCaseWorkflow(caseId,'missing');
+        return;
+      }
+
+      const idEl=document.getElementById('missingTaskCaseId');
+      const keyEl=document.getElementById('missingTaskKey');
+      const labelEl=document.getElementById('missingTaskLabel');
+      const field=document.getElementById('missingTaskField');
+      if(idEl) idEl.value=caseId;
+      if(keyEl) keyEl.value=key;
+      if(labelEl) labelEl.textContent=label;
+      if(!field) return;
+
+      let html='';
+      if(key==='provider'){
+        html='<div class="field"><label>الشركة / الفريلانسر</label><select id="missingTaskValue"><option value="">اختاري</option>'+
+          db.providers.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('')+
+          '</select></div>';
+      }else if(key==='service'){
+        const pr=byProvider(row.providerId);
+        html='<div class="field"><label>الخدمة</label><select id="missingTaskValue"><option value="">اختاري</option>'+
+          (pr.services||[]).map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>'}).join('')+
+          '</select></div>';
+      }else if(key==='price'){
+        html='<div class="field"><label>إجمالي ما يدفعه العميل (د.ك)</label><input id="missingTaskValue" type="number" min="0" step="0.001" inputmode="decimal"></div>';
+      }else if(key==='employee'){
+        html='<div class="field"><label>الموظف المسؤول</label><select id="missingTaskValue"><option value="">اختاري</option>'+
+          (db.employees||[]).map(function(e){return '<option value="'+e.id+'">'+esc(e.name)+'</option>'}).join('')+
+          '</select></div>';
+      }else if(key==='pet_type'){
+        html='<div class="field"><label>نوع الحيوان</label><select id="missingTaskValue"><option value="">اختاري</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>';
+      }else{
+        const title=key==='location'?'المنطقة / الموقع':key==='pickup_location'?'مكان الاستلام':'مكان التوصيل';
+        html='<div class="field"><label>'+title+'</label><input id="missingTaskValue"></div>';
+      }
+
+      field.innerHTML=html;
+      const modal=document.getElementById('missingTaskModal');
+      if(modal) modal.classList.add('show');
+    };
+
+    window.saveMissingTask=async function(){
+      const caseId=document.getElementById('missingTaskCaseId')?.value||'';
+      const key=document.getElementById('missingTaskKey')?.value||'';
+      const valueEl=document.getElementById('missingTaskValue');
+      const raw=valueEl?String(valueEl.value||'').trim():'';
+      const row=db.cases.find(function(x){return String(x.id)===String(caseId)});
+      if(!caseId||!key||!row) return;
+      if(!raw || (key==='price' && Number(raw)<=0)){
+        alert('كمّلي المعلومة المطلوبة أول');
+        return;
+      }
+
+      const patch={};
+      if(key==='provider') patch.provider_id=raw;
+      else if(key==='service') { patch.service_name=raw; patch.requested_service=row.requested_service||raw; }
+      else if(key==='employee') patch.employee_id=raw;
+      else if(key==='pet_type') patch.pet_type=raw;
+      else if(key==='location') patch.location=raw;
+      else if(key==='pickup_location') patch.pickup_location=raw;
+      else if(key==='dropoff_location') patch.dropoff_location=raw;
+      else if(key==='price'){
+        const total=Number(raw);
+        const feeType=row.fee_type||'percent';
+        const feeValue=Number(row.fee_value||0);
+        const pawAmount=feeType==='fixed'?feeValue:total*feeValue/100;
+        patch.total_amount=total;
+        patch.pawapp_amount=pawAmount;
+        patch.provider_amount=Math.max(0,total-pawAmount);
+      }
+
+      try{
+        await api('cases?id=eq.'+encodeURIComponent(caseId),{
+          method:'PATCH',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify(patch)
+        });
+        closeModal('missingTaskModal');
+        await loadData();
+        if(window.renderAutomaticFollowups) window.renderAutomaticFollowups();
+
+        const fresh=db.cases.find(function(x){return String(x.id)===String(caseId)});
+        const next=fresh?missingFollowupItems(fresh):[];
+        if(next.length){
+          toast('تم الحفظ • باقي '+next[0]);
+          setTimeout(function(){window.openMissingTask(caseId)},150);
+        }else{
+          toast('تم استكمال البيانات الأساسية ✓');
+        }
+      }catch(e){
+        console.error(e);
+        alert('تعذر حفظ المعلومة');
+      }
+    };
+
     window.renderAutomaticFollowups=function(){
       const financeBox=document.getElementById('followupFinanceList');
       const appointmentBox=document.getElementById('followupAppointmentList');
@@ -1765,7 +1880,7 @@ function financialFollowupItems(c){
         const c=x.c;
         return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial">بيانات ناقصة</span>')+
           '<div style="margin-top:10px">'+x.items.map(function(r){return '<div class="kpi-line"><span>'+esc(r)+'</span></div>'}).join('')+'</div>'+
-          '<div class="actions"><button class="btn primary" onclick="openCaseDetails(\''+c.id+'\')">استكمال البيانات</button></div></div>';
+          '<div class="actions"><button class="btn primary" onclick="openMissingTask(\''+c.id+'\')">استكمال المطلوب</button><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button></div></div>';
       }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في بيانات أساسية ناقصة.</div></div>';
     };
 

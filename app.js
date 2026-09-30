@@ -50,7 +50,7 @@
       let h='';
       db.cases.slice().reverse().forEach(c=>{
         const pr=byProvider(c.providerId);
-        const hay=['PAW-'+String(c.id).padStart(4,'0'),c.client_name,c.client_phone,c.staff,pr.name,c.service,c.pet_type,c.breed,sourceLabel(c.source)].join(' ').toLowerCase();
+        const hay=['PAW-'+String(c.id).padStart(4,'0'),c.client_name,c.client_phone,c.staff,pr.name,c.service,c.pet_type,c.breed,sourceLabel(c.source),workflowLabel(c.workflow_status)].join(' ').toLowerCase();
         const clientPaid=clientRem(c)<=0.0001 && Number(c.total_amount||0)>0;
         const vendorPaid=rem(c)<=0.0001 && Number(c.provider_amount||0)>0;
         let companyStatus='بانتظار دفع العميل',companyStatusClass='pending';
@@ -87,7 +87,7 @@
           <td>${dueTxt}</td>
           <td><span class="status ${companyStatusClass}">${companyStatus}</span></td>
           <td>${esc(c.staff||'—')}<br><span class="status partial" style="margin-top:4px">${esc(sourceLabel(c.source))}</span></td>
-          <td><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">${missing?'استكمال البيانات':'تعديل البيانات'}</button></td>
+          <td><span class="status partial" style="display:inline-block;margin-bottom:5px">${esc(workflowLabel(c.workflow_status))}</span><br><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">${missing?'استكمال البيانات':'تعديل البيانات'}</button></td>
           <td><button class="btn soft" style="padding:7px" onclick="openCaseDetails('${c.id}')">${clientPaid?'بيانات السداد':'تحديث السداد'}</button></td>
           <td><button class="btn soft" style="padding:7px" onclick="${Number(c.provider_amount||0)>0?'openSettlement(\''+c.id+'\')':'openCaseDetails(\''+c.id+'\')'}">${Number(c.provider_amount||0)<=0?'أكمل السعر':(vendorPaid?'تم الدفع':'تسجيل دفع')}</button></td>
         </tr>`;
@@ -1548,21 +1548,86 @@ window.sourceLabel = function(src){
     };
 
     
+    const WORKFLOW_META={
+      new_request:{label:'New — جديد',next:'التواصل مع العميل'},
+      client_contacted:{label:'Client Contacted — تم التواصل مع العميل',next:'تأكيد الطبيب / مقدم الخدمة'},
+      provider_confirmed:{label:'Doctor / Provider Confirmed — تم تأكيد الطبيب / مقدم الخدمة',next:'متابعة الموعد وإتمام الخدمة'},
+      appointment_completed:{label:'Appointment Completed — تم الموعد / الخدمة',next:'إكمال الدفع والتسويات'},
+      payment_completed:{label:'Payment Completed — اكتمل الدفع والتسويات',next:'مراجعة الحالة ثم إغلاقها'},
+      closed:{label:'Closed — مغلقة',next:'لا يوجد إجراء مطلوب'},
+      cancelled:{label:'Cancelled — ملغاة',next:'لا يوجد إجراء مطلوب'}
+    };
+
+    function workflowLabel(status){
+      return (WORKFLOW_META[status]||WORKFLOW_META.new_request).label;
+    }
+
     function workflowState(c){
+      const status=c.workflow_status||'new_request';
+      if(status==='cancelled') return {stage:workflowLabel(status),task:'الحالة ملغاة',focus:'complete'};
+      if(status==='closed') return {stage:workflowLabel(status),task:'لا يوجد إجراء مطلوب',focus:'complete'};
+
       const missing=missingFollowupItems(c);
       if(missing.length){
-        return {stage:'استكمال البيانات',task:missing[0],focus:'missing'};
+        return {stage:workflowLabel(status),task:'استكمال: '+missing[0],focus:'missing'};
       }
+
+      if(status==='new_request'){
+        return {stage:workflowLabel(status),task:'التواصل مع العميل ثم تغيير المرحلة إلى Client Contacted',focus:'all'};
+      }
+      if(status==='client_contacted'){
+        return {stage:workflowLabel(status),task:'تأكيد الطبيب / مقدم الخدمة ثم تغيير المرحلة إلى Provider Confirmed',focus:'all'};
+      }
+
       const appointments=appointmentFollowupItems(c);
-      if(appointments.length){
-        return {stage:'تذكير الموعد',task:appointments[0].label+' • '+formatFollowupDate(appointments[0].at),focus:'appointment'};
+      if(status==='provider_confirmed' && appointments.length){
+        return {stage:workflowLabel(status),task:appointments[0].label+' • '+formatFollowupDate(appointments[0].at),focus:'appointment'};
       }
+      if(status==='provider_confirmed'){
+        return {stage:workflowLabel(status),task:'بعد تنفيذ الموعد / الخدمة غيّري المرحلة إلى Appointment Completed',focus:'appointment'};
+      }
+
       const financial=financialFollowupItems(c);
-      if(financial.length){
-        return {stage:'المستحقات والمدفوعات',task:financial[0].label,focus:'finance'};
+      if(status==='appointment_completed' && financial.length){
+        return {stage:workflowLabel(status),task:financial[0].label,focus:'finance'};
       }
-      return {stage:'مكتملة',task:'لا يوجد إجراء مطلوب حاليًا',focus:'complete'};
+      if(status==='appointment_completed'){
+        return {stage:workflowLabel(status),task:'الدفع والتسويات مكتملة — غيّري المرحلة إلى Payment Completed',focus:'finance'};
+      }
+      if(status==='payment_completed'){
+        return {stage:workflowLabel(status),task:'راجعي الحالة ثم غيّري المرحلة إلى Closed',focus:'all'};
+      }
+
+      return {stage:workflowLabel(status),task:(WORKFLOW_META[status]||WORKFLOW_META.new_request).next,focus:'all'};
     }
+
+    window.saveWorkflowStatus=async function(){
+      const caseId=document.getElementById('editCaseId')?.value||'';
+      const select=document.getElementById('eWorkflowStatus');
+      const status=select?.value||'new_request';
+      const row=db.cases.find(function(x){return String(x.id)===String(caseId)});
+      if(!caseId||!row) return;
+      if(row.workflow_status===status){
+        focusCaseEditor(row,'all');
+        return;
+      }
+      try{
+        await api('cases?id=eq.'+encodeURIComponent(caseId),{
+          method:'PATCH',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify({workflow_status:status})
+        });
+        row.workflow_status=status;
+        focusCaseEditor(row,'all');
+        if(window.renderAutomaticFollowups) window.renderAutomaticFollowups();
+        if(window.renderCases) window.renderCases();
+        toast('تم تحديث مرحلة الحالة');
+      }catch(e){
+        console.error(e);
+        alert('تعذر تحديث مرحلة الحالة');
+        select.value=row.workflow_status||'new_request';
+      }
+    };
 
     function populateEditEmployees(selectedId){
       const sel=document.getElementById('eEmployee');
@@ -1591,8 +1656,10 @@ window.sourceLabel = function(src){
       const state=workflowState(c);
       const stage=document.getElementById('workflowStageLabel');
       const task=document.getElementById('workflowTaskLabel');
+      const workflowSelect=document.getElementById('eWorkflowStatus');
       if(stage) stage.textContent=state.stage;
       if(task) task.textContent=state.task;
+      if(workflowSelect) workflowSelect.value=c.workflow_status||'new_request';
 
       window.showAllCaseEditSections();
       if(!mode || mode==='all' || state.focus==='complete') return;

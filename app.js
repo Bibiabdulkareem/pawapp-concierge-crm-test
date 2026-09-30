@@ -1964,9 +1964,10 @@ function financialFollowupItems(c){
         appointment_reminder_at:null
       };
 
-      // متابعة الموعد تؤكد المتابعة فقط. إذا كان وقت الموعد انتهى والحالة وصلت لتأكيد المزود،
-      // ننقلها تلقائياً إلى "تم الموعد / الخدمة" حتى يظهر الإجراء المالي التالي.
-      if((row.workflow_status||'new_request')==='provider_confirmed' && appointmentFinished){
+      // زر "تمت متابعة الموعد" يعني أن الموعد/الخدمة تمت فعلياً.
+      // لذلك ننقل الحالة مباشرة إلى Appointment Completed مهما كانت المرحلة القديمة،
+      // لأن بعض الحالات القديمة ما زالت محفوظة كـ New رغم وجود موعد منتهي.
+      if(appointmentFinished){
         patch.workflow_status='appointment_completed';
       }
 

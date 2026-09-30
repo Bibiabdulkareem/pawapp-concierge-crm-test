@@ -1765,8 +1765,7 @@ function financialFollowupItems(c){
       const pr=byProvider(c.providerId);
       return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'+
         '<div><h3 style="margin:0">'+esc(c.client_name||'عميل')+'</h3>'+
-        '<div class="hint">PAW-'+String(c.id).padStart(4,'0')+' • '+esc(pr.name)+'</div>'+
-        '<div style="margin-top:6px"><span class="status partial">'+esc(workflowLabel(c.workflow_status))+'</span></div></div>'+
+        '<div class="hint">PAW-'+String(c.id).padStart(4,'0')+' • '+esc(pr.name)+'</div></div>'+
         badge+'</div>';
     }
 
@@ -1939,7 +1938,7 @@ function financialFollowupItems(c){
         return '<div class="card provider">'+followupCaseHeader(c,badge)+
           '<div style="margin-top:10px"><b>'+esc(item.label)+'</b><div class="hint">'+esc(formatFollowupDate(item.at))+'</div></div>'+
           '<div class="actions">'+
-            '<button class="btn primary" onclick="completeAppointmentFollowup(\''+c.id+'\')">✓ تمت متابعة الموعد</button>'+
+            '<button class="btn primary" onclick="completeAppointmentFollowup(\''+c.id+'\')">✓ تمت الخدمة / الموعد</button>'+
             '<button class="btn soft" onclick="openAppointmentReminder(\''+c.id+'\')">تأجيل التذكير</button>'+
             '<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>'+
           '</div></div>';
@@ -1967,9 +1966,7 @@ function financialFollowupItems(c){
       // زر "تمت متابعة الموعد" يعني أن الموعد/الخدمة تمت فعلياً.
       // لذلك ننقل الحالة مباشرة إلى Appointment Completed مهما كانت المرحلة القديمة،
       // لأن بعض الحالات القديمة ما زالت محفوظة كـ New رغم وجود موعد منتهي.
-      if(appointmentFinished){
-        patch.workflow_status='appointment_completed';
-      }
+      patch.workflow_status='appointment_completed';
 
       try{
         await api('cases?id=eq.'+encodeURIComponent(caseId),{
@@ -1983,7 +1980,7 @@ function financialFollowupItems(c){
         await loadData();
         window.renderAutomaticFollowups();
         if(window.renderCases) window.renderCases();
-        toast(patch.workflow_status?'تمت متابعة الموعد ونقل الحالة إلى تم الموعد / الخدمة':'تمت متابعة الموعد');
+        toast('تمت الخدمة / الموعد وانتقلت الحالة تلقائيًا');
       }catch(e){
         console.error(e);
         alert('تعذر تحديث متابعة الموعد');

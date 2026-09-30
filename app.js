@@ -1955,18 +1955,34 @@ function financialFollowupItems(c){
 
 
     window.completeAppointmentFollowup=async function(caseId){
+      const row=db.cases.find(function(x){return String(x.id)===String(caseId)});
+      if(!row) return;
+      const appointmentAt=row.appointment_at?new Date(row.appointment_at):null;
+      const appointmentFinished=appointmentAt && Number.isFinite(appointmentAt.getTime()) && appointmentAt.getTime()<=Date.now();
+      const patch={
+        appointment_followed_up_at:new Date().toISOString(),
+        appointment_reminder_at:null
+      };
+
+      // متابعة الموعد تؤكد المتابعة فقط. إذا كان وقت الموعد انتهى والحالة وصلت لتأكيد المزود،
+      // ننقلها تلقائياً إلى "تم الموعد / الخدمة" حتى يظهر الإجراء المالي التالي.
+      if((row.workflow_status||'new_request')==='provider_confirmed' && appointmentFinished){
+        patch.workflow_status='appointment_completed';
+      }
+
       try{
         await api('cases?id=eq.'+encodeURIComponent(caseId),{
           method:'PATCH',
           headers:{Prefer:'return=minimal'},
-          body:JSON.stringify({
-            appointment_followed_up_at:new Date().toISOString(),
-            appointment_reminder_at:null
-          })
+          body:JSON.stringify(patch)
         });
+        row.appointment_followed_up_at=patch.appointment_followed_up_at;
+        row.appointment_reminder_at=null;
+        if(patch.workflow_status) row.workflow_status=patch.workflow_status;
         await loadData();
         window.renderAutomaticFollowups();
-        toast('تمت متابعة الموعد');
+        if(window.renderCases) window.renderCases();
+        toast(patch.workflow_status?'تمت متابعة الموعد ونقل الحالة إلى تم الموعد / الخدمة':'تمت متابعة الموعد');
       }catch(e){
         console.error(e);
         alert('تعذر تحديث متابعة الموعد');

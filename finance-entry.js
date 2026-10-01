@@ -22,9 +22,9 @@
   }
   try{
     if(!window.PAWAPP_AUTH?.client)throw new Error('سجلي الدخول أولًا.');
-    await script('finance-core.js?v=3.2');
-    await script('finance-ui.js?v=3.2');
-    await script('app.js?v=3.2');
+    await script('finance-core.js?v=3.3');
+    await script('finance-ui.js?v=3.3');
+    await script('app.js?v=3.3');
     const start=Date.now();
     while(typeof window.renderAdminAccess!=='function'||typeof window.downloadTestBackup!=='function'){
       if(Date.now()-start>20000)throw new Error('تأخر تحميل النظام. أعيدي المحاولة.');
@@ -32,7 +32,7 @@
     }
     await window.loadData();
     await window.PawFinanceInstall();
-    window.PAW_FINANCE_VERSION='3.2';
+    window.PAW_FINANCE_VERSION='3.3';
     overlay.remove();
   }catch(error){
     console.error('TEST finance initialization failed',error);

@@ -2247,6 +2247,106 @@ function financialFollowupItems(c){
       if(id==='admin') window.renderAdminAccess();
     };
 
+
+    // Arabic / English UI toggle — TEST only.
+    const UI_EN = {
+      'لوحة التحكم':'Dashboard','نظرة عامة فقط — التفاصيل داخل الأقسام':'Overview only — details are inside each section',
+      '+ عميل جديد':'+ New Client','عميل جديد':'New Client','العمليات':'Cases','العملاء':'Clients','الشركات / الفريلانسر':'Companies / Freelancers',
+      'المتابعة':'Follow-up','الموظفون':'Employees','الإدارة':'Admin','الرئيسية':'Home',
+      'عرض كل العمليات':'View all cases','عرض العملاء':'View clients','المستحقات والمدفوعات':'Payments & Receivables',
+      'تذكير المواعيد':'Appointment Reminders','بيانات ناقصة':'Missing Data','كل الحالات المسجلة وحالة التسوية':'All registered cases and settlement status',
+      'بحث باسم العميل، الشركة، الموظف أو Case ID...':'Search by client, company, employee or Case ID...',
+      'فلتر الحالة':'Status Filter','كل الحالات':'All Cases','العميل لم يسدد':'Client Unpaid','العميل سدد':'Client Paid',
+      'مستحق للشركة عند PawApp':'Due to Company from PawApp','لا يوجد مستحق للشركة عند PawApp':'No Amount Due to Company',
+      'فلتر الشركة / الفريلانسر':'Company / Freelancer Filter','كل الشركات / الفريلانسر':'All Companies / Freelancers',
+      'العميل':'Client','الحيوان':'Pet','السلالة':'Breed','مطعّم':'Vaccinated','الشركة / الفريلانسر':'Company / Freelancer',
+      'الخدمة':'Service','إجمالي العميل':'Client Total','حصة PawApp':'PawApp Share','مستحق الشركة / الفريلانسر':'Company / Freelancer Due',
+      'حالة العميل':'Client Status','موعد السداد':'Due Date','حالة الشركة / الفريلانسر':'Company / Freelancer Status',
+      'الموظف / المصدر':'Employee / Source','بيانات الحالة':'Case Details','إجراء العميل':'Client Action','إجراء الشركة / الفريلانسر':'Company / Freelancer Action',
+      'تم السداد بالكامل':'Paid in Full','لم يسدد':'Unpaid','تم السداد':'Paid','تعديل البيانات':'Edit Details','استكمال البيانات':'Complete Details',
+      'بيانات السداد':'Payment Details','تحديث السداد':'Update Payment','تم الدفع':'Paid','تسجيل دفع':'Record Payment','أكمل السعر':'Complete Price',
+      'CRM العملاء والحيوانات':'Clients & Pets CRM','ملف واحد للعميل، حيواناته، وسجل خدماته بالكامل':'One client profile with pets and complete service history',
+      '+ خدمة جديدة':'+ New Service','بحث باسم العميل، رقم التلفون أو Case ID...':'Search by client name, phone or Case ID...',
+      'الحيوانات':'Pets','فريق PawApp اللي يستلم ويسجل طلبات العملاء':'PawApp team handling and recording client requests',
+      '+ إضافة موظف':'+ Add Employee','دخول الموظفين':'Employee Access','اسم الموظف':'Employee Name','الإيميل':'Email','الباسورد المؤقت':'Temporary Password',
+      'الصلاحية':'Role','إنشاء / تفعيل حساب الموظف':'Create / Activate Employee Account','الحسابات الحالية':'Current Accounts',
+      'تغيير الباسورد':'Change Password','الباسورد الجديد':'New Password','تأكيد الباسورد الجديد':'Confirm New Password','حفظ الباسورد الجديد':'Save New Password',
+      'سجل التعديلات':'Activity Log','يسجل منو سوّى التعديل، أي Case، شنو تغير، والوقت — خصوصًا الحالات والمدفوعات والتسويات والمرفقات.':'Tracks who made each change, which case, what changed and when — especially statuses, payments, settlements and attachments.',
+      'بحث بالإيميل، Case ID أو نوع التعديل...':'Search by email, Case ID or change type...','حماية الداتا':'Data Protection',
+      'تحميل نسخة JSON على الجهاز':'Download JSON Backup','مفعّل':'Enabled','محفوظة':'Saved','فقط':'Only',
+      'استكمال بيانات الحالة':'Complete Case Details','المرحلة الحالية':'Current Stage','تغيير مرحلة الحالة':'Change Case Stage','المطلوب الآن':'Next Required Action',
+      'عرض كل بيانات العملية':'Show All Case Details','بيانات العميل والحيوان':'Client & Pet Details','رقم العميل':'Client Phone',
+      'المنطقة / الموقع':'Area / Location','نوع الحيوان':'Pet Type','غير محدد':'Not Specified','كلب':'Dog','قط':'Cat','طائر':'Bird','أرنب':'Rabbit','أخرى':'Other',
+      'العمر':'Age','سهل التعامل؟':'Easy to Handle?','نعم':'Yes','لا':'No','سبب الطلب / الحالة':'Request Reason / Case',
+      'الموظف المسؤول':'Assigned Employee','اختاري الموظف المسؤول':'Select Assigned Employee','الخدمة والسعر':'Service & Price',
+      'إجمالي ما يدفعه العميل (د.ك)':'Client Total (KWD)','طريقة حصة PawApp':'PawApp Share Method','نسبة %':'Percentage %','مبلغ ثابت':'Fixed Amount',
+      'مستحق الشركة / الفريلانسر':'Company / Freelancer Due','الدفع والمستحقات':'Payments & Receivables','العميل دفع؟':'Client Paid?',
+      'العميل دفع لمن؟':'Who Did the Client Pay?','اختاري جهة الدفع':'Select Payee','العيادة / الشركة / الفريلانسر مباشرة':'Clinic / Company / Freelancer Directly',
+      'إدارة الخدمات':'Manage Services','إضافة خدمة جديدة':'Add New Service','الخدمات الحالية':'Current Services','+ إضافة الخدمة':'+ Add Service',
+      'إضافة موظف PawApp':'Add PawApp Employee','حفظ الموظف':'Save Employee','إضافة شركة / فريلانسر خدمة':'Add Company / Freelancer',
+      'النوع':'Type','تصنيف الشركة':'Company Category','الاسم *':'Name *','رقم التواصل':'Contact Number','حفظ الشركة / الفريلانسر':'Save Company / Freelancer',
+      'طريقة حصة PawApp الافتراضية':'Default PawApp Share Method','نسبة PawApp الافتراضية %':'Default PawApp Percentage %',
+      'المبلغ المتبقي':'Remaining Amount','قادم':'Upcoming','متأخر':'Overdue','فتح الحالة':'Open Case','إجمالي المستحق':'Total Due','تم دفعه':'Paid',
+      'المتبقي':'Remaining','حالة الحساب':'Account Status','الجهة':'Party','التفاصيل':'Details','تقرير CSV':'CSV Report',
+      'مكتملة':'Completed','تحتاج متابعة':'Needs Follow-up','إجمالي قيمة العمليات':'Total Case Value','لنا عندهم':'Due to Us','لهم عندنا':'Due to Them',
+      'تحليل الخدمات':'Service Analysis','العملاء والعمليات':'Clients & Cases','رجوع للشركات':'Back to Companies',
+      'مستحقات ومدفوعات':'Payments & Receivables','تذكير المواعيد':'Appointment Reminders','البيانات الناقصة':'Missing Data',
+      'خروج':'Sign Out','دخول':'Sign In','تسجيل الدخول للموظفين':'Employee Sign In','أول مرة؟ فعّلي الحساب':'First time? Activate Account',
+      'حفظ كل التعديلات':'Save All Changes','اختاري':'Select','مكان الاستلام':'Pickup Location','مكان التوصيل':'Drop-off Location',
+      'التاريخ والوقت':'Date & Time','نوع المشوار':'Trip Type','بيانات Pickup / Drop-off':'Pickup / Drop-off Details',
+      'فاتورة العميل':'Client Invoice','إيصال دفع العميل':'Client Payment Receipt','فاتورة الشركة / الفريلانسر':'Company / Freelancer Invoice',
+      'إيصال دفع الشركة / الفريلانسر':'Company / Freelancer Payment Receipt','مرفق آخر':'Other Attachment','اختيار الملف':'Choose File',
+      '+ رفع المرفق':'+ Upload Attachment','الفواتير والمرفقات':'Invoices & Attachments','فتح':'Open','حذف':'Delete',
+      'ما في مرفقات على هالحالة.':'No attachments for this case.','جاري تحميل المرفقات...':'Loading attachments...'
+    };
+    const UI_AR = Object.fromEntries(Object.entries(UI_EN).map(function(x){return [x[1],x[0]]}));
+    let pawLang=localStorage.getItem('pawapp_ui_lang')||'ar';
+    let langBusy=false;
+
+    function translateExact(s,to){
+      if(!s) return s;
+      const lead=(s.match(/^\s*/)||[''])[0], trail=(s.match(/\s*$/)||[''])[0], core=s.trim();
+      const dict=to==='en'?UI_EN:UI_AR;
+      return dict[core]!==undefined?lead+dict[core]+trail:s;
+    }
+    function applyLang(root){
+      if(langBusy) return;
+      langBusy=true;
+      try{
+        document.documentElement.lang=pawLang;
+        document.documentElement.dir=pawLang==='ar'?'rtl':'ltr';
+        document.body.style.direction=pawLang==='ar'?'rtl':'ltr';
+        const scope=root&&root.nodeType===1?root:document.body;
+        const walker=document.createTreeWalker(scope,NodeFilter.SHOW_TEXT);
+        const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach(function(n){ if(n.parentElement&& !['SCRIPT','STYLE'].includes(n.parentElement.tagName)) n.nodeValue=translateExact(n.nodeValue,pawLang); });
+        scope.querySelectorAll?.('input[placeholder],textarea[placeholder]').forEach(function(el){el.placeholder=translateExact(el.placeholder,pawLang)});
+        const btn=document.getElementById('pawLangToggle');
+        if(btn) btn.textContent=pawLang==='ar'?'EN':'عربي';
+      }finally{langBusy=false}
+    }
+    window.pawToggleLanguage=function(){
+      pawLang=pawLang==='ar'?'en':'ar';
+      localStorage.setItem('pawapp_ui_lang',pawLang);
+      location.reload();
+    };
+    function installLangToggle(){
+      if(!document.getElementById('pawLangToggle')){
+        const bar=document.getElementById('authUserBar');
+        if(bar){
+          const b=document.createElement('button'); b.id='pawLangToggle'; b.className='btn soft'; b.type='button'; b.onclick=window.pawToggleLanguage;
+          bar.insertBefore(b,bar.firstChild);
+        }
+      }
+      applyLang(document.body);
+      const obs=new MutationObserver(function(ms){
+        if(langBusy) return;
+        ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n.nodeType===1) applyLang(n); else if(n.nodeType===3&&n.parentElement) n.nodeValue=translateExact(n.nodeValue,pawLang)})});
+      });
+      obs.observe(document.body,{childList:true,subtree:true});
+    }
+    window.addEventListener('load',function(){setTimeout(installLangToggle,250)});
+
 (async()=>{
       try{
         await loadData();

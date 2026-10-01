@@ -2297,7 +2297,27 @@ function financialFollowupItems(c){
       'فاتورة العميل':'Client Invoice','إيصال دفع العميل':'Client Payment Receipt','فاتورة الشركة / الفريلانسر':'Company / Freelancer Invoice',
       'إيصال دفع الشركة / الفريلانسر':'Company / Freelancer Payment Receipt','مرفق آخر':'Other Attachment','اختيار الملف':'Choose File',
       '+ رفع المرفق':'+ Upload Attachment','الفواتير والمرفقات':'Invoices & Attachments','فتح':'Open','حذف':'Delete',
-      'ما في مرفقات على هالحالة.':'No attachments for this case.','جاري تحميل المرفقات...':'Loading attachments...'
+      'ما في مرفقات على هالحالة.':'No attachments for this case.','جاري تحميل المرفقات...':'Loading attachments...',
+      'العمليات والعملاء':'Cases & Clients','كل مقدمي الخدمة':'All Service Providers','كل مقدمي الخدمات':'All Service Providers',
+      'عملية':'Case','عمليات':'Cases','آخر خدمة':'Last Service','سجل العميل':'Client History','خدمة جديدة':'New Service',
+      'مقدم الخدمة':'Service Provider','مقدمي الخدمات':'Service Providers','مقدمي الخدمة':'Service Providers',
+      'آخر العمليات':'Recent Cases','عرض الكل':'View All','عرض الشركات':'View Companies','عرض الموظفين':'View Employees',
+      'بيانات أساسية ناقصة':'Missing Required Data','ما في بيانات أساسية ناقصة.':'No required data is missing.',
+      'ما في مواعيد أو ريميندر قادمة.':'No upcoming appointments or reminders.','الأولوية المالية':'Financial Priority',
+      'مستحقات':'Receivables','تأكيد / مراجعة':'Confirm / Review','دفع مستحق الشركة':'Pay Company Due',
+      'تحصيل من العميل':'Collect from Client','تأكيد سداد النقل':'Confirm Transport Payment','مراجعة التسجيل':'Review Entry',
+      'فتح المطلوب فقط':'Open Required Only','دفع مستحق الشركة':'Pay Company Due','تمت الخدمة / الموعد':'Service / Appointment Completed',
+      'تأجيل التذكير':'Snooze Reminder','فتح العملية':'Open Case','تمت متابعة الموعد':'Appointment Follow-up Done',
+      'بيانات ناقصة':'Missing Data','استكمال المطلوب':'Complete Required Data','حفظ ومتابعة':'Save & Continue',
+      'موعد العميل':'Client Appointment','طريقة الدفع':'Payment Method','ملاحظة':'Note','المبلغ المدفوع':'Amount Paid',
+      'تاريخ الدفع':'Payment Date','تسجيل دفعة العميل':'Record Client Payment','حفظ دفعة العميل':'Save Client Payment',
+      'تسجيل دفعة للشركة / الفريلانسر':'Record Company / Freelancer Payment','رقم التحويل / المرجع':'Transfer / Reference No.',
+      'حفظ الدفعة':'Save Payment','تأجيل تذكير الموعد':'Snooze Appointment Reminder','ذكّريني مرة ثانية بتاريخ ووقت':'Remind Again at Date & Time',
+      'حفظ التذكير':'Save Reminder','تم استلام حصة PawApp من الشركة؟':'PawApp Share Received from Company?',
+      'موعد متابعة السداد':'Payment Follow-up Date','إذا لم يسدد، يظهر كتذكير للموظف.':'If unpaid, it appears as an employee reminder.',
+      'يظهر كرينمايندر للموظفة.':'Appears as an employee reminder.','كاش':'Cash','كريدت كارد':'Credit Card','تحويل':'Transfer',
+      'رابط دفع':'Payment Link','دفع للعيادة/الشركة مباشرة':'Paid Directly to Clinic / Company',
+      'تحويل بنكي':'Bank Transfer','نقدي':'Cash'
     };
     const UI_AR = Object.fromEntries(Object.entries(UI_EN).map(function(x){return [x[1],x[0]]}));
     let pawLang=localStorage.getItem('pawapp_ui_lang')||'ar';
@@ -2307,7 +2327,14 @@ function financialFollowupItems(c){
       if(!s) return s;
       const lead=(s.match(/^\s*/)||[''])[0], trail=(s.match(/\s*$/)||[''])[0], core=s.trim();
       const dict=to==='en'?UI_EN:UI_AR;
-      return dict[core]!==undefined?lead+dict[core]+trail:s;
+      if(dict[core]!==undefined) return lead+dict[core]+trail;
+      let out=core;
+      const pairs=Object.entries(dict).sort(function(a,b){return b[0].length-a[0].length});
+      for(const pair of pairs){
+        if(pair[0].length<2) continue;
+        if(out.includes(pair[0])) out=out.split(pair[0]).join(pair[1]);
+      }
+      return lead+out+trail;
     }
     function applyLang(root){
       if(langBusy) return;

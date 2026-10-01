@@ -2345,7 +2345,11 @@ function financialFollowupItems(c){
       });
       obs.observe(document.body,{childList:true,subtree:true});
     }
-    window.addEventListener('load',function(){setTimeout(installLangToggle,250)});
+    if(document.readyState==='loading'){
+      window.addEventListener('DOMContentLoaded',function(){setTimeout(installLangToggle,250)},{once:true});
+    }else{
+      setTimeout(installLangToggle,250);
+    }
 
 (async()=>{
       try{

@@ -60,7 +60,7 @@
     if (appLoaded) return;
     appLoaded = true;
     const script = document.createElement('script');
-    script.src = 'finance-entry.js?v=3.2';
+    script.src = 'finance-entry.js?v=3.3';
     script.async = false;
     script.onerror = () => {
       appLoaded = false;

@@ -576,6 +576,76 @@ window.sourceLabel = function(src){
       }catch(e){console.error(e);alert('تعذر حفظ البيانات')}
     };
 
+    function reportLocalDate(d){
+      const x=new Date(d); if(!Number.isFinite(x.getTime())) return '';
+      return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+    }
+    window.reportPresetChanged=function(){
+      const preset=document.getElementById('reportPreset')?.value||'month';
+      const now=new Date(),to=reportLocalDate(now),fromDate=new Date(now);
+      if(preset==='today'){}
+      else if(preset==='week') fromDate.setDate(fromDate.getDate()-6);
+      else if(preset==='month') fromDate.setDate(1);
+      else { renderReports(); return; }
+      const from=preset==='today'?to:reportLocalDate(fromDate);
+      const f=document.getElementById('reportFrom'),t=document.getElementById('reportTo');
+      if(f) f.value=from;if(t)t.value=to;
+      renderReports();
+    };
+    function reportRows(){
+      const from=document.getElementById('reportFrom')?.value||'0000-01-01';
+      const to=document.getElementById('reportTo')?.value||'9999-12-31';
+      const pid=document.getElementById('reportProvider')?.value||'all';
+      return db.cases.filter(function(c){
+        const d=String(c.service_date||c.created_at||'').slice(0,10);
+        return d>=from&&d<=to&&(pid==='all'||String(c.providerId)===String(pid));
+      });
+    }
+    window.renderReports=function(){
+      const sel=document.getElementById('reportProvider'); if(!sel)return;
+      const keep=sel.value||'all';
+      sel.innerHTML='<option value="all">الكل</option>'+db.providers.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
+      if(Array.from(sel.options).some(function(o){return o.value===keep}))sel.value=keep;
+      const rows=reportRows(),clientKeys=new Set(),providerIds=new Set();
+      let sales=0,pawTotal=0,providerDue=0;
+      rows.forEach(function(c){
+        const key=String(c.client_phone||'').replace(/\s+/g,'')||String(c.client_name||'').trim().toLowerCase();
+        if(key)clientKeys.add(key);if(c.providerId)providerIds.add(String(c.providerId));
+        sales+=Number(c.total_amount||0);pawTotal+=Number(c.pawapp_amount||0);providerDue+=Number(c.provider_amount||0);
+      });
+      document.getElementById('reportClients').textContent=clientKeys.size;
+      document.getElementById('reportProviders').textContent=providerIds.size;
+      document.getElementById('reportCases').textContent=rows.length;
+      document.getElementById('reportSales').textContent=sales.toFixed(3)+' د.ك';
+      document.getElementById('reportPaw').textContent=pawTotal.toFixed(3)+' د.ك';
+      document.getElementById('reportProviderDue').textContent=providerDue.toFixed(3)+' د.ك';
+      const counts={};
+      rows.forEach(function(c){const id=String(c.providerId||'none');counts[id]=(counts[id]||0)+1});
+      const box=document.getElementById('reportSummary');
+      box.innerHTML=rows.length?Object.entries(counts).sort(function(a,b){return b[1]-a[1]}).map(function(e){
+        const p=db.providers.find(function(x){return String(x.id)===e[0]});
+        const pr=rows.filter(function(x){return String(x.providerId||'none')===e[0]});
+        const clients=new Set(pr.map(function(x){return String(x.client_phone||'').replace(/\s+/g,'')||String(x.client_name||'').toLowerCase()}));
+        const total=pr.reduce(function(n,x){return n+Number(x.total_amount||0)},0);
+        return '<div class="card" style="box-shadow:none"><b>'+esc(p?p.name:'بدون شركة')+'</b><div class="miniGrid" style="margin-top:8px"><div class="mini"><span>العمليات</span><b>'+e[1]+'</b></div><div class="mini"><span>العملاء</span><b>'+clients.size+'</b></div><div class="mini"><span>الإجمالي</span><b>'+total.toFixed(3)+' د.ك</b></div></div></div>';
+      }).join(''):'<div class="card"><div class="hint">ما في بيانات ضمن الفترة المختارة.</div></div>';
+    };
+    window.exportGeneralReport=function(){
+      const rows=reportRows();if(!rows.length){alert('ما في بيانات للتصدير ضمن الفترة المختارة');return}
+      let csv='Case ID,Date,Client,Phone,Provider,Service,Total KD,PawApp KD,Provider Due KD,Source\n';
+      rows.forEach(function(c){const p=byProvider(c.providerId);csv+=[c.id,c.service_date,c.client_name,c.client_phone||'',p.name||'',c.service||c.requested_service||'',Number(c.total_amount||0).toFixed(3),Number(c.pawapp_amount||0).toFixed(3),Number(c.provider_amount||0).toFixed(3),sourceLabel(c.source)].map(function(v){return '"'+String(v).replace(/"/g,'""')+'"'}).join(',')+'\n'});
+      const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),el=document.createElement('a');
+      el.href=url;el.download='PawApp-report-'+(document.getElementById('reportFrom').value||'from')+'-'+(document.getElementById('reportTo').value||'to')+'.csv';document.body.appendChild(el);el.click();el.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000);
+    };
+    const showPageBeforeReports=window.showPage;
+    window.showPage=function(id){
+      showPageBeforeReports(id);
+      if(id==='reports'){
+        const f=document.getElementById('reportFrom');
+        if(f&&!f.value) reportPresetChanged(); else renderReports();
+      }
+    };
+
     window.exportProviderReport = function(id){
       const p=byProvider(id),rows=db.cases.filter(c=>c.providerId===id);
       if(!rows.length){alert('ما في عمليات لهذه الشركة / الفريلانسر');return}

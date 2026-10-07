@@ -328,6 +328,28 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div id="pdClientList" class="providerGrid"></div>
 </section>
 
+<section id="reports" class="page">
+<div class="title"><div><h1>التقارير</h1><p>تقارير يومية، أسبوعية، شهرية أو فترة مخصصة</p></div></div>
+<div class="card" style="box-shadow:none">
+  <div class="grid2">
+    <div class="field"><label>الفترة</label><select id="reportPreset" onchange="reportPresetChanged()"><option value="today">اليوم</option><option value="week">آخر 7 أيام</option><option value="month" selected>هذا الشهر</option><option value="custom">فترة مخصصة</option></select></div>
+    <div class="field"><label>الشركة / الفريلانسر</label><select id="reportProvider" onchange="renderReports()"><option value="all">الكل</option></select></div>
+    <div class="field"><label>من تاريخ</label><input id="reportFrom" type="date" onchange="renderReports()"></div>
+    <div class="field"><label>إلى تاريخ</label><input id="reportTo" type="date" onchange="renderReports()"></div>
+  </div>
+</div>
+<div class="cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
+  <div class="card stat"><span>العملاء</span><b id="reportClients" class="blue">0</b></div>
+  <div class="card stat"><span>الشركات / الفريلانسر النشطة</span><b id="reportProviders">0</b></div>
+  <div class="card stat"><span>العمليات</span><b id="reportCases">0</b></div>
+  <div class="card stat"><span>إجمالي العمليات</span><b id="reportSales">0.000 د.ك</b></div>
+  <div class="card stat"><span>حصة PawApp</span><b id="reportPaw" class="green">0.000 د.ك</b></div>
+  <div class="card stat"><span>مستحق الشركات</span><b id="reportProviderDue">0.000 د.ك</b></div>
+</div>
+<div class="section"><h2>ملخص الفترة</h2><button class="btn soft" type="button" onclick="exportGeneralReport()">تصدير CSV</button></div>
+<div id="reportSummary" class="providerGrid"></div>
+</section>
+
 <section id="staff" class="page">
 <div class="title"><div><h1>الموظفون</h1><p>فريق PawApp اللي يستلم ويسجل طلبات العملاء</p></div><button class="btn primary" onclick="openStaff()">+ إضافة موظف</button></div>
 <div id="staffList" class="providerGrid"></div>
@@ -445,6 +467,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <button class="nav" data-p="crm" onclick="showPage('crm')"><b>♡</b>العملاء</button>
 <button class="nav" data-p="followups" onclick="showPage('followups')" style="position:relative"><b>⏰</b>المتابعة<span id="followupNavBadge" style="display:none;position:absolute;top:2px;left:50%;transform:translateX(-50%);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#c62828;color:#fff;font-size:10px;line-height:18px;font-weight:800">0</span></button>
 <button class="nav" data-p="providers" onclick="showPage('providers')"><b>♙</b>الشركات / الفريلانسر</button>
+<button class="nav" data-p="reports" onclick="showPage('reports')"><b>▦</b>التقارير</button>
 <button class="nav" data-p="staff" onclick="showPage('staff')"><b>♟</b>الموظفون</button>
 <button class="nav" data-p="admin" onclick="showPage('admin')"><b>⚙</b>الإدارة</button>
 <button class="nav" data-p="newcase" onclick="openNewCase()"><b>＋</b>عميل جديد</button>

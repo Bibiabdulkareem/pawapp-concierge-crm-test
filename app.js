@@ -51,7 +51,7 @@
   script.src = 'https://cdn.jsdelivr.net/gh/Bibiabdulkareem/pop-up-concierge-operation@d2919c2b088c0c17f5ff06339f6a3e5a5c0c4434/app.js';
   script.onload = function(){
     window.deleteCaseFromOperations=async function(caseId){
-      if(!(window.pawIsAdmin&&window.pawIsAdmin())){alert('حذف العمليات متاح للـ Admin فقط');return}
+      if(!(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))){alert('الحذف متاح للـ Admin و Operations فقط');return}
       const row=db.cases.find(function(x){return String(x.id)===String(caseId)});
       if(!row) return;
       try{
@@ -122,7 +122,7 @@
           <td>${dueTxt}</td>
           <td><span class="status ${companyStatusClass}">${companyStatus}</span></td>
           <td>${esc(c.staff||'—')}<br><span class="status partial" style="margin-top:4px">${esc(sourceLabel(c.source))}</span></td>
-          <td><span class="status partial" style="display:inline-block;margin-bottom:5px">${esc(workflowLabel(c.workflow_status))}</span><br><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">تعديلات</button>${(window.pawIsAdmin&&window.pawIsAdmin())?'<button class="btn danger" style="padding:7px" onclick="deleteCaseFromOperations(\''+c.id+'\')">حذف العملية</button>':''}</div></td>
+          <td><span class="status partial" style="display:inline-block;margin-bottom:5px">${esc(workflowLabel(c.workflow_status))}</span><br><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">تعديلات</button>${(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))?'<button class="btn danger" style="padding:7px" onclick="deleteCaseFromOperations(\''+c.id+'\')">حذف العملية</button>':''}</div></td>
           <td><button class="btn soft" style="padding:7px" onclick="openCaseDetails('${c.id}')">${clientPaid?'بيانات السداد':'تحديث السداد'}</button></td>
           <td><button class="btn soft" style="padding:7px" onclick="${Number(c.provider_amount||0)>0?'openSettlement(\''+c.id+'\')':'openCaseDetails(\''+c.id+'\')'}">${Number(c.provider_amount||0)<=0?'أكمل السعر':(vendorPaid?'تم الدفع':'تسجيل دفع')}</button></td>
         </tr>`;
@@ -859,7 +859,7 @@ window.sourceLabel = function(src){
           '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
             '<button class="btn primary" type="button" onclick="crmEditCustomer(\''+String(last?.id||'')+'\')">تعديلات</button>'+
             '<button class="btn soft" type="button" onclick="crmOpenHistory(\''+encodeURIComponent(g.phone||g.name)+'\')">سجل العميل</button>'+
-            ((window.pawIsAdmin&&window.pawIsAdmin())?'<button class="btn danger" type="button" onclick="crmDeleteCustomer(\''+String(last?.id||'')+'\')">حذف العميل</button>':'')+
+            ((['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))?'<button class="btn danger" type="button" onclick="crmDeleteCustomer(\''+String(last?.id||'')+'\')">حذف العميل</button>':'')+
           '</div>'+
         '</div>';
       }).join(''):'<div class="card"><div class="hint">ما لقينا عميل مطابق.</div></div>';
@@ -932,7 +932,7 @@ window.sourceLabel = function(src){
     };
 
     window.crmDeleteCustomer=async function(caseId){
-      if(!(window.pawIsAdmin&&window.pawIsAdmin())){alert('الحذف متاح للـ Admin فقط');return}
+      if(!(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))){alert('الحذف متاح للـ Admin و Operations فقط');return}
       const g=crmCustomerCases(caseId);
       if(!g.anchor||!g.rows.length) return;
       const ids=g.rows.map(function(x){return x.id});

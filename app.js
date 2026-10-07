@@ -67,6 +67,9 @@
         if(!confirm('حذف العملية PAW-'+String(caseId).padStart(4,'0')+' للعميل '+(row.client_name||'')+'؟\nهذا الحذف نهائي من TEST.')) return;
         await api('followups?case_id=eq.'+encodeURIComponent(caseId),{method:'DELETE'}).catch(function(){});
         await api('cases?id=eq.'+encodeURIComponent(caseId),{method:'DELETE'});
+        const verify=await api('cases?select=id&id=eq.'+encodeURIComponent(caseId));
+        if(verify&&verify.length) throw new Error('CASE_DELETE_NOT_APPLIED');
+        closeModal('completeCaseModal');
         await loadData();
         renderCases();
         if(typeof renderCRM==='function') renderCRM();

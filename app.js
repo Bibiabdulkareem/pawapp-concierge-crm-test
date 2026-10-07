@@ -831,9 +831,107 @@ window.sourceLabel = function(src){
           '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
             '<button class="btn soft" type="button" onclick="crmLoadCustomer(\''+String(last?.id||'')+'\')">خدمة جديدة</button>'+
             '<button class="btn soft" type="button" onclick="crmOpenHistory(\''+encodeURIComponent(g.phone||g.name)+'\')">سجل العميل</button>'+
+            '<button class="btn soft" type="button" onclick="crmEditCustomer(\''+String(last?.id||'')+'\')">تعديل العميل</button>'+
+            ((window.pawIsAdmin&&window.pawIsAdmin())?'<button class="btn danger" type="button" onclick="crmDeleteCustomer(\''+String(last?.id||'')+'\')">حذف العميل</button>':'')+
           '</div>'+
         '</div>';
       }).join(''):'<div class="card"><div class="hint">ما لقينا عميل مطابق.</div></div>';
+    };
+
+    function crmCustomerCases(caseId){
+      const anchor=db.cases.find(function(v){return String(v.id)===String(caseId)});
+      if(!anchor) return {anchor:null,rows:[]};
+      const phone=String(anchor.client_phone||'').replace(/\s+/g,'');
+      const name=String(anchor.client_name||'').trim().toLowerCase();
+      const rows=db.cases.filter(function(x){
+        const xp=String(x.client_phone||'').replace(/\s+/g,'');
+        if(phone) return xp===phone;
+        return String(x.client_name||'').trim().toLowerCase()===name;
+      });
+      return {anchor:anchor,rows:rows};
+    }
+
+    function ensureCrmCustomerModal(){
+      if(document.getElementById('crmCustomerModal')) return;
+      const bg=document.createElement('div');
+      bg.id='crmCustomerModal';
+      bg.className='modalBg';
+      bg.innerHTML='<div class="modal">'+
+        '<div class="modalHead"><h3>تعديل بيانات العميل</h3><button class="close" type="button" onclick="closeModal(\'crmCustomerModal\')">×</button></div>'+
+        '<input id="crmCustomerCaseId" type="hidden">'+
+        '<div class="grid2">'+
+          '<div class="field"><label>اسم العميل</label><input id="crmCustomerName"></div>'+
+          '<div class="field"><label>رقم العميل</label><input id="crmCustomerPhone" inputmode="tel"></div>'+
+          '<div class="field full"><label>المنطقة / الموقع</label><input id="crmCustomerLocation"></div>'+
+        '</div>'+
+        '<div class="hint" style="margin-top:10px">يتم تحديث بيانات العميل الأساسية في كل عملياته المرتبطة بنفس الرقم.</div>'+
+        '<button class="btn primary" type="button" style="width:100%;margin-top:12px" onclick="crmSaveCustomer()">حفظ التعديل</button>'+
+      '</div>';
+      document.body.appendChild(bg);
+    }
+
+    window.crmEditCustomer=function(caseId){
+      const g=crmCustomerCases(caseId);
+      if(!g.anchor) return;
+      ensureCrmCustomerModal();
+      document.getElementById('crmCustomerCaseId').value=caseId;
+      document.getElementById('crmCustomerName').value=g.anchor.client_name||'';
+      document.getElementById('crmCustomerPhone').value=g.anchor.client_phone||'';
+      document.getElementById('crmCustomerLocation').value=g.anchor.location||'';
+      document.getElementById('crmCustomerModal').classList.add('show');
+    };
+
+    window.crmSaveCustomer=async function(){
+      const id=document.getElementById('crmCustomerCaseId').value;
+      const g=crmCustomerCases(id);
+      if(!g.anchor||!g.rows.length) return;
+      const name=document.getElementById('crmCustomerName').value.trim();
+      const phone=document.getElementById('crmCustomerPhone').value.trim();
+      const location=document.getElementById('crmCustomerLocation').value.trim();
+      if(!name){alert('اسم العميل مطلوب');return}
+      try{
+        for(const row of g.rows){
+          await api('cases?id=eq.'+encodeURIComponent(row.id),{
+            method:'PATCH',
+            headers:{Prefer:'return=minimal'},
+            body:JSON.stringify({client_name:name,client_phone:phone,location:location||null})
+          });
+        }
+        closeModal('crmCustomerModal');
+        await loadData();
+        renderCRM();
+        toast('تم تعديل بيانات العميل');
+      }catch(e){console.error(e);alert('تعذر تعديل بيانات العميل')}
+    };
+
+    window.crmDeleteCustomer=async function(caseId){
+      if(!(window.pawIsAdmin&&window.pawIsAdmin())){alert('الحذف متاح للـ Admin فقط');return}
+      const g=crmCustomerCases(caseId);
+      if(!g.anchor||!g.rows.length) return;
+      const ids=g.rows.map(function(x){return x.id});
+      try{
+        let locked=false;
+        for(const id of ids){
+          const [payments,settlements,attachments]=await Promise.all([
+            api('client_payments?select=id&case_id=eq.'+encodeURIComponent(id)),
+            api('settlements?select=id&case_id=eq.'+encodeURIComponent(id)),
+            api('case_attachments?select=id&case_id=eq.'+encodeURIComponent(id)).catch(function(){return []})
+          ]);
+          if((payments&&payments.length)||(settlements&&settlements.length)||(attachments&&attachments.length)){locked=true;break}
+        }
+        if(locked){
+          alert('ما نقدر نحذف هذا العميل لأن عنده دفعات / تسويات / مرفقات محفوظة. تقدرين تعدلين بياناته، لكن ما نحذف سجل مالي موجود.');
+          return;
+        }
+        if(!confirm('حذف العميل '+(g.anchor.client_name||'')+' وكل عملياته ('+ids.length+')؟')) return;
+        for(const id of ids){
+          await api('followups?case_id=eq.'+encodeURIComponent(id),{method:'DELETE'}).catch(function(){});
+          await api('cases?id=eq.'+encodeURIComponent(id),{method:'DELETE'});
+        }
+        await loadData();
+        renderCRM();
+        toast('تم حذف العميل');
+      }catch(e){console.error(e);alert('تعذر حذف العميل')}
     };
 
     window.crmLoadCustomer = function(caseId){

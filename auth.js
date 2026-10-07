@@ -81,7 +81,8 @@
 
     const blockedActions = [
       'saveCase','saveCaseDetails','saveClientPayment','saveSettlement','saveProvider','saveStaff',
-      'saveAppointmentReminder','addCaseFollowup','addProviderService','deleteProvider','deleteProviderService',
+      'saveAppointmentReminder','addCaseFollowup','addProviderService','editProviderService','deleteProvider','deleteProviderService',
+      'crmEditCustomer','crmSaveCustomer','crmDeleteCustomer','deleteCaseFromOperations',
       'deleteCaseAttachment','uploadCaseAttachment','completeAppointmentFollowup','setFollowupStatus',
       'openNewCase','openSettlement','openServiceManager'
     ];
@@ -114,8 +115,12 @@
 
   function applyRoleUI(access) {
     const isAdmin = access && access.role === 'admin';
+    const role = access?.role || '';
     document.querySelectorAll('[data-p="admin"]').forEach(node => {
       node.style.display = isAdmin ? '' : 'none';
+    });
+    document.querySelectorAll('[data-p="reports"]').forEach(node => {
+      node.style.display = ['admin','operations','accountant'].includes(role) ? '' : 'none';
     });
     const adminPage = document.getElementById('admin');
     if (adminPage && !isAdmin) adminPage.classList.remove('active');

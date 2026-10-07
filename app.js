@@ -824,14 +824,13 @@ window.sourceLabel = function(src){
         return '<div class="card" style="box-shadow:none">'+
           '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">'+
             '<div><b style="font-size:16px">'+esc(g.name)+'</b><div class="hint">'+esc(g.phone||'بدون رقم')+(g.location?' • '+esc(g.location):'')+'</div></div>'+
-            '<div class="status paid">'+g.cases.length+' عملية</div>'+
+            '<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="status paid">'+pets.length+' حيوان</span><span class="status partial">'+g.cases.length+' عملية</span></div>'+
           '</div>'+
           '<div style="margin-top:8px">'+(petHtml||'<span class="hint">لا توجد بيانات حيوان كاملة</span>')+'</div>'+
           '<div class="hint" style="margin-top:8px">آخر خدمة: '+esc((last&& (last.service||last.requested_service))||'غير محدد')+'</div>'+
           '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
-            '<button class="btn soft" type="button" onclick="crmLoadCustomer(\''+String(last?.id||'')+'\')">خدمة جديدة</button>'+
+            '<button class="btn primary" type="button" onclick="crmEditCustomer(\''+String(last?.id||'')+'\')">تعديلات</button>'+
             '<button class="btn soft" type="button" onclick="crmOpenHistory(\''+encodeURIComponent(g.phone||g.name)+'\')">سجل العميل</button>'+
-            '<button class="btn soft" type="button" onclick="crmEditCustomer(\''+String(last?.id||'')+'\')">تعديل العميل</button>'+
             ((window.pawIsAdmin&&window.pawIsAdmin())?'<button class="btn danger" type="button" onclick="crmDeleteCustomer(\''+String(last?.id||'')+'\')">حذف العميل</button>':'')+
           '</div>'+
         '</div>';

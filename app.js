@@ -50,6 +50,34 @@
   const script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/gh/Bibiabdulkareem/pop-up-concierge-operation@d2919c2b088c0c17f5ff06339f6a3e5a5c0c4434/app.js';
   script.onload = function(){
+    window.deleteCaseFromOperations=async function(caseId){
+      if(!(window.pawIsAdmin&&window.pawIsAdmin())){alert('حذف العمليات متاح للـ Admin فقط');return}
+      const row=db.cases.find(function(x){return String(x.id)===String(caseId)});
+      if(!row) return;
+      try{
+        const [payments,settlements,attachments]=await Promise.all([
+          api('client_payments?select=id&case_id=eq.'+encodeURIComponent(caseId)),
+          api('settlements?select=id&case_id=eq.'+encodeURIComponent(caseId)),
+          api('case_attachments?select=id&case_id=eq.'+encodeURIComponent(caseId)).catch(function(){return []})
+        ]);
+        if((payments&&payments.length)||(settlements&&settlements.length)||(attachments&&attachments.length)){
+          alert('ما نقدر نحذف هالعملية لأن فيها دفعات / تسويات / مرفقات محفوظة. عدلي العملية بدل الحذف حتى ما تتأثر التقارير.');
+          return;
+        }
+        if(!confirm('حذف العملية PAW-'+String(caseId).padStart(4,'0')+' للعميل '+(row.client_name||'')+'؟\nهذا الحذف نهائي من TEST.')) return;
+        await api('followups?case_id=eq.'+encodeURIComponent(caseId),{method:'DELETE'}).catch(function(){});
+        await api('cases?id=eq.'+encodeURIComponent(caseId),{method:'DELETE'});
+        await loadData();
+        renderCases();
+        if(typeof renderCRM==='function') renderCRM();
+        if(typeof renderDashboard==='function') renderDashboard();
+        toast('تم حذف العملية');
+      }catch(e){
+        console.error(e);
+        alert('تعذر حذف العملية');
+      }
+    };
+
     window.renderCases = function(){
       const q=(document.getElementById('caseSearch').value||'').toLowerCase();
       const sf=document.getElementById('caseStatusFilter')?.value||'all';
@@ -94,7 +122,7 @@
           <td>${dueTxt}</td>
           <td><span class="status ${companyStatusClass}">${companyStatus}</span></td>
           <td>${esc(c.staff||'—')}<br><span class="status partial" style="margin-top:4px">${esc(sourceLabel(c.source))}</span></td>
-          <td><span class="status partial" style="display:inline-block;margin-bottom:5px">${esc(workflowLabel(c.workflow_status))}</span><br><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">${missing?'استكمال البيانات':'تعديل البيانات'}</button></td>
+          <td><span class="status partial" style="display:inline-block;margin-bottom:5px">${esc(workflowLabel(c.workflow_status))}</span><br><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">تعديلات</button>${(window.pawIsAdmin&&window.pawIsAdmin())?'<button class="btn danger" style="padding:7px" onclick="deleteCaseFromOperations(\''+c.id+'\')">حذف العملية</button>':''}</div></td>
           <td><button class="btn soft" style="padding:7px" onclick="openCaseDetails('${c.id}')">${clientPaid?'بيانات السداد':'تحديث السداد'}</button></td>
           <td><button class="btn soft" style="padding:7px" onclick="${Number(c.provider_amount||0)>0?'openSettlement(\''+c.id+'\')':'openCaseDetails(\''+c.id+'\')'}">${Number(c.provider_amount||0)<=0?'أكمل السعر':(vendorPaid?'تم الدفع':'تسجيل دفع')}</button></td>
         </tr>`;

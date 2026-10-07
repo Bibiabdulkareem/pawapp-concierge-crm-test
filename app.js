@@ -60,8 +60,16 @@
           api('settlements?select=id&case_id=eq.'+encodeURIComponent(caseId)),
           api('case_attachments?select=id&case_id=eq.'+encodeURIComponent(caseId)).catch(function(){return []})
         ]);
-        if((payments&&payments.length)||(settlements&&settlements.length)||(attachments&&attachments.length)){
-          alert('ما نقدر نحذف هالعملية لأن فيها دفعات / تسويات / مرفقات محفوظة. عدلي العملية بدل الحذف حتى ما تتأثر التقارير.');
+        if(payments&&payments.length){
+          alert('لا يمكن حذف هذه العملية لأن عليها تحصيل مسجل من العميل، والمبلغ محسوب ضمن الحسابات والتقارير. يمكن تعديل العملية فقط بدون حذفها.');
+          return;
+        }
+        if(settlements&&settlements.length){
+          alert('لا يمكن حذف هذه العملية لأن عليها تسوية / دفعة مسجلة للشركة أو الفريلانسر، والمبلغ محسوب ضمن الحسابات والتقارير. يمكن تعديل العملية فقط بدون حذفها.');
+          return;
+        }
+        if(attachments&&attachments.length){
+          alert('لا يمكن حذف هذه العملية لأن عليها مرفقات مالية محفوظة. احذفي المرفقات أولاً إذا كان الحذف مسموحاً، أو عدلي العملية بدون حذفها.');
           return;
         }
         if(!confirm('حذف العملية PAW-'+String(caseId).padStart(4,'0')+' للعميل '+(row.client_name||'')+'؟\nهذا الحذف نهائي من TEST.')) return;

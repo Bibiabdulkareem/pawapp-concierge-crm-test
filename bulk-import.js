@@ -54,22 +54,48 @@ window.pawCommitImport=async function(){
 if(mode==='services')return window.pawCommitServicesImport();
 if(!['admin','operations'].includes(role())||!customerRows.length||$('importCommit').disabled)return;
 if(!confirm('استيراد '+customerRows.length+' عملية إلى TEST وإنشاء متابعات للنواقص؟'))return;
-$('importCommit').disabled=true;let created=0,followups=0,skipped=0;
+$('importCommit').disabled=true;
+let created=0,followups=0,skipped=0;
 try{
 const existing=await req('test_cases?select=id,client_phone,service_date,provider_id,total_amount,notes&limit=10000');
 const providers=await req('test_providers?select=id,name,provider_type,phone&limit=10000');
-for(const row of customerRows){const d=row.data;
-let p=providers.find(x=>normalize(x.name)===normalize(d.provider));
-if(!p&&d.provider){const saved=await req('test_providers',{method:'POST',body:JSON.stringify({name:d.provider,provider_type:'freelancer'})});p=saved[0];providers.push(p)}
+const services=await req('test_services?select=id,provider_id,name&limit=10000');
+for(const row of customerRows){
+const d=row.data;
 const marker='[BULK_IMPORT:'+d.phone+':'+d.date+':'+normalize(d.provider)+':'+d.total+':'+d.fee+':'+normalize(d.petName)+']';
 if(existing.some(x=>String(x.notes||'').includes(marker))){skipped++;continue}
+let p=providers.find(x=>normalize(x.name)===normalize(d.provider));
+if(!p&&d.provider){
+const saved=await req('test_providers',{method:'POST',body:JSON.stringify({name:d.provider,provider_type:'freelancer'})});
+p=saved[0];providers.push(p);
+}
+// A doctor/provider name is not a service. Only register a catalog service when explicitly supplied.
+let svc=null;
+if(p&&d.service){
+svc=services.find(x=>x.provider_id===p.id&&normalize(x.name)===normalize(d.service));
+if(!svc){
+const saved=await req('test_services',{method:'POST',body:JSON.stringify({provider_id:p.id,name:d.service,default_provider_price:d.providerAmount})});
+svc=saved[0];services.push(svc);
+}
+}
 const notes=[marker,'بيانات تاريخية من Excel','تاريخ المصدر: '+d.rawDate,d.petName?'اسم الحيوان: '+d.petName:'',d.missing.length?'تحتاج مراجعة: '+d.missing.join('، '):'', 'السداد: غير مؤكد حتى تتم مراجعته'].filter(Boolean).join(' | ');
-const saved=await req('test_cases',{method:'POST',body:JSON.stringify({client_name:d.name,client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,client_paid:null,workflow_status:d.missing.length?'new_request':'appointment_completed',notes})});
-created++;existing.push(saved[0]);
-if(d.missing.length){await req('test_followups',{method:'POST',body:JSON.stringify({case_id:saved[0].id,followup_at:new Date(Date.now()+86400000).toISOString(),reason:'استكمال بيانات الاستيراد',notes:d.missing.join('، '),status:'pending'})});followups++}
+const payload={client_name:d.name,client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_id:svc?.id||null,service_name:d.service||null,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,client_paid:null,workflow_status:d.missing.length?'new_request':'appointment_completed',notes};
+const saved=await req('test_cases',{method:'POST',body:JSON.stringify(payload)});
+const item=saved[0];
+if(d.missing.length){
+try{
+await req('test_followups',{method:'POST',body:JSON.stringify({case_id:item.id,followup_at:new Date(Date.now()+86400000).toISOString(),reason:'استكمال بيانات الاستيراد',notes:d.missing.join('، '),status:'pending'})});
+followups++;
+}catch(followError){
+try{await req('test_cases?id=eq.'+encodeURIComponent(item.id),{method:'DELETE',headers:{Prefer:'return=minimal'}})}
+catch(rollbackError){throw Error('تعذر إنشاء المتابعة وتعذر التراجع عن العملية '+item.id+'. يلزم تدخل يدوي: '+followError.message)}
+throw Error('فشل إنشاء المتابعة؛ تم التراجع عن العملية '+item.id+': '+followError.message);
+}
+}
+created++;existing.push(item);
 }
 status('TEST: أضيف '+created+' عملية، '+followups+' متابعة، تخطينا '+skipped+' مكرر. حدّثي الصفحة للتقارير.');
-}catch(e){status('توقف الاستيراد بعد '+created+' عملية و'+followups+' متابعة: '+e.message+' — لا تعيدي الرفع قبل مراجعة الحالات والمتابعات')}
+}catch(e){status('توقف الاستيراد بعد '+created+' عملية و'+followups+' متابعة: '+e.message+' — راجعي النتائج قبل الإعادة')}
 };
 const oldPreview=window.pawPreviewImport;
 window.pawPreviewImport=function(){if(mode==='cases')return window.pawPreviewCustomers();return oldPreview()};

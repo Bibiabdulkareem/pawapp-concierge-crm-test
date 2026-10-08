@@ -648,7 +648,7 @@ window.sourceLabel = function(src){
       const rows=reportRows(),clientKeys=new Set(),providerIds=new Set();
       let sales=0,pawTotal=0,providerDue=0;
       rows.forEach(function(c){
-        const key=String(c.client_phone||'').replace(/\s+/g,'')||String(c.client_name||'').trim().toLowerCase();
+        const key=String(c.client_phone||'').replace(/[^0-9]/g,'').replace(/^965(?=[0-9]{8}$)/,'')||String(c.client_name||'').trim().toLowerCase();
         if(key)clientKeys.add(key);if(c.providerId)providerIds.add(String(c.providerId));
         sales+=Number(c.total_amount||0);pawTotal+=Number(c.pawapp_amount||0);providerDue+=Number(c.provider_amount||0);
       });
@@ -664,7 +664,7 @@ window.sourceLabel = function(src){
       box.innerHTML=rows.length?Object.entries(counts).sort(function(a,b){return b[1]-a[1]}).map(function(e){
         const p=db.providers.find(function(x){return String(x.id)===e[0]});
         const pr=rows.filter(function(x){return String(x.providerId||'none')===e[0]});
-        const clients=new Set(pr.map(function(x){return String(x.client_phone||'').replace(/\s+/g,'')||String(x.client_name||'').toLowerCase()}));
+        const clients=new Set(pr.map(function(x){return String(x.client_phone||'').replace(/[^0-9]/g,'').replace(/^965(?=[0-9]{8}$)/,'')||String(x.client_name||'').toLowerCase()}));
         const total=pr.reduce(function(n,x){return n+Number(x.total_amount||0)},0);
         return '<div class="card" style="box-shadow:none"><b>'+esc(p?p.name:'بدون شركة')+'</b><div class="miniGrid" style="margin-top:8px"><div class="mini"><span>العمليات</span><b>'+e[1]+'</b></div><div class="mini"><span>العملاء</span><b>'+clients.size+'</b></div><div class="mini"><span>الإجمالي</span><b>'+total.toFixed(3)+' د.ك</b></div></div></div>';
       }).join(''):'<div class="card"><div class="hint">ما في بيانات ضمن الفترة المختارة.</div></div>';
@@ -828,7 +828,7 @@ window.sourceLabel = function(src){
       const q=(document.getElementById('crmSearch')?.value||'').trim().toLowerCase();
       const groups=new Map();
       db.cases.slice().reverse().forEach(x=>{
-        const phone=(x.client_phone||'').replace(/\s+/g,'');
+        const phone=String(x.client_phone||'').replace(/[^0-9]/g,'').replace(/^965(?=[0-9]{8}$)/,'');
         const key=phone||('name:'+String(x.client_name||'').toLowerCase());
         if(!groups.has(key)) groups.set(key,{name:x.client_name||'بدون اسم',phone:x.client_phone||'',location:x.location||'',cases:[],pets:new Map()});
         const g=groups.get(key);
@@ -882,7 +882,7 @@ window.sourceLabel = function(src){
       const phone=String(anchor.client_phone||'').replace(/\s+/g,'');
       const name=String(anchor.client_name||'').trim().toLowerCase();
       const rows=db.cases.filter(function(x){
-        const xp=String(x.client_phone||'').replace(/\s+/g,'');
+        const xp=String(x.client_phone||'').replace(/[^0-9]/g,'').replace(/^965(?=[0-9]{8}$)/,'');
         if(phone) return xp===phone;
         return String(x.client_name||'').trim().toLowerCase()===name;
       });

@@ -224,6 +224,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="newcase" class="page">
+<div style="margin:10px 0"><button class="btn soft" type="button" onclick="pawOpenImport('cases')">استيراد عملاء Excel</button></div>
 <div class="title"><div><h1>إضافة عميل / عملية</h1><p>4 خطوات بسيطة، والباقي يحسبه النظام تلقائيًا</p></div><button class="btn soft" onclick="showPage('dashboard')">رجوع</button></div>
 
 <div class="card" style="box-shadow:none;margin-bottom:12px;background:#f8fafc">
@@ -345,6 +346,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="providers" class="page">
+<div class="card" style="padding:10px;margin:10px 0"><b>إضافة خدمات دفعة واحدة</b><p class="hint">نموذج Excel للخدمات والشركات والفريلانسر.</p><button class="btn soft" type="button" onclick="pawOpenImport('services')">استيراد الخدمات Excel</button></div>
 <div class="title"><div><h1>الشركات / الفريلانسر</h1><p>كل جهة وملخص حسابها — اضغطي التفاصيل لفتح CRM الشركة</p></div><button class="btn primary" onclick="openProvider()">+ إضافة شركة / فريلانسر</button></div>
 <input id="providerSearch" class="search" placeholder="بحث باسم الشركة / الفريلانسر..." oninput="renderProviders()">
 <div id="providerList" class="providerGrid" style="margin-top:11px"></div>
@@ -402,7 +404,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="admin" class="page">
-<div class="card" id="testImportPanel" style="margin:14px 0;padding:15px;display:none"><h2>استيراد جماعي — TEST</h2><p class="hint">نزّلي القالب، عبّيه ببرنامج Excel، احفظيه CSV ثم ارفعيه. للـ Admin فقط.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn soft" type="button" onclick="pawImportMode('services')">الخدمات ومقدمو الخدمة</button><button class="btn soft" type="button" onclick="pawImportMode('cases')">العمليات القديمة</button><button class="btn primary" type="button" onclick="pawDownloadTemplate()">تحميل القالب</button></div><div style="margin-top:12px"><input id="importFile" type="file" accept=".csv,text/csv" style="width:100%"></div><button class="btn soft" type="button" onclick="pawPreviewImport()" style="margin-top:10px">معاينة الملف</button><div id="importStatus" class="hint" style="margin-top:10px">الخدمات: رفع جماعي متاح بعد المعاينة. العمليات القديمة: معاينة فقط حتى اعتماد تسجيل المدفوعات.</div><div id="importPreview" style="max-height:300px;overflow:auto;margin-top:8px"></div><button id="importCommit" class="btn primary" type="button" onclick="pawCommitServicesImport()" disabled style="margin-top:10px">اعتماد استيراد الخدمات إلى TEST</button></div>
+<div class="card" id="testImportPanel" style="margin:14px 0;padding:15px;display:none"><h2>استيراد جماعي — TEST</h2><p class="hint">نزّلي نموذج Excel، انسخي بياناتج فيه، ثم ارفعي ملف XLSX أو CSV. للأدمن وموظف العمليات.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn soft" type="button" onclick="pawImportMode('services')">الخدمات ومقدمو الخدمة</button><button class="btn soft" type="button" onclick="pawImportMode('cases')">العملاء</button><button class="btn primary" type="button" onclick="pawDownloadTemplate()">تحميل القالب</button></div><div style="margin-top:12px"><input id="importFile" type="file" accept=".xlsx,.xls,.csv,text/csv" style="width:100%"></div><button class="btn soft" type="button" onclick="pawPreviewImport()" style="margin-top:10px">معاينة الملف</button><div id="importStatus" class="hint" style="margin-top:10px">الخدمات: رفع جماعي بعد المعاينة. العملاء: معاينة فقط حتى اعتماد ربط المدفوعات.</div><div id="importPreview" style="max-height:300px;overflow:auto;margin-top:8px"></div><button id="importCommit" class="btn primary" type="button" onclick="pawCommitServicesImport()" disabled style="margin-top:10px">اعتماد استيراد الخدمات إلى TEST</button></div>
 <div class="title">
   <div><h1>الإدارة</h1><p>الدخول والصلاحيات والنسخ الاحتياطي</p></div>
 </div>
@@ -458,6 +460,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="crm" class="page">
+<div class="card" style="padding:10px;margin:10px 0"><b>استيراد جماعي</b><p class="hint">حمّلي النموذج، عبّيه في Excel أو Numbers، ثم ارفعيه.</p><button class="btn soft" type="button" onclick="pawOpenImport('cases')">استيراد العملاء Excel</button></div>
 <div class="title"><div><h1>CRM العملاء والحيوانات</h1><p>أسماء العملاء، عدد حيوانات كل عميل، وسجل خدماته</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
 <input id="crmSearch" class="search" placeholder="بحث باسم العميل، رقم التلفون أو Case ID..." oninput="renderCRM()">
 <div class="cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
@@ -672,7 +675,8 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js?v=finance31"></script>
-<script src="bulk-import.js?v=1"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="bulk-import.js?v=2"></script>
 <script>
 (function(){
   function syncTestBulkPreview(){
@@ -684,5 +688,5 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   document.addEventListener('DOMContentLoaded',function(){syncTestBulkPreview();new MutationObserver(syncTestBulkPreview).observe(document.body,{attributes:true,attributeFilter:['data-paw-role']});});
 })();
 </script>
-<script>(function(){function syncTestImportPanel(){var e=document.getElementById('testImportPanel');if(e)e.style.display=document.body.dataset.pawRole==='admin'?'block':'none'}document.addEventListener('DOMContentLoaded',function(){syncTestImportPanel();new MutationObserver(syncTestImportPanel).observe(document.body,{attributes:true,attributeFilter:['data-paw-role']})})})();</script></body>
+<script>(function(){function syncTestImportPanel(){var e=document.getElementById('testImportPanel');if(e)e.style.display=['admin','operations'].includes(document.body.dataset.pawRole)?'block':'none'}document.addEventListener('DOMContentLoaded',function(){syncTestImportPanel();new MutationObserver(syncTestImportPanel).observe(document.body,{attributes:true,attributeFilter:['data-paw-role']})})})();</script><script>window.pawOpenImport=function(mode){if(!['admin','operations'].includes(document.body.dataset.pawRole)){alert('الاستيراد للأدمن والعمليات فقط');return;}var panel=document.getElementById('testImportPanel');if(panel){panel.style.display='block';document.body.appendChild(panel);window.pawImportMode(mode);panel.scrollIntoView({behavior:'smooth',block:'start'});}};</script></body>
 </html>

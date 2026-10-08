@@ -161,6 +161,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 .authSwitch button{border:0;background:transparent;color:#0c3b78;font-weight:700;cursor:pointer}
 #authUserBar{display:none;align-items:center;gap:8px;font-size:11px}
 #authUserBar .btn{padding:8px 10px}
+.test-selected-row{outline:2px solid #0c3b78;background:#eaf2ff!important}
 </style>
 </head>
 <body>
@@ -495,7 +496,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="cases" class="page">
-<div id="testBulkCases" class="card" style="margin:10px 0;padding:12px;border:1px solid #e3e9f0;display:none" data-test-bulk-ui="cases"><b>تحديد العمليات</b><p style="font-size:12px;color:#6f8094;margin:6px 0">الحذف المتعدد قيد الربط بقاعدة TEST. لا يمكن الحذف قبل تفعيل النسخة الاحتياطية والتحقق من الصلاحيات.</p><label style="display:flex;gap:7px;align-items:center"><input type="checkbox" disabled> تحديد الكل</label><button class="btn" style="margin-top:8px;background:#eee;color:#777" disabled>حذف المحدد (غير مفعّل)</button></div>
+<div id="testBulkCases" class="card" style="margin:10px 0;padding:12px;border:1px solid #e3e9f0;display:none" data-test-bulk-ui="cases"><b>تحديد العمليات</b><p style="font-size:12px;color:#6f8094;margin:6px 0">الحذف المتعدد قيد الربط بقاعدة TEST. لا يمكن الحذف قبل تفعيل النسخة الاحتياطية والتحقق من الصلاحيات.</p><label style="display:flex;gap:7px;align-items:center"><input type="checkbox" id="testSelectAllCases" onchange="document.querySelectorAll('#caseRows tr').forEach(function(tr){tr.classList.toggle('test-selected-row',document.getElementById('testSelectAllCases').checked)})"> تحديد الكل (الصفوف الظاهرة)</label><button class="btn" style="margin-top:8px;background:#eee;color:#777" disabled>حذف المحدد — بانتظار تفعيل الحذف الآمن</button></div>
 
 <div class="title"><div><h1>العمليات والعملاء</h1><p>كل الحالات المسجلة وحالة التسوية</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
 <input id="caseSearch" class="search" placeholder="بحث باسم العميل، الشركة، الموظف أو Case ID..." oninput="renderCases()">

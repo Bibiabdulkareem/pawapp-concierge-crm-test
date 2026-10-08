@@ -61,15 +61,15 @@ const providers=await req('test_providers?select=id,name,provider_type,phone&lim
 for(const row of customerRows){const d=row.data;
 let p=providers.find(x=>normalize(x.name)===normalize(d.provider));
 if(!p&&d.provider){const saved=await req('test_providers',{method:'POST',body:JSON.stringify({name:d.provider,provider_type:'freelancer'})});p=saved[0];providers.push(p)}
-const marker='[BULK_IMPORT:'+row.line+':'+d.phone+':'+d.date+':'+d.total+']';
+const marker='[BULK_IMPORT:+d.phone+':'+d.date+':'+normalize(d.provider)+':'+d.total+':'+d.fee+']';
 if(existing.some(x=>String(x.notes||'').includes(marker)|| (digits(x.client_phone)===d.phone&&x.service_date===d.date&&String(x.provider_id||'')===String(p?.id||'')&&Number(x.total_amount)===d.total))){skipped++;continue}
 const notes=[marker,'بيانات تاريخية من Excel','تاريخ المصدر: '+d.rawDate,d.petName?'اسم الحيوان: '+d.petName:'',d.missing.length?'تحتاج مراجعة: '+d.missing.join('، '):'', 'السداد: غير مؤكد حتى تتم مراجعته'].filter(Boolean).join(' | ');
-const saved=await req('test_cases',{method:'POST',body:JSON.stringify({client_name:d.name,client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service,service_date:d.date,source:d.source,total_amount:d.total??0,provider_amount:d.providerAmount??0,pawapp_amount:d.fee??0,client_paid:false,workflow_status:d.missing.length?'new_request':'appointment_completed',notes})});
+const saved=await req('test_cases',{method:'POST',body:JSON.stringify({client_name:d.name,client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,client_paid:null,workflow_status:d.missing.length?'new_request':'appointment_completed',notes})});
 created++;existing.push(saved[0]);
 if(d.missing.length){await req('test_followups',{method:'POST',body:JSON.stringify({case_id:saved[0].id,followup_at:new Date(Date.now()+86400000).toISOString(),reason:'استكمال بيانات الاستيراد',notes:d.missing.join('، '),status:'pending'})});followups++}
 }
 status('TEST: أضيف '+created+' عملية، '+followups+' متابعة، تخطينا '+skipped+' مكرر. حدّثي الصفحة للتقارير.');
-}catch(e){status('توقف الاستيراد بعد '+created+' عملية و'+followups+' متابعة: '+e.message+' — راجعي النتائج قبل الإعادة')}
+}catch(e){status('توقف الاستيراد بعد '+created+' عملية و'+followups+' متابعة: '+e.message+' — لا تعيدي الرفع قبل مراجعة الحالات والمتابعات')}
 };
 const oldPreview=window.pawPreviewImport;
 window.pawPreviewImport=function(){if(mode==='cases')return window.pawPreviewCustomers();return oldPreview()};

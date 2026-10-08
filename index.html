@@ -402,6 +402,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="admin" class="page">
+<div class="card" id="testImportPanel" style="margin:14px 0;padding:15px;display:none"><h2>استيراد جماعي — TEST</h2><p class="hint">نزّلي القالب، عبّيه ببرنامج Excel، احفظيه CSV ثم ارفعيه. للـ Admin فقط.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn soft" type="button" onclick="pawImportMode('services')">الخدمات ومقدمو الخدمة</button><button class="btn soft" type="button" onclick="pawImportMode('cases')">العمليات القديمة</button><button class="btn primary" type="button" onclick="pawDownloadTemplate()">تحميل القالب</button></div><div style="margin-top:12px"><input id="importFile" type="file" accept=".csv,text/csv" style="width:100%"></div><button class="btn soft" type="button" onclick="pawPreviewImport()" style="margin-top:10px">معاينة الملف</button><div id="importStatus" class="hint" style="margin-top:10px">الخدمات: رفع جماعي متاح بعد المعاينة. العمليات القديمة: معاينة فقط حتى اعتماد تسجيل المدفوعات.</div><div id="importPreview" style="max-height:300px;overflow:auto;margin-top:8px"></div><button id="importCommit" class="btn primary" type="button" onclick="pawCommitServicesImport()" disabled style="margin-top:10px">اعتماد استيراد الخدمات إلى TEST</button></div>
 <div class="title">
   <div><h1>الإدارة</h1><p>الدخول والصلاحيات والنسخ الاحتياطي</p></div>
 </div>
@@ -671,6 +672,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js?v=finance31"></script>
+<script src="bulk-import.js?v=1"></script>
 <script>
 (function(){
   function syncTestBulkPreview(){
@@ -682,5 +684,5 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   document.addEventListener('DOMContentLoaded',function(){syncTestBulkPreview();new MutationObserver(syncTestBulkPreview).observe(document.body,{attributes:true,attributeFilter:['data-paw-role']});});
 })();
 </script>
-</body>
+<script>(function(){function syncTestImportPanel(){var e=document.getElementById('testImportPanel');if(e)e.style.display=document.body.dataset.pawRole==='admin'?'block':'none'}document.addEventListener('DOMContentLoaded',function(){syncTestImportPanel();new MutationObserver(syncTestImportPanel).observe(document.body,{attributes:true,attributeFilter:['data-paw-role']})})})();</script></body>
 </html>

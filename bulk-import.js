@@ -39,10 +39,10 @@ window.pawPreviewCustomers=async function(){
 if(!['admin','operations'].includes(role())){status('الصلاحية للأدمن والعمليات فقط');return}
 const file=$('importFile')?.files?.[0];if(!file){status('اختاري ملف Excel أو CSV');return}
 let rows;try{if(/\.xlsx?$/i.test(file.name)){if(!window.XLSX)throw Error('Excel library unavailable');const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',raw:false}).filter(r=>r.some(v=>clean(v)))}else if(/\.csv$/i.test(file.name))rows=parse(await file.text());else throw Error('صيغة غير مدعومة')}catch(e){status('فشل فتح الملف: '+e.message);return}
-const header=rows.shift()||[];customerMode=normalize(header[0])==='customer name'?'historical':'template';
+const header=rows.shift()||[];customerMode=normalize(header[0])==='customer name'?'historical':'template';mode='cases';if($('importCommit'))$('importCommit').textContent='اعتماد استيراد العملاء إلى TEST';if(customerMode==='historical'&&!customerMonth){status('اختاري شهر الملف التاريخي أولاً (مثلاً يوليو) ثم أعيدي المعاينة');$('importCommit').disabled=true;return}
 const expected=customerMode==='historical'?historicalHeaders:caseHeaders;
 if(expected.some((x,i)=>normalize(x)!==normalize(header[i]))){status('العناوين غير مطابقة لنموذج العملاء أو ملف Paw app data');return}
-customerRows=rows.map((r,i)=>({line:i+2,data:rowToCase(r,customerMode,customerMonth)}));
+customerRows=rows.map((r,i)=>({line:i+2,values:r,data:rowToCase(r,customerMode,customerMonth)})).filter(x=>customerMode!=='historical'||x.values.slice(0,12).some(v=>!isMissing(v)));
 const bad=customerRows.filter(x=>!x.data.date);
 const review=customerRows.filter(x=>x.data.missing.length);
 const duplicates=new Set();
@@ -62,7 +62,7 @@ const providers=await req('test_providers?select=id,name,provider_type,phone&lim
 const services=await req('test_services?select=id,provider_id,name&limit=10000');
 for(const row of customerRows){
 const d=row.data;
-const marker='[BULK_IMPORT:'+d.phone+':'+d.date+':'+normalize(d.provider)+':'+d.total+':'+d.fee+':'+normalize(d.petName)+']';
+const marker='[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+row.line+']';
 if(existing.some(x=>String(x.notes||'').includes(marker))){skipped++;continue}
 let p=providers.find(x=>normalize(x.name)===normalize(d.provider));
 if(!p&&d.provider){
@@ -78,7 +78,7 @@ const saved=await req('test_services',{method:'POST',body:JSON.stringify({provid
 svc=saved[0];services.push(svc);
 }
 }
-const notes=[marker,'بيانات تاريخية من Excel','تاريخ المصدر: '+(d.rawDate||'غير مسجل'),d.missing.includes('تاريخ تقديري حسب شهر الشيت')?'تاريخ تقديري حسب شهر الشيت':'',d.petName?'اسم الحيوان: '+d.petName:'',d.extra?.[0]?'حالة الحيوان من المصدر: '+d.extra[0]:'',d.extra?.[1]?'حالة الملف الطبي/ملاحظات المصدر: '+d.extra[1]:'',d.missing.length?'تحتاج مراجعة: '+d.missing.join('، '):'', 'السداد: غير مؤكد حتى تتم مراجعته'].filter(Boolean).join(' | ');
+const notes=[marker,'شهر ملف المصدر: '+(customerMonth||'غير محدد'),'بيانات تاريخية من Excel','تاريخ المصدر: '+(d.rawDate||'غير مسجل'),d.missing.includes('تاريخ تقديري حسب شهر الشيت')?'تاريخ تقديري حسب شهر الشيت':'',d.petName?'اسم الحيوان: '+d.petName:'',d.extra?.[0]?'حالة الحيوان من المصدر: '+d.extra[0]:'',d.extra?.[1]?'حالة الملف الطبي/ملاحظات المصدر: '+d.extra[1]:'',d.missing.length?'تحتاج مراجعة: '+d.missing.join('، '):'', 'السداد: غير مؤكد حتى تتم مراجعته'].filter(Boolean).join(' | ');
 const payload={client_name:d.name||('عميل بدون اسم - صف '+row.line),client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service||null,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,client_paid:null,workflow_status:d.missing.length?'new_request':'appointment_completed',notes};
 const saved=await req('test_cases',{method:'POST',body:JSON.stringify(payload)});
 const item=saved[0];
@@ -98,7 +98,7 @@ status('TEST: أضيف '+created+' عملية، '+followups+' متابعة، ت�
 }catch(e){status('توقف الاستيراد بعد '+created+' عملية و'+followups+' متابعة: '+e.message+' — راجعي النتائج قبل الإعادة')}
 };
 const oldPreview=window.pawPreviewImport;
-window.pawPreviewImport=function(){if(mode==='cases')return window.pawPreviewCustomers();return oldPreview()};
+window.pawPreviewImport=function(){if(mode==='cases')return window.pawPreviewCustomers();const file=$('importFile')?.files?.[0];if(file&&/July|PawApp|TEST Import/i.test(file.name))return window.pawPreviewCustomers();return oldPreview()};
 const oldMode=window.pawImportMode;
 window.pawImportMode=function(m){oldMode(m);customerRows=[];if($('importCommit'))$('importCommit').textContent=m==='cases'?'اعتماد استيراد العملاء إلى TEST':'اعتماد استيراد الخدمات إلى TEST'};
 

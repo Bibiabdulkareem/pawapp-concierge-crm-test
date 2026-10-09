@@ -43,9 +43,9 @@ const header=rows.shift()||[];customerMode=normalize(header[0])==='customer name
 const expected=customerMode==='historical'?historicalHeaders:caseHeaders;
 if(expected.some((x,i)=>normalize(x)!==normalize(header[i]))){status('العناوين غير مطابقة لنموذج العملاء أو ملف Paw app data');return}
 customerRows=rows.map((r,i)=>({line:i+2,data:rowToCase(r,customerMode,customerMonth)}));
-const bad=customerRows.filter(x=>!x.data.date||!x.data.name||x.data.phone.length<8);
+const bad=customerRows.filter(x=>!x.data.date);
 const review=customerRows.filter(x=>x.data.missing.length);
-const duplicates=new Set(),seen=new Set();customerRows.forEach(x=>{const k=x.data.phone+'|'+x.data.date+'|'+x.data.provider+'|'+x.data.total+'|'+x.data.fee+'|'+normalize(x.data.petName);if(seen.has(k))duplicates.add(k);seen.add(k)});
+const duplicates=new Set();
 $('importPreview').textContent='صفوف '+customerRows.length+' | مراجعة '+review.length+' | تواريخ/هوية تمنع الرفع '+bad.length+' | تكرارات محتملة '+duplicates.size+'\n'+customerRows.slice(0,30).map(x=>'صف '+x.line+' — '+x.data.name+' — '+(x.data.date||'تاريخ غير واضح')+' — '+(x.data.missing.join('، ')||'مكتمل')).join('\n');
 $('importPreview').style.whiteSpace='pre-wrap';$('importCommit').disabled=!customerRows.length||!!bad.length||!!duplicates.size;
 status(bad.length?'أصلحي التواريخ والأسماء والأرقام أولاً':duplicates.size?'راجعي الصفوف المكررة أولاً':'جاهز للاستيراد إلى TEST؛ الصفوف الناقصة ستنشئ متابعات');
@@ -78,8 +78,8 @@ const saved=await req('test_services',{method:'POST',body:JSON.stringify({provid
 svc=saved[0];services.push(svc);
 }
 }
-const notes=[marker,'بيانات تاريخية من Excel','تاريخ المصدر: '+d.rawDate,d.petName?'اسم الحيوان: '+d.petName:'',d.extra?.[0]?'حالة الحيوان من المصدر: '+d.extra[0]:'',d.extra?.[1]?'حالة الملف الطبي/ملاحظات المصدر: '+d.extra[1]:'',d.missing.length?'تحتاج مراجعة: '+d.missing.join('، '):'', 'السداد: غير مؤكد حتى تتم مراجعته'].filter(Boolean).join(' | ');
-const payload={client_name:d.name,client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service||null,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,client_paid:null,workflow_status:d.missing.length?'new_request':'appointment_completed',notes};
+const notes=[marker,'بيانات تاريخية من Excel','تاريخ المصدر: '+(d.rawDate||'غير مسجل'),d.missing.includes('تاريخ تقديري حسب شهر الشيت')?'تاريخ تقديري حسب شهر الشيت':'',d.petName?'اسم الحيوان: '+d.petName:'',d.extra?.[0]?'حالة الحيوان من المصدر: '+d.extra[0]:'',d.extra?.[1]?'حالة الملف الطبي/ملاحظات المصدر: '+d.extra[1]:'',d.missing.length?'تحتاج مراجعة: '+d.missing.join('، '):'', 'السداد: غير مؤكد حتى تتم مراجعته'].filter(Boolean).join(' | ');
+const payload={client_name:d.name||('عميل بدون اسم - صف '+row.line),client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service||null,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,client_paid:null,workflow_status:d.missing.length?'new_request':'appointment_completed',notes};
 const saved=await req('test_cases',{method:'POST',body:JSON.stringify(payload)});
 const item=saved[0];
 if(d.missing.length){

@@ -79,7 +79,7 @@ svc=saved[0];services.push(svc);
 }
 }
 const notes=[marker,'بيانات تاريخية من Excel','تاريخ المصدر: '+d.rawDate,d.petName?'اسم الحيوان: '+d.petName:'',d.missing.length?'تحتاج مراجعة: '+d.missing.join('، '):'', 'السداد: غير مؤكد حتى تتم مراجعته'].filter(Boolean).join(' | ');
-const payload={client_name:d.name,client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_id:svc?.id||null,service_name:d.service||null,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,client_paid:null,workflow_status:d.missing.length?'new_request':'appointment_completed',notes};
+const payload={client_name:d.name,client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service||null,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,client_paid:null,workflow_status:d.missing.length?'new_request':'appointment_completed',notes};
 const saved=await req('test_cases',{method:'POST',body:JSON.stringify(payload)});
 const item=saved[0];
 if(d.missing.length){

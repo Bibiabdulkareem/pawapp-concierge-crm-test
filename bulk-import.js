@@ -55,12 +55,13 @@ if(mode==='services')return window.pawCommitServicesImport();
 if(!['admin','operations'].includes(role())||!customerRows.length||$('importCommit').disabled)return;
 if(!confirm('استيراد '+customerRows.length+' عملية إلى TEST وإنشاء متابعات للنواقص؟'))return;
 $('importCommit').disabled=true;
-let created=0,followups=0,skipped=0;
+let created=0,followups=0,skipped=0,failed=[];
 try{
 const existing=await req('test_cases?select=id,client_phone,service_date,provider_id,total_amount,notes&limit=10000');
 const providers=await req('test_providers?select=id,name,provider_type,phone&limit=10000');
 const services=await req('test_services?select=id,provider_id,name&limit=10000');
 for(const row of customerRows){
+try{
 const d=row.data;
 const marker='[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+row.line+']';
 if(existing.some(x=>String(x.notes||'').includes(marker))){skipped++;continue}
@@ -93,9 +94,13 @@ throw Error('فشل إنشاء المتابعة؛ تم التراجع عن ال�
 }
 }
 created++;existing.push(item);
+}catch(rowError){
+failed.push('صف '+row.line+': '+String(rowError.message||rowError).slice(0,180));
 }
-status('TEST: أضيف '+created+' عملية، '+followups+' متابعة، تخطينا '+skipped+' مكرر. حدّثي الصفحة للتقارير.');
+}
+status('TEST: أضيف '+created+' عملية، '+followups+' متابعة، تخطينا '+skipped+' مكرر، تعذر '+failed.length+' صف. '+(failed.length?'الأخطاء: '+failed.slice(0,8).join(' | ')+(failed.length>8?' | وغيرها '+(failed.length-8):''):'حدّثي الصفحة للتقارير.'));
 }catch(e){status('توقف الاستيراد بعد '+created+' عملية و'+followups+' متابعة: '+e.message+' — راجعي النتائج قبل الإعادة')}
+finally{if($('importCommit'))$('importCommit').disabled=false}
 };
 const oldPreview=window.pawPreviewImport;
 window.pawPreviewImport=function(){if(mode==='cases')return window.pawPreviewCustomers();const file=$('importFile')?.files?.[0];if(file&&/July|PawApp|TEST Import/i.test(file.name))return window.pawPreviewCustomers();return oldPreview()};

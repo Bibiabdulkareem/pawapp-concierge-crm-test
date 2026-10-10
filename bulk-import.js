@@ -42,10 +42,10 @@ let rows;try{if(/\.xlsx?$/i.test(file.name)){if(!window.XLSX)throw Error('Excel 
 const header=rows.shift()||[];customerMode=normalize(header[0])==='customer name'?'historical':'template';mode='cases';if($('importCommit'))$('importCommit').textContent='اعتماد استيراد العملاء إلى TEST';if(customerMode==='historical'&&!customerMonth){status('اختاري شهر الملف التاريخي أولاً (مثلاً يوليو) ثم أعيدي المعاينة');$('importCommit').disabled=true;return}
 const expected=customerMode==='historical'?historicalHeaders:caseHeaders;
 if(expected.some((x,i)=>normalize(x)!==normalize(header[i]))){status('العناوين غير مطابقة لنموذج العملاء أو ملف Paw app data');return}
-customerRows=rows.map((r,i)=>({line:i+2,values:r,data:rowToCase(r,customerMode,customerMonth)})).filter(x=>customerMode!=='historical'||x.values.slice(0,12).some(v=>!isMissing(v)));
+customerRows=rows.map((r,i)=>({line:i+2,values:r,data:rowToCase(r,customerMode,customerMonth)})).filter(x=>customerMode!=='historical'||(x.values.slice(0,12).some(v=>!isMissing(v))&&!/^total\s*[:=]?$/i.test(clean(x.values[0]))));
 const bad=customerRows.filter(x=>!x.data.date);
 const review=customerRows.filter(x=>x.data.missing.length);
-const duplicates=new Set();
+const duplicates=new Set();\nconst seenRows=new Set();for(const x of customerRows){const key=[x.data.phone,x.data.name,x.data.date,x.data.provider,x.data.total].map(normalize).join('|');if(seenRows.has(key))duplicates.add(x.line);seenRows.add(key)}
 $('importPreview').textContent='صفوف '+customerRows.length+' | مراجعة '+review.length+' | تواريخ/هوية تمنع الرفع '+bad.length+' | تكرارات محتملة '+duplicates.size+'\n'+customerRows.slice(0,30).map(x=>'صف '+x.line+' — '+x.data.name+' — '+(x.data.date||'تاريخ غير واضح')+' — '+(x.data.missing.join('، ')||'مكتمل')).join('\n');
 $('importPreview').style.whiteSpace='pre-wrap';$('importCommit').disabled=!customerRows.length||!!bad.length||!!duplicates.size;
 status(bad.length?'أصلحي التواريخ والأسماء والأرقام أولاً':duplicates.size?'راجعي الصفوف المكررة أولاً':'جاهز للاستيراد إلى TEST؛ الصفوف الناقصة ستنشئ متابعات');
@@ -57,14 +57,14 @@ if(!confirm('استيراد '+customerRows.length+' عملية إلى TEST وإ�
 $('importCommit').disabled=true;
 let created=0,followups=0,skipped=0,failed=[];
 try{
-const existing=await req('test_cases?select=id,client_phone,service_date,provider_id,total_amount,notes&limit=10000');
+const existing=await req('test_cases?select=id,client_name,client_phone,service_date,provider_id,total_amount,notes&limit=10000');
 const providers=await req('test_providers?select=id,name,provider_type,phone&limit=10000');
 const services=await req('test_services?select=id,provider_id,name&limit=10000');
 for(const row of customerRows){
 try{
 const d=row.data;
 const marker='[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+row.line+']';
-if(existing.some(x=>String(x.notes||'').includes(marker))){skipped++;continue}
+if(existing.some(x=>String(x.notes||'').includes(marker))){skipped++;continue}\nif(existing.some(x=>normalize(x.client_name)===normalize(d.name)&&digits(x.client_phone)===d.phone&&x.service_date===d.date&&Number(x.total_amount)===Number(d.total))){skipped++;continue}
 let p=providers.find(x=>normalize(x.name)===normalize(d.provider));
 if(!p&&d.provider){
 const saved=await req('test_providers',{method:'POST',body:JSON.stringify({name:d.provider,provider_type:'freelancer'})});
@@ -79,8 +79,8 @@ const saved=await req('test_services',{method:'POST',body:JSON.stringify({provid
 svc=saved[0];services.push(svc);
 }
 }
-const notes=[marker,'شهر ملف المصدر: '+(customerMonth||'غير محدد'),'بيانات تاريخية من Excel','تاريخ المصدر: '+(d.rawDate||'غير مسجل'),d.missing.includes('تاريخ تقديري حسب شهر الشيت')?'تاريخ تقديري حسب شهر الشيت':'',d.petName?'اسم الحيوان: '+d.petName:'',d.extra?.[0]?'حالة الحيوان من المصدر: '+d.extra[0]:'',d.extra?.[1]?'حالة الملف الطبي/ملاحظات المصدر: '+d.extra[1]:'',d.missing.length?'تحتاج مراجعة: '+d.missing.join('، '):'', 'السداد: غير مؤكد حتى تتم مراجعته'].filter(Boolean).join(' | ');
-const payload={client_name:d.name||('عميل بدون اسم - صف '+row.line),client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service||null,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,client_paid:null,workflow_status:d.missing.length?'new_request':'appointment_completed',notes};
+const notes=[marker,'شهر ملف المصدر: '+(customerMonth||'غير محدد'),'بيانات تاريخية من Excel','تاريخ المصدر: '+(d.rawDate||'غير مسجل'),d.missing.includes('تاريخ تقديري حسب شهر الشيت')?'تاريخ تقديري حسب شهر الشيت':'',d.petName?'اسم الحيوان: '+d.petName:'',d.extra?.[0]?'حالة الحيوان من المصدر: '+d.extra[0]:'',d.extra?.[1]?'حالة الملف الطبي/ملاحظات المصدر: '+d.extra[1]:'',d.missing.length?'تحتاج مراجعة: '+d.missing.join('، '):'',d.mismatch?'مستحق مقدم الخدمة في Excel: '+d.providerAmount+'؛ مجموع الأرقام غير متطابق ويحتاج تدقيق':'', 'السداد: غير مؤكد حتى تتم مراجعته'].filter(Boolean).join(' | ');
+const payload={client_name:d.name||('عميل بدون اسم - صف '+row.line),client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service||null,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,fee_type:'fixed',fee_value:d.fee===null?0:d.fee,client_paid:null,workflow_status:d.missing.length?'new_request':'appointment_completed',notes};
 const saved=await req('test_cases',{method:'POST',body:JSON.stringify(payload)});
 const item=saved[0];
 if(d.missing.length){

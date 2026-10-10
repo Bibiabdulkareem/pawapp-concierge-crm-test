@@ -45,7 +45,8 @@ if(expected.some((x,i)=>normalize(x)!==normalize(header[i]))){status('العنا
 customerRows=rows.map((r,i)=>({line:i+2,values:r,data:rowToCase(r,customerMode,customerMonth)})).filter(x=>customerMode!=='historical'||(x.values.slice(0,12).some(v=>!isMissing(v))&&!/^total\s*[:=]?$/i.test(clean(x.values[0]))));
 const bad=customerRows.filter(x=>!x.data.date);
 const review=customerRows.filter(x=>x.data.missing.length);
-const duplicates=new Set();\nconst seenRows=new Set();for(const x of customerRows){const key=[x.data.phone,x.data.name,x.data.date,x.data.provider,x.data.total].map(normalize).join('|');if(seenRows.has(key))duplicates.add(x.line);seenRows.add(key)}
+const duplicates=new Set();
+const seenRows=new Set();for(const x of customerRows){const key=[x.data.phone,x.data.name,x.data.date,x.data.provider,x.data.total].map(normalize).join('|');if(seenRows.has(key))duplicates.add(x.line);seenRows.add(key)}
 $('importPreview').textContent='صفوف '+customerRows.length+' | مراجعة '+review.length+' | تواريخ/هوية تمنع الرفع '+bad.length+' | تكرارات محتملة '+duplicates.size+'\n'+customerRows.slice(0,30).map(x=>'صف '+x.line+' — '+x.data.name+' — '+(x.data.date||'تاريخ غير واضح')+' — '+(x.data.missing.join('، ')||'مكتمل')).join('\n');
 $('importPreview').style.whiteSpace='pre-wrap';$('importCommit').disabled=!customerRows.length||!!bad.length||!!duplicates.size;
 status(bad.length?'أصلحي التواريخ والأسماء والأرقام أولاً':duplicates.size?'راجعي الصفوف المكررة أولاً':'جاهز للاستيراد إلى TEST؛ الصفوف الناقصة ستنشئ متابعات');

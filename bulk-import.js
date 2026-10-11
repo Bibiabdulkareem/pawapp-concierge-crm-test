@@ -65,7 +65,8 @@ for(const row of customerRows){
 try{
 const d=row.data;
 const marker='[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+row.line+']';
-if(existing.some(x=>String(x.notes||'').includes(marker))){skipped++;continue}\nif(existing.some(x=>normalize(x.client_name)===normalize(d.name)&&digits(x.client_phone)===d.phone&&x.service_date===d.date&&Number(x.total_amount)===Number(d.total))){skipped++;continue}
+if(existing.some(x=>String(x.notes||'').includes(marker))){skipped++;continue}
+if(existing.some(x=>normalize(x.client_name)===normalize(d.name)&&digits(x.client_phone)===d.phone&&x.service_date===d.date&&Number(x.total_amount)===Number(d.total))){skipped++;continue}
 let p=providers.find(x=>normalize(x.name)===normalize(d.provider));
 if(!p&&d.provider){
 const saved=await req('test_providers',{method:'POST',body:JSON.stringify({name:d.provider,provider_type:'freelancer'})});

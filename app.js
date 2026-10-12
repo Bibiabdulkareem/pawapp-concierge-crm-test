@@ -663,6 +663,11 @@ window.sourceLabel = function(src){
       let dateWarning=document.getElementById('pawReportMissingDates');
       if(!dateWarning){dateWarning=document.createElement('div');dateWarning.id='pawReportMissingDates';dateWarning.className='hint';dateWarning.style.cssText='padding:10px;margin:10px 0;border:1px solid #dbe2ed;border-radius:12px';document.getElementById('reportCases')?.closest('.cards')?.after(dateWarning);}
       if(dateWarning)dateWarning.textContent=missingDates.length?'تنبيه: '+missingDates.length+' عمليات بدون تاريخ خدمة مستبعدة من تقرير الفترة، لكنها محسوبة في إجمالي الداشبورد. لا يُفترض تاريخ لها.':'جميع العمليات لها تاريخ خدمة.';
+      const uniqueServices=new Set(rows.map(c=>String(c.service_name||c.requested_service||'').trim().toLowerCase()).filter(Boolean));
+      const unknownClients=rows.filter(c=>canonicalCustomerKey(c).startsWith('case:')).length;
+      let reportExtra=document.getElementById('pawReportExtraStats');
+      if(!reportExtra){reportExtra=document.createElement('div');reportExtra.id='pawReportExtraStats';reportExtra.className='card';reportExtra.style.margin='12px 0';document.getElementById('reportCases')?.closest('.cards')?.after(reportExtra);}
+      if(reportExtra)reportExtra.innerHTML='<b>تفاصيل الإحصائيات</b><div class="hint">أنواع الخدمات المنفذة: '+uniqueServices.size+' | حالات بلا هوية عميل: '+unknownClients+' | عمليات التقرير: '+rows.length+'</div><div class="hint">الحيوانات تحتاج معرّف مستقل لكل حيوان حتى يصير عددها مؤكداً، مو مجرد نوع وسلالة.</div>';
       document.getElementById('reportClients').textContent=clientKeys.size;
       document.getElementById('reportProviders').textContent=providerIds.size;
       document.getElementById('reportCases').textContent=rows.length;
@@ -863,7 +868,16 @@ window.sourceLabel = function(src){
       const petCount=document.getElementById('crmPetCount');
       const caseCount=document.getElementById('crmCaseCount');
       if(customerCount) customerCount.textContent=String(all.length);
-      if(petCount) petCount.textContent=String(all.reduce((n,g)=>n+g.pets.size,0));
+      const petGroups=new Set();let missingPetType=0;
+      db.cases.forEach(c=>{
+        const type=String(c.pet_type||'').trim().toLowerCase();
+        if(!type||type==='غير محدد'){missingPetType++;return;}
+        petGroups.add(canonicalCustomerKey(c)+'|'+type+'|'+String(c.breed||'').trim().toLowerCase());
+      });
+      if(petCount) petCount.textContent=String(petGroups.size);
+      let petNote=document.getElementById('pawPetCountNote');
+      if(!petNote){petNote=document.createElement('div');petNote.id='pawPetCountNote';petNote.className='hint';petNote.style.cssText='margin:8px 0;padding:8px;border:1px solid #dbe2ed;border-radius:10px';petCount?.parentElement?.appendChild(petNote);}
+      if(petNote)petNote.textContent='عدد تقديري لمجموعات الحيوانات حسب العميل والنوع والسلالة، وليس عدد حيوانات موثقاً. عمليات بلا نوع حيوان: '+missingPetType+'. يلزم معرّف مستقل لكل حيوان للعد الدقيق.';
       if(caseCount) caseCount.textContent=String(db.cases.length);
       const out=document.getElementById('crmCustomerList');
       if(!out) return;

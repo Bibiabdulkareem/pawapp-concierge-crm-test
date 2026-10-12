@@ -49,7 +49,7 @@ window.pawReviewSeptember=function(row){
     '<div class="hint">المبالغ المصدرية للرجوع فقط؛ لا يتم افتراض أي قيمة أو اعتمادها تلقائياً.</div>'+
     '<button class="btn primary" style="width:100%;margin-top:12px" onclick="pawSaveSeptemberReview('+row+')">حفظ البيانات للمراجعة</button>';
   el('sep_recipient').value=saved.recipient||'';
-  modal.classList.add('show');
+  modal.style.display='flex';
 };
 window.pawSaveSeptemberReview=async function(row){
   if(!mayWrite()){alert('الحفظ للأدمن والعمليات فقط');return;}
@@ -63,7 +63,7 @@ window.pawSaveSeptemberReview=async function(row){
   const next={...r.source_data,financial_review:values};
   const {error}=await window.PAWAPP_AUTH.client.from('test_referral_import_review').update({source_data:next}).eq('source_key',r.source_key);
   if(error){alert('تعذر الحفظ: '+error.message);return;}
-  r.source_data=next;closeModal('septemberReviewModal');toast('تم حفظ البيانات للمراجعة، والمتابعة تظل مفتوحة حتى الاعتماد');
+  r.source_data=next;el('septemberReviewModal').style.display='none';toast('تم حفظ البيانات للمراجعة، والمتابعة تظل مفتوحة حتى الاعتماد');
 };
 const notes={transport_payment_unknown:'ناقص تأكيد سداد النقل وجهة الاستلام',payment_route_missing:'ناقص تحديد من استلم دفعة العميل',direct_provider_and_payout:'مسجل دفع مباشر للشركة ومعه تحويل للشركة؛ راجعي التسجيلين',duplicate_commission_route:'مسجل استلام كامل لدى PawApp ومعه استلام عمولة من الشركة',client_overpaid:'الدفعات تتجاوز إجمالي الخدمة',provider_overpaid:'التحويلات تتجاوز حصة الشركة',commission_overpaid:'المستلم يتجاوز عمولة PawApp',paid_flag_mismatch:'حالة السداد لا تطابق سجل الدفعات',price_split_mismatch:'تقسيم السعر يحتاج مراجعة',invalid_price:'السعر أو النسبة غير صحيح',unpriced_service:'أكملي السعر',provider_missing:'اختاري مقدم الخدمة',cancelled_case_requires_review:'عملية ملغاة؛ راجعي أثرها المالي قبل إصدار التقرير'};
 const review=l=>l.issues.map(i=>notes[i]||i).join(' — ');

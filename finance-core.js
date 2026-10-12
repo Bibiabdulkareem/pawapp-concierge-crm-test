@@ -36,7 +36,7 @@ function line(c,component){
  const flag=c[pre+'client_paid'],route=c[pre+'client_paid_to']||'';
  const unknown=t&&flag==null&&recorded===0n;
  const paid=recorded>0n?recorded:flag===true?total:0n;
- const isPaid=total>0n&&paid>=total;
+ const isPaid=(total>0n&&paid>=total)||(c[pre+'total_amount']==null&&flag===true);
  if(unknown)issues.push('transport_payment_unknown');
  if(paid>total)issues.push('client_overpaid');
  if(providerPaid>provider)issues.push('provider_overpaid');

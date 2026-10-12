@@ -29,7 +29,7 @@ function rowToCase(r,sourceMode,monthHint){let name,phone,location,petName,petTy
 if(sourceMode==='historical'){[name,phone,location,petName,petType,age,provider,,fee,providerAmount,total,date,,source,...extra]=r;service='';paid=providerPaid=pawPaid='';}
 else{[name,phone,location,petName,petType,age,provider,service,date,,source,total,providerAmount,fee,paid,providerPaid,pawPaid]=r;extra=[]}
 const missing=[];if(isMissing(name))missing.push('اسم العميل');if(digits(phone).length<8)missing.push('رقم تلفون صالح');if(isMissing(petType))missing.push('نوع الحيوان');if(isMissing(provider))missing.push('مقدم الخدمة');if(isMissing(service))missing.push('الخدمة');if(isMissing(location))missing.push('المنطقة');
-const actualDate=historicalDate(date,monthHint);const iso=actualDate||(monthHint?`2026-${String(monthHint).padStart(2,'0')}-01`:null);if(!actualDate)missing.push(iso?'تاريخ تقديري حسب شهر الشيت':'تاريخ العملية غير واضح');
+const actualDate=historicalDate(date,monthHint);const iso=actualDate;if(!actualDate)missing.push('تاريخ العملية غير واضح؛ لا يُستخدم تاريخ تقديري');
 const t=money(total),p=money(providerAmount),f=money(fee);if(t===null)missing.push('إجمالي العميل');if(p===null)missing.push('مستحق مقدم الخدمة');if(f===null)missing.push('عمولة PawApp');
 const mismatch=t!==null&&p!==null&&f!==null&&Math.abs(t-p-f)>0.001;if(mismatch)missing.push('اختلاف الحسابات');
 return {name:clean(name),phone:digits(phone),location:isMissing(location)?null:clean(location),petType:isMissing(petType)?null:clean(petType),age:isMissing(age)?null:clean(age),provider:isMissing(provider)?null:clean(provider),service:isMissing(service)?null:clean(service),date:iso,source:isMissing(source)?'historical_excel':clean(source),total:t,providerAmount:p,fee:f,petName:isMissing(petName)?null:clean(petName),paid,providerPaid,pawPaid,missing,mismatch,rawDate:clean(date),extra}}
@@ -43,7 +43,7 @@ const header=rows.shift()||[];customerMode=normalize(header[0])==='customer name
 const expected=customerMode==='historical'?historicalHeaders:caseHeaders;
 if(expected.some((x,i)=>normalize(x)!==normalize(header[i]))){status('العناوين غير مطابقة لنموذج العملاء أو ملف Paw app data');return}
 customerRows=rows.map((r,i)=>({line:i+2,values:r,data:rowToCase(r,customerMode,customerMonth)})).filter(x=>customerMode!=='historical'||(x.values.slice(0,12).some(v=>!isMissing(v))&&!/^total\s*[:=]?$/i.test(clean(x.values[0]))));
-const bad=customerRows.filter(x=>!x.data.date);
+const bad=customerRows.filter(x=>!x.data.date||x.data.total===null||x.data.fee===null||x.data.mismatch||!x.data.provider||!x.data.service||!x.data.phone||!x.data.name);
 let existingCases=[];try{existingCases=await req('test_cases?select=id,client_name,client_phone,service_date,total_amount,notes&limit=10000')}catch(e){status('تعذر فحص عمليات TEST: '+e.message);$('importCommit').disabled=true;return}
 
 const review=customerRows.filter(x=>x.data.missing.length);
@@ -52,13 +52,13 @@ for(const x of customerRows){const marker='[BULK_IMPORT:2026:'+String(customerMo
 const duplicates=new Set();
 const seenRows=new Set();for(const x of customerRows){const key=[x.data.phone,x.data.name,x.data.date,x.data.provider,x.data.total].map(normalize).join('|');if(seenRows.has(key))duplicates.add(x.line);seenRows.add(key)}
 $('importPreview').textContent='صفوف '+customerRows.length+' | مراجعة '+review.length+' | تواريخ/هوية تمنع الرفع '+bad.length+' | موجودة مسبقاً في TEST '+existingRows.size+' | تكرارات داخل الملف '+duplicates.size+' | جديدة متوقعة '+(customerRows.length-existingRows.size)+'\n'+customerRows.slice(0,30).map(x=>'صف '+x.line+' — '+x.data.name+' — '+(x.data.date||'تاريخ غير واضح')+' — '+(x.data.missing.join('، ')||'مكتمل')).join('\n');
-$('importPreview').style.whiteSpace='pre-wrap';$('importCommit').disabled=!customerRows.length||!!bad.length||!!duplicates.size;
-status(bad.length?'أصلحي التواريخ أولاً':duplicates.size?'راجعي الصفوف المكررة أولاً':'فحص TEST اكتمل: '+existingRows.size+' موجودة مسبقاً، '+(customerRows.length-existingRows.size)+' جديدة متوقعة.');
+$('importPreview').style.whiteSpace='pre-wrap';$('importCommit').disabled=!customerRows.length||!!bad.length||!!duplicates.size||!!review.length;
+status(bad.length?'الملف فيه بيانات أساسية أو مالية ناقصة: لا يمكن الاستيراد':duplicates.size?'راجعي الصفوف المكررة أولاً':review.length?'هناك '+review.length+' صف يحتاج مراجعة، لن نعتمد بيانات ناقصة أو سداداً مفترضاً':'فحص TEST اكتمل. اعتماد العمليات الجديدة يتطلب إثبات السداد أو اعتبارها غير مدفوعة.');
 };
 window.pawCommitImport=async function(){
 if(mode==='services')return window.pawCommitServicesImport();
 if(!['admin','operations'].includes(role())||!customerRows.length||$('importCommit').disabled)return;
-if(!confirm('استيراد '+customerRows.length+' عملية تاريخية إلى TEST بحالة مدفوعة ومغلقة دون متابعات؟'))return;
+if(!confirm('استيراد العمليات الصالحة إلى TEST كعمليات غير مدفوعة حتى يتم إثبات التحصيل؟ لن يتم افتراض السداد أو تاريخ الخدمة.'))return;
 $('importCommit').disabled=true;
 let created=0,followups=0,skipped=0,failed=[];
 try{
@@ -86,9 +86,13 @@ const saved=await req('test_services',{method:'POST',body:JSON.stringify({provid
 svc=saved[0];services.push(svc);
 }
 }
-const notes=[marker,'شهر ملف المصدر: '+(customerMonth||'غير محدد'),'بيانات تاريخية من Excel','تاريخ المصدر: '+(d.rawDate||'غير مسجل'),d.missing.includes('تاريخ تقديري حسب شهر الشيت')?'تاريخ تقديري حسب شهر الشيت':'',d.petName?'اسم الحيوان: '+d.petName:'',d.extra?.[0]?'حالة الحيوان من المصدر: '+d.extra[0]:'',d.extra?.[1]?'حالة الملف الطبي/ملاحظات المصدر: '+d.extra[1]:'',d.missing.length?'تحتاج مراجعة: '+d.missing.join('، '):'',d.mismatch?'مستحق مقدم الخدمة في Excel: '+d.providerAmount+'؛ مجموع الأرقام غير متطابق ويحتاج تدقيق':'', 'السداد: مدفوع ومغلق حسب تأكيد الإدارة لشهر يوليو'].filter(Boolean).join(' | ');
-const payload={client_name:d.name||('عميل بدون اسم - صف '+row.line),client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service||null,service_date:d.date,source:d.source,total_amount:d.total==null?null:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,fee_type:'fixed',fee_value:d.total===null?null:(d.fee===null?0:d.fee),client_paid:true,client_paid_to:'provider',pawapp_received_from_provider:d.total===null?0:(d.fee||0),workflow_status:'closed',notes};
-const saved=await req('test_cases',{method:'POST',body:JSON.stringify(payload)});
+const notes=[marker,'شهر المصدر: '+(customerMonth||'غير محدد'),'استيراد TEST: السداد غير مثبت',d.petName?'اسم الحيوان: '+d.petName:''].filter(Boolean).join(' | ');
+if(d.missing.length||d.mismatch||!d.date||d.total===null||d.fee===null||!p||!d.service||!d.phone){throw Error('بيانات أساسية/مالية ناقصة أو مقدم خدمة غير معروف');}
+const payload={client_name:d.name,client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p.id,service_name:d.service,service_date:d.date,source:d.source,total_amount:d.total,pawapp_amount:d.fee,client_paid:false,workflow_status:'new',notes};
+const result=await window.PAWAPP_AUTH.client.rpc('test_import_case_atomic',{p_case:payload,p_marker:marker});
+if(result.error)throw Error(result.error.message);
+const saved=[{id:result.data.id,...payload}];
+if(!result.data.inserted){skipped++;continue;}
 const item=saved[0];
 if(false&&d.missing.length){
 try{

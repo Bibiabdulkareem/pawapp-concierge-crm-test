@@ -27,7 +27,7 @@ function line(c,component){
  const total=minor(c[pre+'total_amount']),paw=minor(c[pre+'pawapp_amount']),provider=minor(c[pre+'provider_amount']);
  const type=t?(c.transport_fee_type||'fixed'):(c.fee_type||'percent');
  const fee=t?(c.transport_fee_value??c.transport_pawapp_amount??0):(c.fee_value??0);
- let calculated;try{calculated=quote(c[pre+'total_amount'],type,fee);}catch(e){issues.push('invalid_price');}
+ let calculated;try{if(c[pre+'total_amount']!=null)calculated=quote(c[pre+'total_amount'],type,fee);}catch(e){issues.push('invalid_price');}
  if(calculated&&(calculated.paw!==paw||calculated.provider!==provider))issues.push('price_split_mismatch');
  if(paw+provider!==total)issues.push('price_split_mismatch');if(total===0n && c.total_amount!==null)issues.push('unpriced_service');
  const recorded=minor(c[t?'transport_paid_recorded':'main_paid_recorded']);

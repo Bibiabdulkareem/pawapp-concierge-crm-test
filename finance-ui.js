@@ -16,9 +16,11 @@ const review=l=>l.issues.map(i=>notes[i]||i).join(' — ');
 // Archive only previously imported Jul/Aug/Sep 2026 cases that are paid and closed.
  // Never exempt new/backdated cases without the exact import marker.
 const archivedHistorical=l=>{
-  const c=l.raw || (snapshot?.cases||[]).find(c=>String(c.id)===String(l.caseId));
-  return c?.workflow_status==='closed' && c?.client_paid===true &&
-    /\[BULK_IMPORT:2026:(?:7|8|9):ROW:\d+\]/.test(String(c?.notes||''));
+  const c=(snapshot?.cases||[]).find(x=>String(x.id)===String(l.caseId))||l.raw||{};
+  const tag=/\[BULK_IMPORT:2026:(?:7|8|9):ROW:\d+\]/;
+  return tag.test(String(c.notes||'')) &&
+    String(c.workflow_status||'').toLowerCase()==='closed' &&
+    (c.client_paid===true||String(c.client_paid).toLowerCase()==='true');
 };
 const actionable=l=>!archivedHistorical(l)&&Boolean(l.action||l.issues.length);
 function requestFor(key,payload){const signature=JSON.stringify(payload);const old=requests.get(key);if(old?.signature===signature)return old.id;const id=crypto.randomUUID();requests.set(key,{id,signature});return id;}

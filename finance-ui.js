@@ -37,14 +37,33 @@ function renderSeptemberReviews(){
     }).join(''):'';
 }
 window.pawReviewSeptember=function(row){
-  const r=septemberReviewRows.find(x=>x.source_row===row);
-  if(!r)return;
-  const v=r.source_data?.values||[];
-  alert('مراجعة سبتمبر — الصف '+row+'\nالعميل: '+(v[0]||'غير مسجل')+
-    '\nحصة PawApp المصدرية: '+(v[8]??'غير مسجلة')+
-    '\nمبلغ مقدم الخدمة: '+(v[9]??'غير مسجل')+
-    '\nالإجمالي: '+(v[10]??'غير مسجل')+
-    '\nهذه بيانات مصدرية تحتاج تدقيق واعتماد قبل إدخالها بالحسابات.');
+  const r=septemberReviewRows.find(x=>x.source_row===row);if(!r)return;
+  const v=r.source_data?.values||[],saved=r.source_data?.financial_review||{};
+  let modal=el('septemberReviewModal');
+  if(!modal){document.body.insertAdjacentHTML('beforeend','<div id="septemberReviewModal" class="modalBg"><div class="modal"><div class="modalHead"><h3>استكمال البيانات المالية</h3><button class="close" onclick="closeModal(\'septemberReviewModal\')">×</button></div><div id="septemberReviewBody"></div></div></div>');modal=el('septemberReviewModal');}
+  const field=(key,label,source)=>'<div class="field"><label>'+label+'</label><input type="number" min="0" step="0.001" id="sep_'+key+'" value="'+html(saved[key]??'')+'" placeholder="'+html(source==null?'غير مسجل':'المصدر: '+source)+'"></div>';
+  el('septemberReviewBody').innerHTML='<div class="hint">صف '+row+' • '+html(v[0]||'بدون اسم')+' • '+html(v[6]||'خدمة غير محددة')+'</div>'+
+    '<div class="grid2" style="margin-top:12px">'+field('total','إجمالي العميل',v[10])+field('paw','حصة PawApp',v[8])+field('provider','حصة مقدم الخدمة',v[9])+field('collected','المبلغ المحصل لـ PawApp',null)+'</div>'+
+    '<div class="field" style="margin-top:12px"><label>جهة استلام دفعة العميل</label><select id="sep_recipient"><option value="">اختاري</option><option value="pawapp">PawApp</option><option value="provider">مقدم الخدمة</option></select></div>'+
+    '<div class="field" style="margin-top:12px"><label>ملاحظات وإثبات التحصيل</label><textarea id="sep_note" rows="2">'+html(saved.note||'')+'</textarea></div>'+
+    '<div class="hint">المبالغ المصدرية للرجوع فقط؛ لا يتم افتراض أي قيمة أو اعتمادها تلقائياً.</div>'+
+    '<button class="btn primary" style="width:100%;margin-top:12px" onclick="pawSaveSeptemberReview('+row+')">حفظ البيانات للمراجعة</button>';
+  el('sep_recipient').value=saved.recipient||'';
+  modal.classList.add('show');
+};
+window.pawSaveSeptemberReview=async function(row){
+  if(!mayWrite()){alert('الحفظ للأدمن والعمليات فقط');return;}
+  const r=septemberReviewRows.find(x=>x.source_row===row);if(!r)return;
+  const value=k=>el('sep_'+k)?.value.trim()||'';
+  const keys=['total','paw','provider','collected'],values={};
+  for(const k of keys){values[k]=value(k);if(values[k]!==''&&(!Number.isFinite(Number(values[k]))||Number(values[k])<0)){alert('راجعي المبلغ');return;}}
+  if(['total','paw','provider'].every(k=>values[k]!=='')&&Math.abs(Number(values.total)-Number(values.paw)-Number(values.provider))>0.001){alert('الإجمالي لا يساوي مجموع حصة PawApp ومقدم الخدمة');return;}
+  values.recipient=value('recipient');values.note=value('note');
+  values.updated_at=new Date().toISOString();
+  const next={...r.source_data,financial_review:values};
+  const {error}=await window.PAWAPP_AUTH.client.from('test_referral_import_review').update({source_data:next}).eq('source_key',r.source_key);
+  if(error){alert('تعذر الحفظ: '+error.message);return;}
+  r.source_data=next;closeModal('septemberReviewModal');toast('تم حفظ البيانات للمراجعة، والمتابعة تظل مفتوحة حتى الاعتماد');
 };
 const notes={transport_payment_unknown:'ناقص تأكيد سداد النقل وجهة الاستلام',payment_route_missing:'ناقص تحديد من استلم دفعة العميل',direct_provider_and_payout:'مسجل دفع مباشر للشركة ومعه تحويل للشركة؛ راجعي التسجيلين',duplicate_commission_route:'مسجل استلام كامل لدى PawApp ومعه استلام عمولة من الشركة',client_overpaid:'الدفعات تتجاوز إجمالي الخدمة',provider_overpaid:'التحويلات تتجاوز حصة الشركة',commission_overpaid:'المستلم يتجاوز عمولة PawApp',paid_flag_mismatch:'حالة السداد لا تطابق سجل الدفعات',price_split_mismatch:'تقسيم السعر يحتاج مراجعة',invalid_price:'السعر أو النسبة غير صحيح',unpriced_service:'أكملي السعر',provider_missing:'اختاري مقدم الخدمة',cancelled_case_requires_review:'عملية ملغاة؛ راجعي أثرها المالي قبل إصدار التقرير'};
 const review=l=>l.issues.map(i=>notes[i]||i).join(' — ');

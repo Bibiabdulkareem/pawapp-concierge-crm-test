@@ -66,6 +66,7 @@ const existing=await req('test_cases?select=id,client_name,client_phone,service_
 const providers=await req('test_providers?select=id,name,provider_type,phone&limit=10000');
 const services=await req('test_services?select=id,provider_id,name&limit=10000');
 for(const row of customerRows){
+status('TEST: معالجة '+(created+skipped)+' من '+customerRows.length+' صف');
 try{
 const d=row.data;
 const marker='[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+row.line+']';

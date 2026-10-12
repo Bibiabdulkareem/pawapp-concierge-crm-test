@@ -107,7 +107,7 @@ failed.push('صف '+row.line+': '+String(rowError.message||rowError).slice(0,180
 }
 status('TEST: أضيف '+created+' عملية، '+followups+' متابعة، تخطينا '+skipped+' مكرر، تعذر '+failed.length+' صف. '+(failed.length?'الأخطاء: '+failed.slice(0,8).join(' | ')+(failed.length>8?' | وغيرها '+(failed.length-8):''):'حدّثي الصفحة للتقارير.'));
 }catch(e){status('توقف الاستيراد بعد '+created+' عملية و'+followups+' متابعة: '+e.message+' — راجعي النتائج قبل الإعادة')}
-finally{if($('importCommit'))$('importCommit').disabled=false}
+finally{if($('importCommit'))$('importCommit').disabled=failed.length>0}
 };
 const oldPreview=window.pawPreviewImport;
 window.pawPreviewImport=function(){if(mode==='cases')return window.pawPreviewCustomers();const file=$('importFile')?.files?.[0];if(file&&/July|PawApp|TEST Import/i.test(file.name))return window.pawPreviewCustomers();return oldPreview()};

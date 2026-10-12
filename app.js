@@ -1896,6 +1896,7 @@ function financialFollowupItems(c){
     }
 
     function missingFollowupItems(c){
+      if(c.workflow_status==='closed' && c.client_paid) return [];
       const items=[];
       if(!c.providerId) items.push('اختيار الشركة / الفريلانسر');
       if(!(c.service||c.requested_service)) items.push('اختيار الخدمة');

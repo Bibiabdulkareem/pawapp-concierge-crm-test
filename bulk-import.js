@@ -33,13 +33,13 @@ const actualDate=historicalDate(date,monthHint);const iso=actualDate;if(!actualD
 const t=money(total),p=money(providerAmount),f=money(fee);if(t===null)missing.push('إجمالي العميل');if(p===null)missing.push('مستحق مقدم الخدمة');if(f===null)missing.push('عمولة PawApp');
 const mismatch=t!==null&&p!==null&&f!==null&&Math.abs(t-p-f)>0.001;if(mismatch)missing.push('اختلاف الحسابات');
 return {name:clean(name),phone:digits(phone),location:isMissing(location)?null:clean(location),petType:isMissing(petType)?null:clean(petType),age:isMissing(age)?null:clean(age),provider:isMissing(provider)?null:clean(provider),service:isMissing(service)?null:clean(service),date:iso,source:isMissing(source)?'historical_excel':clean(source),total:t,providerAmount:p,fee:f,petName:isMissing(petName)?null:clean(petName),paid,providerPaid,pawPaid,missing,mismatch,rawDate:clean(date),extra}}
-let customerRows=[],customerMode='template',customerMonth=null;
+let customerRows=[],customerMode='template',customerMonth=null,fileImportIdentity='';
 window.pawSetImportMonth=function(v){customerMonth=v?Number(v):null};
 window.pawPreviewCustomers=async function(){
 if(!['admin','operations'].includes(role())){status('الصلاحية للأدمن والعمليات فقط');return}
 const file=$('importFile')?.files?.[0];if(!file){status('اختاري ملف Excel أو CSV');return}
 let rows;try{if(/\.xlsx?$/i.test(file.name)){if(!window.XLSX)throw Error('Excel library unavailable');const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',raw:false}).filter(r=>r.some(v=>clean(v)))}else if(/\.csv$/i.test(file.name))rows=parse(await file.text());else throw Error('صيغة غير مدعومة')}catch(e){status('فشل فتح الملف: '+e.message);return}
-const header=rows.shift()||[];customerMode=normalize(header[0])==='customer name'?'historical':'template';mode='cases';if($('importCommit'))$('importCommit').textContent='اعتماد استيراد العملاء إلى TEST';if(customerMode==='historical'&&!customerMonth){status('اختاري شهر الملف التاريخي أولاً (مثلاً يوليو) ثم أعيدي المعاينة');$('importCommit').disabled=true;return}
+const header=rows.shift()||[];fileImportIdentity=String(file.name||'').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,90);customerMode=normalize(header[0])==='customer name'?'historical':'template';mode='cases';if($('importCommit'))$('importCommit').textContent='اعتماد استيراد العملاء إلى TEST';if(customerMode==='historical'&&!customerMonth){status('اختاري شهر الملف التاريخي أولاً (مثلاً يوليو) ثم أعيدي المعاينة');$('importCommit').disabled=true;return}
 const expected=customerMode==='historical'?historicalHeaders:caseHeaders;
 if(expected.some((x,i)=>normalize(x)!==normalize(header[i]))){status('العناوين غير مطابقة لنموذج العملاء أو ملف Paw app data');return}
 customerRows=rows.map((r,i)=>({line:i+2,values:r,data:rowToCase(r,customerMode,customerMonth)})).filter(x=>customerMode!=='historical'||(x.values.slice(0,12).some(v=>!isMissing(v))&&!/^total\s*[:=]?$/i.test(clean(x.values[0]))));
@@ -48,7 +48,7 @@ let existingCases=[];try{existingCases=await req('test_cases?select=id,client_na
 
 const review=customerRows.filter(x=>x.data.missing.length);
 const existingRows=new Set();
-for(const x of customerRows){const marker='[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+x.line+']';if(existingCases.some(e=>String(e.notes||'').includes(marker)||(normalize(e.client_name)===normalize(x.data.name)&&digits(e.client_phone)===x.data.phone&&e.service_date===x.data.date&&Number(e.total_amount)===Number(x.data.total))))existingRows.add(x.line)}
+for(const x of customerRows){const marker=customerMode==='historical'?'[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+x.line+']':'[BULK_IMPORT:NEW:'+fileImportIdentity+':ROW:'+x.line+']';if(existingCases.some(e=>String(e.notes||'').includes(marker)||(normalize(e.client_name)===normalize(x.data.name)&&digits(e.client_phone)===x.data.phone&&e.service_date===x.data.date&&Number(e.total_amount)===Number(x.data.total))))existingRows.add(x.line)}
 const duplicates=new Set();
 const seenRows=new Set();for(const x of customerRows){const key=[x.data.phone,x.data.name,x.data.date,x.data.provider,x.data.total].map(normalize).join('|');if(seenRows.has(key))duplicates.add(x.line);seenRows.add(key)}
 $('importPreview').textContent='صفوف '+customerRows.length+' | مراجعة '+review.length+' | تواريخ/هوية تمنع الرفع '+bad.length+' | موجودة مسبقاً في TEST '+existingRows.size+' | تكرارات داخل الملف '+duplicates.size+' | جديدة متوقعة '+(customerRows.length-existingRows.size)+'\n'+customerRows.slice(0,30).map(x=>'صف '+x.line+' — '+x.data.name+' — '+(x.data.date||'تاريخ غير واضح')+' — '+(x.data.missing.join('، ')||'مكتمل')).join('\n');
@@ -58,7 +58,7 @@ status(bad.length?'الملف فيه بيانات أساسية أو مالية �
 window.pawCommitImport=async function(){
 if(mode==='services')return window.pawCommitServicesImport();
 if(!['admin','operations'].includes(role())||!customerRows.length||$('importCommit').disabled)return;
-if(!confirm('استيراد العمليات الصالحة إلى TEST كعمليات غير مدفوعة حتى يتم إثبات التحصيل؟ لن يتم افتراض السداد أو تاريخ الخدمة.'))return;
+if(customerMode==='historical'){status('استيراد ملفات يوليو–سبتمبر التاريخية مقفل لحماية الحالات المدفوعة والمقفلة؛ لا تعيدي استيرادها. استخدمي نموذج العمليات الجديدة فقط.');return;}if(!confirm('استيراد العمليات الجديدة إلى TEST كعمليات غير مدفوعة حتى يتم إثبات التحصيل؟'))return;
 $('importCommit').disabled=true;
 let created=0,followups=0,skipped=0,failed=[];
 try{
@@ -69,10 +69,11 @@ for(const row of customerRows){
 status('TEST: معالجة '+(created+skipped)+' من '+customerRows.length+' صف');
 try{
 const d=row.data;
-const marker='[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+row.line+']';
+const marker='[BULK_IMPORT:NEW:'+fileImportIdentity+':ROW:'+row.line+']';
 if(existing.some(x=>String(x.notes||'').includes(marker))){skipped++;continue}
 if(existing.some(x=>normalize(x.client_name)===normalize(d.name)&&digits(x.client_phone)===d.phone&&x.service_date===d.date&&Number(x.total_amount)===Number(d.total))){skipped++;continue}
 let p=providers.find(x=>normalize(x.name)===normalize(d.provider));
+if(d.missing.length||d.mismatch||!d.date||d.total===null||d.fee===null||!d.service||!d.phone||!d.name||!d.provider){throw Error('الصف غير مكتمل ولا يُنشأ مقدم خدمة');}
 if(!p&&d.provider){
 const saved=await req('test_providers',{method:'POST',body:JSON.stringify({name:d.provider,provider_type:'freelancer'})});
 p=saved[0];providers.push(p);

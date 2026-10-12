@@ -27,23 +27,23 @@ function renderSeptemberReviews(){
   let box=el('septemberFinanceReviews');
   if(!box){box=document.createElement('section');box.id='septemberFinanceReviews';finance.before(box);}
   box.innerHTML=septemberReviewRows.length?
-    '<h3>استكمال البيانات المالية — سبتمبر 2026 ('+septemberReviewRows.length+')</h3>'+
+    '<h3>استكمال البيانات المالية — '+septemberReviewRows.length+' عمليات</h3>'+
     septemberReviewRows.map(r=>{
       const v=r.source_data?.values||[];
-      return '<div class="card provider"><h3>إكسل سبتمبر 2026 — صف '+r.source_row+'</h3>'+
-      '<div class="hint">العميل: '+html(v[0]||'غير مسجل')+' | الهاتف: '+html(v[1]||'غير مسجل')+' | تاريخ الخدمة: '+html(v[11]||'غير مسجل')+'</div>'+
-      '<div class="hint">الخدمة / مقدم الخدمة: '+html(v[6]||'غير محدد')+' | نوع الحيوان: '+html(v[4]||'غير مسجل')+'</div>'+
-      '<div class="hint">المبالغ الأصلية في الإكسل — الإجمالي: '+html(v[10]||'غير مسجل')+' | PawApp: '+html(v[8]||'غير مسجل')+' | مقدم الخدمة: '+html(v[9]||'غير مسجل')+' د.ك</div>'+
-      (r.source_row===55?'<div class="hint" style="color:#b42318;font-weight:bold">تنبيه: توجد مسودة 115 د.ك محفوظة على هذا الصف بالخطأ حسب تأكيد الإدارة. لا تعتمديها لهذه العملية.</div>':'')+
-      '<div class="hint"><a href="https://docs.google.com/spreadsheets/d/1-MxEDgrDZiCGkevddz_1J5UYrJaCMZ1j81_3ITgM81k/edit" target="_blank" rel="noopener">افتحي ملف Paw app data — صفحة Sep - 2026، الصف '+r.source_row+'</a></div>'+
-      '<div class="hint">العملية تاريخية ومدفوعة حسب تأكيد الإدارة، وتحتاج استكمال البيانات المالية والتحصيل.</div>'+
+      const identity=v[0]&&String(v[0]).trim().toUpperCase()!=='N/A'?v[0]:(v[1]||v[7]||'عميل غير مسجل');
+      const original=(label,value)=>'<span>'+label+': <b>'+html(value==null||value===''?'غير مسجل':value)+' د.ك</b></span>';
+      return '<div class="card provider"><h3>'+html(identity)+'</h3>'+
+      '<div class="hint">'+html(v[6]||'مقدم خدمة غير مسجل')+' • '+html(v[4]||'نوع غير مسجل')+
+      (v[11]?' • '+html(v[11]):'')+'</div>'+
+      '<div class="hint">رقم العملية في ملف سبتمبر: '+r.source_row+'</div>'+
+      '<div class="hint">المبالغ المسجلة سابقاً: '+original('الإجمالي',v[10])+' | '+original('PawApp',v[8])+' | '+original('مقدم الخدمة',v[9])+'</div>'+
       '<div class="actions"><button class="btn primary" onclick="pawReviewSeptember('+r.source_row+')">استكمال البيانات المالية</button></div></div>';
     }).join(''):'';
 }
 window.pawCloseSeptemberReview=function(){const modal=el('septemberReviewModal');if(modal)modal.style.display='none';};
 window.pawReviewSeptember=function(row){
   const r=septemberReviewRows.find(x=>x.source_row===row);if(!r)return;
-  const v=r.source_data?.values||[],saved=r.source_data?.financial_review||{};
+  const v=r.source_data?.values||[],saved=r.source_row===55?{}:(r.source_data?.financial_review||{});
   let modal=el('septemberReviewModal');
   if(!modal){document.body.insertAdjacentHTML('beforeend','<div id="septemberReviewModal" class="modalBg"><div class="modal"><div class="modalHead"><h3>استكمال البيانات المالية</h3><button class="close" onclick="pawCloseSeptemberReview()">×</button></div><div id="septemberReviewBody"></div></div></div>');modal=el('septemberReviewModal');}
   const field=(key,label,source)=>'<div class="field"><label>'+label+'</label><input type="number" min="0" step="0.001" id="sep_'+key+'" value="'+html(saved[key]??'')+'" placeholder="'+html(source==null?'غير مسجل':'المصدر: '+source)+'"></div>';

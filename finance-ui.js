@@ -36,11 +36,12 @@ function renderSeptemberReviews(){
       '<div class="actions"><button class="btn primary" onclick="pawReviewSeptember('+r.source_row+')">استكمال البيانات المالية</button></div></div>';
     }).join(''):'';
 }
+window.pawCloseSeptemberReview=function(){const modal=el('septemberReviewModal');if(modal)modal.style.display='none';};
 window.pawReviewSeptember=function(row){
   const r=septemberReviewRows.find(x=>x.source_row===row);if(!r)return;
   const v=r.source_data?.values||[],saved=r.source_data?.financial_review||{};
   let modal=el('septemberReviewModal');
-  if(!modal){document.body.insertAdjacentHTML('beforeend','<div id="septemberReviewModal" class="modalBg"><div class="modal"><div class="modalHead"><h3>استكمال البيانات المالية</h3><button class="close" onclick="closeModal(\'septemberReviewModal\')">×</button></div><div id="septemberReviewBody"></div></div></div>');modal=el('septemberReviewModal');}
+  if(!modal){document.body.insertAdjacentHTML('beforeend','<div id="septemberReviewModal" class="modalBg"><div class="modal"><div class="modalHead"><h3>استكمال البيانات المالية</h3><button class="close" onclick="pawCloseSeptemberReview()">×</button></div><div id="septemberReviewBody"></div></div></div>');modal=el('septemberReviewModal');}
   const field=(key,label,source)=>'<div class="field"><label>'+label+'</label><input type="number" min="0" step="0.001" id="sep_'+key+'" value="'+html(saved[key]??'')+'" placeholder="'+html(source==null?'غير مسجل':'المصدر: '+source)+'"></div>';
   el('septemberReviewBody').innerHTML='<div class="hint">صف '+row+' • '+html(v[0]||'بدون اسم')+' • '+html(v[6]||'خدمة غير محددة')+'</div>'+
     '<div class="grid2" style="margin-top:12px">'+field('total','إجمالي العميل',v[10])+field('paw','حصة PawApp',v[8])+field('provider','حصة مقدم الخدمة',v[9])+field('collected','المبلغ المحصل لـ PawApp',null)+'</div>'+
@@ -105,6 +106,7 @@ el('pdClientList').innerHTML=p.lines.map(l=>'<div class="card provider"><h3>'+ht
 function renderFollowups(){if(!model)return;if(legacyFollowups)legacyFollowups();renderSeptemberReviews();const lines=model.lines.filter(actionable);const box=el('followupFinanceList');if(box)box.innerHTML=lines.map(l=>'<div class="card provider"><div style="display:flex;justify-content:space-between;gap:10px"><h3>'+html(l.client)+'</h3><span class="status unpaid">'+(l.issues.length?'تأكيد / مراجعة':'مستحقات')+'</span></div><div class="hint">'+caseCode(l.caseId)+' • '+html(providerName(l.providerId))+' • '+(l.component==='transport'?'النقل':'الخدمة')+'</div><h3>'+html(actionLabel(l))+'</h3><div class="hint">'+html(detail(l))+'</div><div class="actions">'+actionButton(l)+'</div></div>').join('')||'<div class="card"><b class="green">تمام ✓</b><div class="hint">لا توجد مستحقات أو بيانات مالية معلقة.</div></div>';
 set('fuFinance',new Set(lines.map(l=>l.caseId)).size+septemberReviewRows.length);const pending=new Set(lines.map(l=>l.caseId));for(const id of ['followupAppointmentList','followupMissingList'])el(id)?.querySelectorAll('[onclick]').forEach(b=>{const m=b.getAttribute('onclick')?.match(/\('([^']+)'/);if(m)pending.add(m[1])});set('followupNavBadge',pending.size+septemberReviewRows.length);if(el('followupNavBadge'))el('followupNavBadge').style.display=(pending.size+septemberReviewRows.length)?'inline-block':'none';set('kNeedsFollowup',pending.size+septemberReviewRows.length);
 }
+function isArchivedHistoricalCaseForTable(c){return String(c.workflow_status)==='closed'&&c.client_paid===true&&/\[BULK_IMPORT:2026:(?:7|8|9):ROW:\d+\]/.test(String(c.notes||''));}
 function renderCases(){
  if(!model)return;
  const q=v('caseSearch').toLowerCase(),pf=v('caseProviderFilter')||'all',sf=v('caseStatusFilter')||'all';
@@ -121,8 +123,8 @@ function renderCases(){
  const yesNo=x=>x===true?'نعم':x===false?'لا':'—';
  el('caseRows').innerHTML=rows.map(c=>{
   const ls=linesFor(c.id),s=F.summarize(ls),employee=db.staff.find(e=>String(e.id)===String(c.employee_id));
-  const clientTasks=ls.filter(l=>l.action==='client_paid'||l.unknown);
-  const partnerTasks=ls.filter(l=>l.action==='provider_paid'||l.action==='commission_received'||(!l.action&&l.issues.length));
+  const clientTasks=isArchivedHistoricalCaseForTable(c)?[]:ls.filter(l=>l.action==='client_paid'||l.unknown);
+  const partnerTasks=isArchivedHistoricalCaseForTable(c)?[]:ls.filter(l=>l.action==='provider_paid'||l.action==='commission_received'||(!l.action&&l.issues.length));
   const paidText=s.unknownCount?'نقل غير مؤكد':s.unpaid>0n?'غير مدفوع':'تم السداد';
   const button='<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>';
   return '<tr><td>'+caseCode(c.id)+'</td><td>'+html(c.client_name)+'</td><td>'+html(c.pet_type||'—')+'</td><td>'+html(c.breed||'—')+'</td><td>'+yesNo(c.vaccinated)+'</td><td>'+yesNo(c.microchipped)+'</td><td>'+ls.map(l=>html(providerName(l.providerId))).join('<br>')+'</td><td>'+ls.map(l=>html(l.service)).join('<br>')+'</td>'+['total','paw','provider'].map(k=>'<td>'+cash(s[k])+'</td>').join('')+'<td><span class="status '+(s.unpaid>0n||s.unknownCount?'unpaid':'paid')+'">'+paidText+'</span></td><td>'+html(c.client_due_date||'—')+'</td><td>لنا: '+cash(s.ours)+'<br>علينا: '+cash(s.theirs)+(s.issueCount?'<br><span class="hint">يحتاج مراجعة</span>':'')+'</td><td>'+html(employee?.name||'—')+'<br>'+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source||'')+'</td><td><span class="hint">'+html(c.workflow_status||'new_request')+'</span><br>'+button+'</td><td>'+clientTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td><td>'+partnerTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td></tr>';

@@ -1880,7 +1880,15 @@ window.sourceLabel = function(src){
       if(row) focusCaseEditor(row,mode||workflowState(row).focus);
     };
 
-function financialFollowupItems(c){
+// Only already-imported, paid-and-closed historical records are exempt.
+    // New cases, including backdated cases, still require normal follow-up.
+    function isArchivedHistoricalCase(c){
+      return c.workflow_status==='closed' && c.client_paid===true &&
+        /\[BULK_IMPORT:2026:(?:7|8|9):ROW:\d+\]/.test(String(c.notes||''));
+    }
+
+    function financialFollowupItems(c){
+      if(isArchivedHistoricalCase(c)) return [];
       const items=[];
       const paid=v2ClientPaid(c);
       if(!paid && clientRem(c)>0.0001){

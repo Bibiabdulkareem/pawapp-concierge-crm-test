@@ -13,6 +13,9 @@ function parse(text){let rows=[],row=[],cell='',quoted=false; text=text.replace(
 function clean(v){return String(v||'').trim()}
 function number(v){if(!clean(v))return null;const n=Number(clean(v));return Number.isFinite(n)&&n>=0?n:null}
 function normalize(s){return clean(s).toLocaleLowerCase().replace(/\s+/g,' ')}
+function rowFingerprint(row){const data=JSON.stringify(row.values||[]);let h1=2166136261,h2=5381;for(let i=0;i<data.length;i++){const c=data.charCodeAt(i);h1=Math.imul(h1^c,16777619);h2=(Math.imul(h2,33)^c)>>>0;}return (h1>>>0).toString(16).padStart(8,'0')+(h2>>>0).toString(16).padStart(8,'0')}
+function newCaseMarker(row){return '[BULK_IMPORT:NEW:'+rowFingerprint(row)+':ROW:'+row.line+']'}
+
 async function req(path,options={}){const token=window.PAWAPP_AUTH?.session?.access_token;if(!token)throw Error('سجلي الدخول أولاً');const response=await fetch(API+path,{...options,headers:{apikey:KEY,Authorization:'Bearer '+token,'Content-Type':'application/json',Prefer:'return=representation',...(options.headers||{})}});const raw=await response.text();if(!response.ok)throw Error(raw.slice(0,250));return raw?JSON.parse(raw):[]}
 window.pawImportMode=function(m){mode=m;parsed=[];$('importFile').value='';$('importPreview').innerHTML='';$('importCommit').disabled=true;status(m==='services'?'نموذج الخدمات: Excel أو CSV':'نموذج العملاء: Excel أو CSV، المعاينة فقط');}
 window.pawDownloadTemplate=function(){if(!window.XLSX){status('Excel library not loaded. Refresh page.');return}const cols=mode==='services'?svcHeaders:caseHeaders;const ws=XLSX.utils.aoa_to_sheet([cols,...Array.from({length:100},()=>cols.map(()=>''))]);ws['!cols']=cols.map((x,i)=>({wch:i<3?27:21}));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,mode==='services'?'Services':'Customers');XLSX.writeFile(wb,mode==='services'?'PawApp_Services_Template.xlsx':'PawApp_Customers_Template.xlsx')};
@@ -48,7 +51,7 @@ let existingCases=[];try{existingCases=await req('test_cases?select=id,client_na
 
 const review=customerRows.filter(x=>x.data.missing.length);
 const existingRows=new Set();
-for(const x of customerRows){const marker=customerMode==='historical'?'[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+x.line+']':'[BULK_IMPORT:NEW:'+fileImportIdentity+':ROW:'+x.line+']';if(existingCases.some(e=>String(e.notes||'').includes(marker)||(normalize(e.client_name)===normalize(x.data.name)&&digits(e.client_phone)===x.data.phone&&e.service_date===x.data.date&&Number(e.total_amount)===Number(x.data.total))))existingRows.add(x.line)}
+for(const x of customerRows){const marker=customerMode==='historical'?'[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+x.line+']':newCaseMarker(x);if(existingCases.some(e=>String(e.notes||'').includes(marker)||(normalize(e.client_name)===normalize(x.data.name)&&digits(e.client_phone)===x.data.phone&&e.service_date===x.data.date&&Number(e.total_amount)===Number(x.data.total))))existingRows.add(x.line)}
 const duplicates=new Set();
 const seenRows=new Set();for(const x of customerRows){const key=[x.data.phone,x.data.name,x.data.date,x.data.provider,x.data.total].map(normalize).join('|');if(seenRows.has(key))duplicates.add(x.line);seenRows.add(key)}
 $('importPreview').textContent='صفوف '+customerRows.length+' | مراجعة '+review.length+' | تواريخ/هوية تمنع الرفع '+bad.length+' | موجودة مسبقاً في TEST '+existingRows.size+' | تكرارات داخل الملف '+duplicates.size+' | جديدة متوقعة '+(customerRows.length-existingRows.size)+'\n'+customerRows.slice(0,30).map(x=>'صف '+x.line+' — '+x.data.name+' — '+(x.data.date||'تاريخ غير واضح')+' — '+(x.data.missing.join('، ')||'مكتمل')).join('\n');
@@ -69,7 +72,7 @@ for(const row of customerRows){
 status('TEST: معالجة '+(created+skipped)+' من '+customerRows.length+' صف');
 try{
 const d=row.data;
-const marker='[BULK_IMPORT:NEW:'+fileImportIdentity+':ROW:'+row.line+']';
+const marker=newCaseMarker(row);
 if(existing.some(x=>String(x.notes||'').includes(marker))){skipped++;continue}
 if(existing.some(x=>normalize(x.client_name)===normalize(d.name)&&digits(x.client_phone)===d.phone&&x.service_date===d.date&&Number(x.total_amount)===Number(d.total))){skipped++;continue}
 let p=providers.find(x=>normalize(x.name)===normalize(d.provider));

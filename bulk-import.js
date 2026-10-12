@@ -87,10 +87,10 @@ svc=saved[0];services.push(svc);
 }
 }
 const notes=[marker,'شهر ملف المصدر: '+(customerMonth||'غير محدد'),'بيانات تاريخية من Excel','تاريخ المصدر: '+(d.rawDate||'غير مسجل'),d.missing.includes('تاريخ تقديري حسب شهر الشيت')?'تاريخ تقديري حسب شهر الشيت':'',d.petName?'اسم الحيوان: '+d.petName:'',d.extra?.[0]?'حالة الحيوان من المصدر: '+d.extra[0]:'',d.extra?.[1]?'حالة الملف الطبي/ملاحظات المصدر: '+d.extra[1]:'',d.missing.length?'تحتاج مراجعة: '+d.missing.join('، '):'',d.mismatch?'مستحق مقدم الخدمة في Excel: '+d.providerAmount+'؛ مجموع الأرقام غير متطابق ويحتاج تدقيق':'', 'السداد: غير مؤكد حتى تتم مراجعته'].filter(Boolean).join(' | ');
-const payload={client_name:d.name||('عميل بدون اسم - صف '+row.line),client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service||null,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,fee_type:'fixed',fee_value:d.fee===null?0:d.fee,client_paid:null,workflow_status:d.missing.length?'new_request':'appointment_completed',notes};
+const payload={client_name:d.name||('عميل بدون اسم - صف '+row.line),client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p?.id||null,service_name:d.service||null,service_date:d.date,source:d.source,total_amount:d.total,provider_amount:d.providerAmount,pawapp_amount:d.fee,fee_type:'fixed',fee_value:d.fee===null?0:d.fee,client_paid:true,client_paid_to:'provider',pawapp_received_from_provider:d.fee||0,workflow_status:'closed',notes};
 const saved=await req('test_cases',{method:'POST',body:JSON.stringify(payload)});
 const item=saved[0];
-if(d.missing.length){
+if(false&&d.missing.length){
 try{
 await req('test_followups',{method:'POST',body:JSON.stringify({case_id:item.id,followup_at:new Date(Date.now()+86400000).toISOString(),reason:'استكمال بيانات الاستيراد',notes:d.missing.join('، '),status:'pending'})});
 followups++;

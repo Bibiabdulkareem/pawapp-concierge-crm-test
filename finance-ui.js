@@ -60,11 +60,23 @@ window.pawSaveSeptemberReview=async function(row){
   for(const k of keys){values[k]=value(k);if(values[k]!==''&&(!Number.isFinite(Number(values[k]))||Number(values[k])<0)){alert('راجعي المبلغ');return;}}
   if(['total','paw','provider'].every(k=>values[k]!=='')&&Math.abs(Number(values.total)-Number(values.paw)-Number(values.provider))>0.001){alert('الإجمالي لا يساوي مجموع حصة PawApp ومقدم الخدمة');return;}
   values.recipient=value('recipient');values.note=value('note');
+  const complete=keys.every(k=>values[k]!=='')&&values.recipient!=='';
+  if(complete&&!confirm('هل تؤكدين اعتماد البيانات المصححة وإقفال متابعة الصف '+row+'؟\\nالإجمالي: '+values.total+' د.ك\\nPawApp: '+values.paw+' د.ك\\nمقدم الخدمة: '+values.provider+' د.ك\\nالمحصّل لـ PawApp: '+values.collected+' د.ك\\nجهة الدفع: '+values.recipient+'\\nسيتم حفظ التصحيح مع بقاء المصدر الأصلي.'))return;
   values.updated_at=new Date().toISOString();
+  values.approved=complete;
   const next={...r.source_data,financial_review:values};
-  const {error}=await window.PAWAPP_AUTH.client.from('test_referral_import_review').update({source_data:next}).eq('source_key',r.source_key);
+  const nextStatus=complete?'financial_review_completed_pending_accounting':'employee_followup_financials_pending';
+  const {data,error}=await window.PAWAPP_AUTH.client.from('test_referral_import_review')
+    .update({source_data:next,review_status:nextStatus})
+    .eq('source_key',r.source_key).eq('review_status','employee_followup_financials_pending')
+    .select('source_key');
   if(error){alert('تعذر الحفظ: '+error.message);return;}
-  r.source_data=next;el('septemberReviewModal').style.display='none';toast('تم حفظ البيانات للمراجعة، والمتابعة تظل مفتوحة حتى الاعتماد');
+  if(!data?.length){alert('لم يتم تحديث المتابعة. أعيدي تحميل الصفحة للتحقق من حالتها.');return;}
+  r.source_data=next;
+  if(complete)septemberReviewRows=septemberReviewRows.filter(x=>x.source_key!==r.source_key);
+  el('septemberReviewModal').style.display='none';
+  renderFollowups();
+  toast(complete?'تم اعتماد التصحيح وإقفال المتابعة، بانتظار الترحيل للتقرير المالي':'تم حفظ المسودة والمتابعة لا تزال مفتوحة');
 };
 const notes={transport_payment_unknown:'ناقص تأكيد سداد النقل وجهة الاستلام',payment_route_missing:'ناقص تحديد من استلم دفعة العميل',direct_provider_and_payout:'مسجل دفع مباشر للشركة ومعه تحويل للشركة؛ راجعي التسجيلين',duplicate_commission_route:'مسجل استلام كامل لدى PawApp ومعه استلام عمولة من الشركة',client_overpaid:'الدفعات تتجاوز إجمالي الخدمة',provider_overpaid:'التحويلات تتجاوز حصة الشركة',commission_overpaid:'المستلم يتجاوز عمولة PawApp',paid_flag_mismatch:'حالة السداد لا تطابق سجل الدفعات',price_split_mismatch:'تقسيم السعر يحتاج مراجعة',invalid_price:'السعر أو النسبة غير صحيح',unpriced_service:'أكملي السعر',provider_missing:'اختاري مقدم الخدمة',cancelled_case_requires_review:'عملية ملغاة؛ راجعي أثرها المالي قبل إصدار التقرير'};
 const review=l=>l.issues.map(i=>notes[i]||i).join(' — ');

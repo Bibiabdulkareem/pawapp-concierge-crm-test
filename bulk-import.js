@@ -44,14 +44,16 @@ const expected=customerMode==='historical'?historicalHeaders:caseHeaders;
 if(expected.some((x,i)=>normalize(x)!==normalize(header[i]))){status('العناوين غير مطابقة لنموذج العملاء أو ملف Paw app data');return}
 customerRows=rows.map((r,i)=>({line:i+2,values:r,data:rowToCase(r,customerMode,customerMonth)})).filter(x=>customerMode!=='historical'||(x.values.slice(0,12).some(v=>!isMissing(v))&&!/^total\s*[:=]?$/i.test(clean(x.values[0]))));
 const bad=customerRows.filter(x=>!x.data.date);
-let existingCount=0;try{const current=await req('test_cases?select=id&limit=10000');existingCount=current.length}catch(e){status('تعذر فحص عمليات TEST: '+e.message);$('importCommit').disabled=true;return}
+let existingCases=[];try{existingCases=await req('test_cases?select=id,client_name,client_phone,service_date,total_amount,notes&limit=10000')}catch(e){status('تعذر فحص عمليات TEST: '+e.message);$('importCommit').disabled=true;return}
 
 const review=customerRows.filter(x=>x.data.missing.length);
+const existingRows=new Set();
+for(const x of customerRows){const marker='[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+x.line+']';if(existingCases.some(e=>String(e.notes||'').includes(marker)||(normalize(e.client_name)===normalize(x.data.name)&&digits(e.client_phone)===x.data.phone&&e.service_date===x.data.date&&Number(e.total_amount)===Number(x.data.total))))existingRows.add(x.line)}
 const duplicates=new Set();
 const seenRows=new Set();for(const x of customerRows){const key=[x.data.phone,x.data.name,x.data.date,x.data.provider,x.data.total].map(normalize).join('|');if(seenRows.has(key))duplicates.add(x.line);seenRows.add(key)}
-$('importPreview').textContent='صفوف '+customerRows.length+' | مراجعة '+review.length+' | تواريخ/هوية تمنع الرفع '+bad.length+' | تكرارات محتملة '+duplicates.size+'\n'+customerRows.slice(0,30).map(x=>'صف '+x.line+' — '+x.data.name+' — '+(x.data.date||'تاريخ غير واضح')+' — '+(x.data.missing.join('، ')||'مكتمل')).join('\n');
+$('importPreview').textContent='صفوف '+customerRows.length+' | مراجعة '+review.length+' | تواريخ/هوية تمنع الرفع '+bad.length+' | موجودة مسبقاً في TEST '+existingRows.size+' | تكرارات داخل الملف '+duplicates.size+' | جديدة متوقعة '+(customerRows.length-existingRows.size)+'\n'+customerRows.slice(0,30).map(x=>'صف '+x.line+' — '+x.data.name+' — '+(x.data.date||'تاريخ غير واضح')+' — '+(x.data.missing.join('، ')||'مكتمل')).join('\n');
 $('importPreview').style.whiteSpace='pre-wrap';$('importCommit').disabled=!customerRows.length||!!bad.length||!!duplicates.size;
-status(bad.length?'أصلحي التواريخ والأسماء والأرقام أولاً':duplicates.size?'راجعي الصفوف المكررة أولاً':'جاهز للاستيراد إلى TEST؛ الصفوف الناقصة ستنشئ متابعات');
+status(bad.length?'أصلحي التواريخ أولاً':duplicates.size?'راجعي الصفوف المكررة أولاً':'فحص TEST اكتمل: '+existingRows.size+' موجودة مسبقاً، '+(customerRows.length-existingRows.size)+' جديدة متوقعة.');
 };
 window.pawCommitImport=async function(){
 if(mode==='services')return window.pawCommitServicesImport();

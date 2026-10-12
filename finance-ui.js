@@ -30,12 +30,12 @@ function renderSeptemberReviews(){
     '<h3>استكمال البيانات المالية — '+septemberReviewRows.length+' عمليات</h3>'+
     septemberReviewRows.map(r=>{
       const v=r.source_data?.values||[];
-      const identity=v[0]&&String(v[0]).trim().toUpperCase()!=='N/A'?v[0]:(v[1]||v[7]||'عميل غير مسجل');
+      const identity=v[0]&&String(v[0]).trim().toUpperCase()!=='N/A'?v[0]:(v[1]||'عميل غير مسجل');
       const original=(label,value)=>'<span>'+label+': <b>'+html(value==null||value===''?'غير مسجل':value)+' د.ك</b></span>';
       return '<div class="card provider"><h3>'+html(identity)+'</h3>'+
       '<div class="hint">'+html(v[6]||'مقدم خدمة غير مسجل')+' • '+html(v[4]||'نوع غير مسجل')+
       (v[11]?' • '+html(v[11]):'')+'</div>'+
-      '<div class="hint">رقم العملية في ملف سبتمبر: '+r.source_row+'</div>'+
+      '<div class="hint">سبتمبر 2026 • صف الإكسل: '+r.source_row+'</div>'+
       '<div class="hint">المبالغ المسجلة سابقاً: '+original('الإجمالي',v[10])+' | '+original('PawApp',v[8])+' | '+original('مقدم الخدمة',v[9])+'</div>'+
       '<div class="actions"><button class="btn primary" onclick="pawReviewSeptember('+r.source_row+')">استكمال البيانات المالية</button></div></div>';
     }).join(''):'';
@@ -43,18 +43,17 @@ function renderSeptemberReviews(){
 window.pawCloseSeptemberReview=function(){const modal=el('septemberReviewModal');if(modal)modal.style.display='none';};
 window.pawReviewSeptember=function(row){
   const r=septemberReviewRows.find(x=>x.source_row===row);if(!r)return;
-  const v=r.source_data?.values||[],saved=r.source_row===55?{}:(r.source_data?.financial_review||{});
+  const v=r.source_data?.values||[],saved=r.source_data?.financial_review||{};
   let modal=el('septemberReviewModal');
   if(!modal){document.body.insertAdjacentHTML('beforeend','<div id="septemberReviewModal" class="modalBg"><div class="modal"><div class="modalHead"><h3>استكمال البيانات المالية</h3><button class="close" onclick="pawCloseSeptemberReview()">×</button></div><div id="septemberReviewBody"></div></div></div>');modal=el('septemberReviewModal');}
   const field=(key,label,source)=>'<div class="field"><label>'+label+'</label><input type="number" min="0" step="0.001" id="sep_'+key+'" value="'+html(saved[key]??'')+'" placeholder="'+html(source==null?'غير مسجل':'المصدر: '+source)+'"></div>';
-  el('septemberReviewBody').innerHTML='<div class="hint"><b>المصدر: ملف Paw app data / صفحة Sep - 2026 / الصف '+row+'</b></div>'+
+  el('septemberReviewBody').innerHTML='<div class="hint"><b>سبتمبر 2026 — صف الإكسل '+row+'</b></div>'+
     '<div class="hint">العميل: '+html(v[0]||'غير مسجل')+' | الهاتف: '+html(v[1]||'غير مسجل')+' | تاريخ الخدمة: '+html(v[11]||'غير مسجل')+' | الخدمة: '+html(v[6]||'غير محددة')+'</div>'+
-    (row===55?'<div class="hint" style="color:#b42318;font-weight:bold">تحذير: المسودة المحفوظة (115 د.ك) لا تخص صف سبتمبر 55 حسب تأكيد الإدارة. لا تعتمديها هنا.</div>':'')+
     '<div class="grid2" style="margin-top:12px">'+field('total','إجمالي العميل',v[10])+field('paw','حصة PawApp',v[8])+field('provider','حصة مقدم الخدمة',v[9])+field('collected','المبلغ المحصل لـ PawApp',null)+'</div>'+
     '<div class="field" style="margin-top:12px"><label>جهة استلام دفعة العميل</label><select id="sep_recipient"><option value="">اختاري</option><option value="pawapp">PawApp</option><option value="provider">مقدم الخدمة</option></select></div>'+
     '<div class="field" style="margin-top:12px"><label>ملاحظات وإثبات التحصيل</label><textarea id="sep_note" rows="2">'+html(saved.note||'')+'</textarea></div>'+
     '<div class="hint">المبالغ المصدرية للرجوع فقط؛ لا يتم افتراض أي قيمة أو اعتمادها تلقائياً.</div>'+
-    '<button class="btn primary" style="width:100%;margin-top:12px" onclick="pawSaveSeptemberReview('+row+')">حفظ البيانات للمراجعة</button>';
+    '<button class="btn primary" style="width:100%;margin-top:12px" onclick="pawSaveSeptemberReview('+row+')">حفظ واعتماد وإقفال المتابعة</button>';
   el('sep_recipient').value=saved.recipient||'';
   modal.style.display='flex';
 };
@@ -66,13 +65,13 @@ window.pawSaveSeptemberReview=async function(row){
   for(const k of keys){values[k]=value(k);if(values[k]!==''&&(!Number.isFinite(Number(values[k]))||Number(values[k])<0)){alert('راجعي المبلغ');return;}}
   if(['total','paw','provider'].every(k=>values[k]!=='')&&Math.abs(Number(values.total)-Number(values.paw)-Number(values.provider))>0.001){alert('الإجمالي لا يساوي مجموع حصة PawApp ومقدم الخدمة');return;}
   values.recipient=value('recipient');values.note=value('note');
-  if(row===55&&values.total==='115'&&values.paw==='35'&&values.provider==='80'){alert('هذه الأرقام تخص عملية أخرى حسب تأكيد الإدارة، وليست صف سبتمبر 55. راجعي بيانات المصدر قبل الاعتماد.');return;}
   const complete=keys.every(k=>values[k]!=='')&&values.recipient!=='';
-  if(complete&&!confirm('هل تؤكدين اعتماد البيانات المصححة وإقفال متابعة الصف '+row+'؟\\nالإجمالي: '+values.total+' د.ك\\nPawApp: '+values.paw+' د.ك\\nمقدم الخدمة: '+values.provider+' د.ك\\nالمحصّل لـ PawApp: '+values.collected+' د.ك\\nجهة الدفع: '+values.recipient+'\\nسيتم حفظ التصحيح مع بقاء المصدر الأصلي.'))return;
+  if(!complete){alert('أكملي جميع المبالغ وجهة استلام دفعة العميل قبل الاعتماد والإقفال.');return;}
+  if(!confirm('هل تؤكدين اعتماد البيانات المصححة وإقفال متابعة الصف '+row+'؟\\nالإجمالي: '+values.total+' د.ك\\nPawApp: '+values.paw+' د.ك\\nمقدم الخدمة: '+values.provider+' د.ك\\nالمحصّل لـ PawApp: '+values.collected+' د.ك\\nجهة الدفع: '+values.recipient+'\\nسيتم حفظ التصحيح مع بقاء المصدر الأصلي.'))return;
   values.updated_at=new Date().toISOString();
   values.approved=complete;
   const next={...r.source_data,financial_review:values};
-  const nextStatus=complete?'financial_review_completed_pending_accounting':'employee_followup_financials_pending';
+  const nextStatus='financial_review_completed_pending_accounting';
   const {data,error}=await window.PAWAPP_AUTH.client.from('test_referral_import_review')
     .update({source_data:next,review_status:nextStatus})
     .eq('source_key',r.source_key).eq('review_status','employee_followup_financials_pending')
@@ -80,7 +79,7 @@ window.pawSaveSeptemberReview=async function(row){
   if(error){alert('تعذر الحفظ: '+error.message);return;}
   if(!data?.length){alert('لم يتم تحديث المتابعة. أعيدي تحميل الصفحة للتحقق من حالتها.');return;}
   r.source_data=next;
-  if(complete)septemberReviewRows=septemberReviewRows.filter(x=>x.source_key!==r.source_key);
+  septemberReviewRows=septemberReviewRows.filter(x=>x.source_key!==r.source_key);
   el('septemberReviewModal').style.display='none';
   renderFollowups();
   toast(complete?'تم اعتماد التصحيح وإقفال المتابعة، بانتظار الترحيل للتقرير المالي':'تم حفظ المسودة والمتابعة لا تزال مفتوحة');

@@ -44,6 +44,8 @@ const expected=customerMode==='historical'?historicalHeaders:caseHeaders;
 if(expected.some((x,i)=>normalize(x)!==normalize(header[i]))){status('العناوين غير مطابقة لنموذج العملاء أو ملف Paw app data');return}
 customerRows=rows.map((r,i)=>({line:i+2,values:r,data:rowToCase(r,customerMode,customerMonth)})).filter(x=>customerMode!=='historical'||(x.values.slice(0,12).some(v=>!isMissing(v))&&!/^total\s*[:=]?$/i.test(clean(x.values[0]))));
 const bad=customerRows.filter(x=>!x.data.date);
+let existingCount=0;try{const current=await req('test_cases?select=id&limit=10000');existingCount=current.length}catch(e){status('تعذر فحص عمليات TEST: '+e.message);$('importCommit').disabled=true;return}
+
 const review=customerRows.filter(x=>x.data.missing.length);
 const duplicates=new Set();
 const seenRows=new Set();for(const x of customerRows){const key=[x.data.phone,x.data.name,x.data.date,x.data.provider,x.data.total].map(normalize).join('|');if(seenRows.has(key))duplicates.add(x.line);seenRows.add(key)}

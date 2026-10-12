@@ -13,7 +13,14 @@ let snapshot=null,model=null,loading=null,selectedProvider=null,activeAction=nul
 const requests=new Map();
 const notes={transport_payment_unknown:'ناقص تأكيد سداد النقل وجهة الاستلام',payment_route_missing:'ناقص تحديد من استلم دفعة العميل',direct_provider_and_payout:'مسجل دفع مباشر للشركة ومعه تحويل للشركة؛ راجعي التسجيلين',duplicate_commission_route:'مسجل استلام كامل لدى PawApp ومعه استلام عمولة من الشركة',client_overpaid:'الدفعات تتجاوز إجمالي الخدمة',provider_overpaid:'التحويلات تتجاوز حصة الشركة',commission_overpaid:'المستلم يتجاوز عمولة PawApp',paid_flag_mismatch:'حالة السداد لا تطابق سجل الدفعات',price_split_mismatch:'تقسيم السعر يحتاج مراجعة',invalid_price:'السعر أو النسبة غير صحيح',unpriced_service:'أكملي السعر',provider_missing:'اختاري مقدم الخدمة',cancelled_case_requires_review:'عملية ملغاة؛ راجعي أثرها المالي قبل إصدار التقرير'};
 const review=l=>l.issues.map(i=>notes[i]||i).join(' — ');
-const actionable=l=>!(l.raw?.total_amount==null&&l.raw?.workflow_status==='closed'&&l.raw?.client_paid===true&&String(l.raw?.notes||'').includes('[BULK_IMPORT:2026:7:ROW:'))&&(l.action||l.issues.length);
+// Archive only previously imported Jul/Aug/Sep 2026 cases that are paid and closed.
+ // Never exempt new/backdated cases without the exact import marker.
+const archivedHistorical=l=>{
+  const c=l.raw || (snapshot?.cases||[]).find(c=>String(c.id)===String(l.caseId));
+  return c?.workflow_status==='closed' && c?.client_paid===true &&
+    /\[BULK_IMPORT:2026:(?:7|8|9):ROW:\d+\]/.test(String(c?.notes||''));
+};
+const actionable=l=>!archivedHistorical(l)&&Boolean(l.action||l.issues.length);
 function requestFor(key,payload){const signature=JSON.stringify(payload);const old=requests.get(key);if(old?.signature===signature)return old.id;const id=crypto.randomUUID();requests.set(key,{id,signature});return id;}
 async function rpc(name,args={}){if(!name.startsWith('test_finance_'))throw Error('TEST finance calls only');const {data,error}=await window.PAWAPP_AUTH.client.rpc(name,args);if(error)throw Error(error.message||'تعذر حفظ العملية');return data;}
 function message(error){const text=String(error?.message||error);const rules=[['Case changed','الحالة تعدلت من جهاز آخر. أغلقيها وافتحيها من جديد قبل الحفظ.'],['Paid service price/provider','الخدمة فيها دفعات مسجلة؛ لا نغيّر سعرها أو مقدمها بدون تصحيح موثق.'],['Paid transport price/provider','النقل فيه دفعات مسجلة؛ لا نغيّر سعره أو الشركة بدون تصحيح موثق.'],['Cannot change received payment','المبلغ مسجل كمستلم. لا يمكن تحويله إلى غير مدفوع بدون تصحيح موثق.'],['Cannot change a paid transaction recipient','لا يمكن تغيير مستلم دفعة مسجلة بدون مراجعة.'],['Cannot clear recorded commission','العمولة مستلمة ومسجلة؛ لا يمكن مسح استلامها.'],['Choose payment recipient','اختاري جهة استلام دفعة العميل.'],['No permission','ما عندج صلاحية لتعديل الحسابات.'],['Invalid amount','المبلغ غير صحيح أو أكبر من المتبقي.']];return rules.find(r=>text.includes(r[0]))?.[1]||text;}

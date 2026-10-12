@@ -29,7 +29,7 @@ function line(c,component){
  const fee=t?(c.transport_fee_value??c.transport_pawapp_amount??0):(c.fee_value??0);
  let calculated;try{calculated=quote(c[pre+'total_amount'],type,fee);}catch(e){issues.push('invalid_price');}
  if(calculated&&(calculated.paw!==paw||calculated.provider!==provider))issues.push('price_split_mismatch');
- if(paw+provider!==total)issues.push('price_split_mismatch');if(total===0n)issues.push('unpriced_service');
+ if(paw+provider!==total)issues.push('price_split_mismatch');if(total===0n && c.total_amount!==null)issues.push('unpriced_service');
  const recorded=minor(c[t?'transport_paid_recorded':'main_paid_recorded']);
  const providerPaid=minor(c[t?'transport_provider_paid':'main_provider_paid']);
  const commissionReceived=minor(c[pre+'pawapp_received_from_provider']);

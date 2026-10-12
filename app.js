@@ -631,12 +631,19 @@ window.sourceLabel = function(src){
       if(f) f.value=from;if(t)t.value=to;
       renderReports();
     };
+    function canonicalCustomerKey(c){
+      if(window.PawFinanceCore?.customerKey)return window.PawFinanceCore.customerKey(c);
+      let p=String(c.client_phone||'').replace(/[^0-9]/g,'');
+      if(p.length===8)p='965'+p;
+      if(p.startsWith('00'))p=p.slice(2);
+      return p?'phone:'+p:'case:'+c.id;
+    }
     function reportRows(){
       const from=document.getElementById('reportFrom')?.value||'0000-01-01';
       const to=document.getElementById('reportTo')?.value||'9999-12-31';
       const pid=document.getElementById('reportProvider')?.value||'all';
       return db.cases.filter(function(c){
-        const d=String(c.service_date||c.created_at||'').slice(0,10);
+        const d=String(c.service_date||'').slice(0,10);
         return d>=from&&d<=to&&(pid==='all'||String(c.providerId)===String(pid));
       });
     }
@@ -648,10 +655,14 @@ window.sourceLabel = function(src){
       const rows=reportRows(),clientKeys=new Set(),providerIds=new Set();
       let sales=0,pawTotal=0,providerDue=0;
       rows.forEach(function(c){
-        const key=String(c.client_phone||'').replace(/[^0-9]/g,'').replace(/^965(?=[0-9]{8}$)/,'')||String(c.client_name||'').trim().toLowerCase();
+        const key=canonicalCustomerKey(c);
         if(key)clientKeys.add(key);if(c.providerId)providerIds.add(String(c.providerId));
         sales+=Number(c.total_amount||0);pawTotal+=Number(c.pawapp_amount||0);providerDue+=Number(c.provider_amount||0);
       });
+      const missingDates=db.cases.filter(c=>!c.service_date&&(document.getElementById('reportProvider')?.value==='all'||String(c.providerId)===document.getElementById('reportProvider')?.value));
+      let dateWarning=document.getElementById('pawReportMissingDates');
+      if(!dateWarning){dateWarning=document.createElement('div');dateWarning.id='pawReportMissingDates';dateWarning.className='hint';dateWarning.style.cssText='padding:10px;margin:10px 0;border:1px solid #dbe2ed;border-radius:12px';document.getElementById('reportCases')?.closest('.cards')?.after(dateWarning);}
+      if(dateWarning)dateWarning.textContent=missingDates.length?'تنبيه: '+missingDates.length+' عمليات بدون تاريخ خدمة مستبعدة من تقرير الفترة، لكنها محسوبة في إجمالي الداشبورد. لا يُفترض تاريخ لها.':'جميع العمليات لها تاريخ خدمة.';
       document.getElementById('reportClients').textContent=clientKeys.size;
       document.getElementById('reportProviders').textContent=providerIds.size;
       document.getElementById('reportCases').textContent=rows.length;
@@ -664,7 +675,7 @@ window.sourceLabel = function(src){
       box.innerHTML=rows.length?Object.entries(counts).sort(function(a,b){return b[1]-a[1]}).map(function(e){
         const p=db.providers.find(function(x){return String(x.id)===e[0]});
         const pr=rows.filter(function(x){return String(x.providerId||'none')===e[0]});
-        const clients=new Set(pr.map(function(x){return String(x.client_phone||'').replace(/[^0-9]/g,'').replace(/^965(?=[0-9]{8}$)/,'')||String(x.client_name||'').toLowerCase()}));
+        const clients=new Set(pr.map(canonicalCustomerKey));
         const total=pr.reduce(function(n,x){return n+Number(x.total_amount||0)},0);
         return '<div class="card" style="box-shadow:none"><b>'+esc(p?p.name:'بدون شركة')+'</b><div class="miniGrid" style="margin-top:8px"><div class="mini"><span>العمليات</span><b>'+e[1]+'</b></div><div class="mini"><span>العملاء</span><b>'+clients.size+'</b></div><div class="mini"><span>الإجمالي</span><b>'+total.toFixed(3)+' د.ك</b></div></div></div>';
       }).join(''):'<div class="card"><div class="hint">ما في بيانات ضمن الفترة المختارة.</div></div>';
@@ -828,8 +839,8 @@ window.sourceLabel = function(src){
       const q=(document.getElementById('crmSearch')?.value||'').trim().toLowerCase();
       const groups=new Map();
       db.cases.slice().reverse().forEach(x=>{
-        const phone=String(x.client_phone||'').replace(/[^0-9]/g,'').replace(/^965(?=[0-9]{8}$)/,'');
-        const key=phone||('name:'+String(x.client_name||'').toLowerCase());
+        const phone=String(x.client_phone||'');
+        const key=canonicalCustomerKey(x);
         if(!groups.has(key)) groups.set(key,{name:x.client_name||'بدون اسم',phone:x.client_phone||'',location:x.location||'',cases:[],pets:new Map()});
         const g=groups.get(key);
         g.cases.push(x);

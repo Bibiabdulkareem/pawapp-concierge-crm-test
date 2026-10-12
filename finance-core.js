@@ -44,7 +44,7 @@ function line(c,component){
  if(flag===true&&paid<total)issues.push('paid_flag_mismatch');
  if(route==='provider'&&providerPaid>0n)issues.push('direct_provider_and_payout');
  if(route==='pawapp'&&commissionReceived>0n)issues.push('duplicate_commission_route');
- if(!c[t?'transport_provider_id':'provider_id'])issues.push('provider_missing');
+ if(!c[t?'transport_provider_id':'provider_id'] && !(c.workflow_status==='closed' && c.client_paid===true && String(c.notes||'').includes('[BULK_IMPORT:2026:7:ROW:')))issues.push('provider_missing');
  if(isPaid&&!['pawapp','provider'].includes(route))issues.push('payment_route_missing');
  const ours=isPaid&&route==='provider'?left(paw,commissionReceived):0n;
  const theirs=isPaid&&route==='pawapp'?left(provider,providerPaid):0n;

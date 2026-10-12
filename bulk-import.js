@@ -94,9 +94,9 @@ try{
 await req('test_followups',{method:'POST',body:JSON.stringify({case_id:item.id,followup_at:new Date(Date.now()+86400000).toISOString(),reason:'استكمال بيانات الاستيراد',notes:d.missing.join('، '),status:'pending'})});
 followups++;
 }catch(followError){
-try{await req('test_cases?id=eq.'+encodeURIComponent(item.id),{method:'DELETE',headers:{Prefer:'return=minimal'}})}
-catch(rollbackError){throw Error('تعذر إنشاء المتابعة وتعذر التراجع عن العملية '+item.id+'. يلزم تدخل يدوي: '+followError.message)}
-throw Error('فشل إنشاء المتابعة؛ تم التراجع عن العملية '+item.id+': '+followError.message);
+// Never delete a successfully imported case when followup creation fails.
+// Keep the row marker and surface the outstanding followup explicitly.
+failed.push('متابعة صف '+row.line+' (عملية '+item.id+'): '+String(followError.message||followError).slice(0,150));
 }
 }
 created++;existing.push(item);

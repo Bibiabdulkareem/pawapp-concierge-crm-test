@@ -56,8 +56,40 @@ function ensure(){
  };
 }
 window.pawPetRegistryRefresh=load;
+window.pawPetLinkNewCase=async function(caseId){
+ const phone=digits($('cPhone')?.value),selected=$('pawPetBookingSelect')?.value||'',name=$('pawPetBookingName')?.value.trim()||'';
+ if(!phone||(!selected&&!name))return;
+ let petId=selected;
+ if(petId){
+  const pet=pets.find(x=>x.id===petId);
+  if(!pet||digits(pet.customer_phone)!==phone)throw Error('الحيوان المختار لا يتبع رقم العميل');
+ }else{
+  const match=pets.find(x=>digits(x.customer_phone)===phone&&x.pet_name.trim().toLowerCase()===name.toLowerCase());
+  if(match)petId=match.id;
+  else{
+   const {data,error}=await client().from('test_pet_registry').insert({customer_phone:phone,pet_name:name,pet_type:$('cPetType')?.value||null,breed:$('cBreed')?.value||null}).select('id').single();
+   if(error)throw error;petId=data.id;
+  }
+ }
+ const {error}=await client().from('test_pet_case_links').insert({case_id:caseId,pet_id:petId});
+ if(error)throw error;
+ await load();
+};
+function booking(){
+ const input=$('cPhone');if(!input||$('pawPetBookingWrap'))return;
+ const wrap=document.createElement('div');wrap.id='pawPetBookingWrap';wrap.className='field';
+ wrap.innerHTML='<label>الحيوان المرتبط بالحجز</label><select id="pawPetBookingSelect"><option value="">حيوان جديد أو غير مسجل</option></select><input id="pawPetBookingName" placeholder="اسم الحيوان الجديد (اختياري)" style="margin-top:6px"><div class="hint">اختاري الحيوان السابق أو اكتبي اسم حيوان جديد. لن يتكرر العدد عند اختيار حيوان مسجل.</div>';
+ input.parentElement.insertAdjacentElement('afterend',wrap);
+ const update=()=>{
+  const phone=digits(input.value),sel=$('pawPetBookingSelect'),prev=sel.value;
+  sel.innerHTML='<option value="">حيوان جديد أو غير مسجل</option>'+pets.filter(p=>digits(p.customer_phone)===phone).map(p=>'<option value="'+esc(p.id)+'">'+esc(p.pet_name)+'</option>').join('');
+  if([...sel.options].some(o=>o.value===prev))sel.value=prev;
+ };
+ input.addEventListener('input',update);$('pawPetBookingSelect').addEventListener('change',()=>{$('pawPetBookingName').disabled=!!$('pawPetBookingSelect').value;});update();
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
  const check=()=>{if($('crmCustomerList')){ensure();if(!loaded)load();}};
- check();new MutationObserver(check).observe(document.body,{childList:true,subtree:false});
+ check();booking();new MutationObserver(check).observe(document.body,{childList:true,subtree:false});
 });
 })();

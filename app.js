@@ -841,6 +841,7 @@ window.sourceLabel = function(src){
 
     
     window.renderCRM = function(){
+      window.pawPetCases=db.cases;
       const q=(document.getElementById('crmSearch')?.value||'').trim().toLowerCase();
       const groups=new Map();
       db.cases.slice().reverse().forEach(x=>{

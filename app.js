@@ -396,6 +396,10 @@
             ...transportPayload('c',service)
           })
         });
+        if(window.pawPetLinkNewCase&&inserted?.[0]?.id){
+          try{await window.pawPetLinkNewCase(inserted[0].id)}
+          catch(petError){console.warn('Pet linking pending',petError);alert('تم حفظ العملية، لكن تعذر ربط الحيوان: '+petError.message)}
+        }
         if(document.getElementById('cClientPaid').value==='paid'){
           await api('client_payments',{
             method:'POST',

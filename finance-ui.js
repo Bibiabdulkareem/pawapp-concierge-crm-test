@@ -333,7 +333,7 @@ window.exportProviderFullReport=function(id){
  const pending=F.summarize(lines);
  rows.push(['Balance',p.name,from,to,'provider_to_pawapp',pending.ours>0n?'Pending':settlements.some(x=>x.direction==='provider_to_pawapp')?'Settled':lines.some(x=>x.issues.length)?'Review required':'Not approved',F.format(pending.ours),'','',''].map(csvCell).join(','));
  rows.push(['Balance',p.name,from,to,'pawapp_to_provider',pending.theirs>0n?'Pending':settlements.some(x=>x.direction==='pawapp_to_provider')?'Settled':lines.some(x=>x.issues.length)?'Review required':'Not approved',F.format(pending.theirs),'','',''].map(csvCell).join(','));
- const report=header+'\n'+rows.join('\n')+'\n';
+ const report=F.csv(lines,p.name);
  download(report,'PawApp-'+p.name+'-settlements.csv','text/csv;charset=utf-8');
 };
 window.pawPrintProviderReport=function(){

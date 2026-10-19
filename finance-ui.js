@@ -143,16 +143,23 @@ function renderProviderSettlementPeriod(){
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
  const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
  const sum=F.summarize(lines);
- const unresolved=lines.filter(l=>l.issues.length);
+ const cases=(snapshot?.cases||[]).filter(c=>lines.some(l=>l.caseId===String(c.id)));
+ const historical=cases.length>0&&cases.every(c=>c.workflow_status==='closed'&&c.client_paid===true);
  const pending=lines.filter(l=>l.ours>0n||l.theirs>0n);
- const paid=lines.filter(l=>l.isPaid&&l.ours===0n&&l.theirs===0n&&!l.issues.length);
- const status=unresolved.length?'تحتاج مراجعة':pending.length?'Pending — بانتظار التسوية':'لا توجد مستحقات معلقة';
- host.innerHTML='<div class="hint">ملخص حسب تاريخ الخدمة — عرض فقط، لا يعتمد تسوية أو يسجل دفعاً</div>'+
+ const unresolved=lines.filter(l=>l.issues.length);
+ const settled=lines.filter(l=>l.isPaid&&l.ours===0n&&l.theirs===0n&&!l.issues.length);
+ const status=historical&&!pending.length?'شهر مقفل في العمليات — مراجعة تفاصيل التسوية':unresolved.length?'تحتاج مراجعة':pending.length?'Pending — بانتظار التسوية':'لا توجد مستحقات معلقة';
+ host.innerHTML='<div class="hint">إجمالي الفترة وحصص الطرفين تظهر دائماً، حتى لو المتبقي صفر. حالة الإقفال لا تثبت التحويل وحدها.</div>'+
  '<div class="miniGrid"><div class="mini"><span>عمليات الفترة</span><b>'+sum.caseCount+'</b></div>'+
- '<div class="mini"><span>على الشركة لصالح PawApp</span><b>'+cash(sum.ours)+'</b></div>'+
- '<div class="mini"><span>على PawApp لصالح الشركة</span><b>'+cash(sum.theirs)+'</b></div></div>'+
- '<p><b>الحالة: '+html(status)+'</b> • عمليات مدفوعة ومستوفية: '+paid.length+' • بنود تحتاج مراجعة: '+unresolved.length+'</p>'+
- '<div class="hint">لا تُخصم مستحقات الطرفين من بعضهما. لا يتم تأكيد Settled إلا بعد إثبات التحويل الكامل.</div>';
+ '<div class="mini"><span>إجمالي العمليات</span><b>'+cash(sum.total)+'</b></div>'+
+ '<div class="mini"><span>حصة PawApp</span><b>'+cash(sum.paw)+'</b></div>'+
+ '<div class="mini"><span>حصة الشركة</span><b>'+cash(sum.provider)+'</b></div>'+
+ '<div class="mini"><span>المحصّل من العمولة</span><b>'+cash(sum.pawCollected)+'</b></div>'+
+ '<div class="mini"><span>المحوّل للشركة</span><b>'+cash(sum.providerPaid)+'</b></div>'+
+ '<div class="mini"><span>المتبقي على الشركة</span><b>'+cash(sum.ours)+'</b></div>'+
+ '<div class="mini"><span>المتبقي على PawApp</span><b>'+cash(sum.theirs)+'</b></div></div>'+
+ '<p><b>الحالة: '+html(status)+'</b> • عمليات مستوفية: '+settled.length+' • بنود تحتاج مراجعة: '+unresolved.length+'</p>'+
+ '<div class="hint">بنود المراجعة قد تشمل نقص توثيق جهة الدفع في السجلات القديمة؛ لا تُغيّر التسوية الأصلية تلقائياً.</div>';
 }
 window.pawProviderSettlementPeriodChanged=renderProviderSettlementPeriod;
 function renderProvider(){if(!selectedProvider||!model)return;const p=model.providers.find(x=>String(x.id)===String(selectedProvider));if(!p)return;const s=p.summary;set('providerDetailName',p.name);set('providerDetailType','الخدمة الأساسية والنقل — كل مبلغ محسوب مرة واحدة');set('pdClients',s.customerCount);set('pdOps',s.caseCount);const pendingCases=new Set(p.lines.filter(actionable).map(l=>l.caseId));set('pdPending',pendingCases.size);set('pdComplete',s.caseCount-pendingCases.size);set('pdSales',cash(s.total));set('pdPaw',cash(s.paw));set('pdOurs',cash(s.ours));set('pdTheirs',cash(s.theirs));

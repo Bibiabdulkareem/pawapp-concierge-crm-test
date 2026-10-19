@@ -23,7 +23,7 @@
   try{
     if(!window.PAWAPP_AUTH?.client)throw new Error('سجلي الدخول أولًا.');
     await script('finance-core.js?v=3.4');
-    await script('finance-ui.js?v=3.15-settlement-preview');
+    await script('finance-ui.js?v=3.16-settlement-gross');
     await script('app.js?v=3.10-pet-owner-fix');
     const start=Date.now();
     while(typeof window.renderAdminAccess!=='function'||typeof window.downloadTestBackup!=='function'){

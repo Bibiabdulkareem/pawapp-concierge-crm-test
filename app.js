@@ -51,42 +51,25 @@
   script.src = 'https://cdn.jsdelivr.net/gh/Bibiabdulkareem/pop-up-concierge-operation@d2919c2b088c0c17f5ff06339f6a3e5a5c0c4434/app.js';
   script.onload = function(){
     window.deleteCaseFromOperations=async function(caseId){
-      if(!(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))){alert('الحذف متاح للـ Admin و Operations فقط');return}
-      const row=db.cases.find(function(x){return String(x.id)===String(caseId)});
-      if(!row) return;
+      if(!(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))){alert('الحذف متاح للـ Admin و Operations فقط');return;}
+      const row=db.cases.find(x=>String(x.id)===String(caseId));if(!row)return;
+      const code='PAW-'+String(caseId).padStart(4,'0');
+      const full=confirm('حذف '+code+'\\n\\nموافق: حذف العملية وجميع مبالغها ودفعات العميل وتسويات مقدم الخدمة من TEST، وإعادة احتساب الإحصائيات.\\n\\nإلغاء: عدم حذف أي شيء، للحفاظ على الحسابات المالية.\\n\\nتنبيه: لا يمكن حذف العملية وحدها مع إبقاء مبالغها في التقارير بدون أرشفة مالية مستقلة.');
+      if(!full)return;
+      const verify=prompt('للتأكيد النهائي على حذف العملية مع كل مبالغها، اكتبي رقم العملية '+code);
+      if(verify!==code){if(verify!==null)alert('لم يتم الحذف: رقم التأكيد غير مطابق');return;}
       try{
-        const [payments,settlements,attachments]=await Promise.all([
-          api('client_payments?select=id&case_id=eq.'+encodeURIComponent(caseId)),
-          api('settlements?select=id&case_id=eq.'+encodeURIComponent(caseId)),
-          api('case_attachments?select=id&case_id=eq.'+encodeURIComponent(caseId)).catch(function(){return []})
-        ]);
-        if(payments&&payments.length){
-          alert('لا يمكن حذف هذه العملية لأن عليها تحصيل مسجل من العميل، والمبلغ محسوب ضمن الحسابات والتقارير. يمكن تعديل العملية فقط بدون حذفها.');
-          return;
-        }
-        if(settlements&&settlements.length){
-          alert('لا يمكن حذف هذه العملية لأن عليها تسوية / دفعة مسجلة للشركة أو الفريلانسر، والمبلغ محسوب ضمن الحسابات والتقارير. يمكن تعديل العملية فقط بدون حذفها.');
-          return;
-        }
-        if(attachments&&attachments.length){
-          alert('لا يمكن حذف هذه العملية لأن عليها مرفقات مالية محفوظة. احذفي المرفقات أولاً إذا كان الحذف مسموحاً، أو عدلي العملية بدون حذفها.');
-          return;
-        }
-        if(!confirm('حذف العملية PAW-'+String(caseId).padStart(4,'0')+' للعميل '+(row.client_name||'')+'؟\nهذا الحذف نهائي من TEST.')) return;
-        await api('followups?case_id=eq.'+encodeURIComponent(caseId),{method:'DELETE'}).catch(function(){});
-        await api('cases?id=eq.'+encodeURIComponent(caseId),{method:'DELETE'});
-        const verify=await api('cases?select=id&id=eq.'+encodeURIComponent(caseId));
-        if(verify&&verify.length) throw new Error('CASE_DELETE_NOT_APPLIED');
+        if(row.source!=='booking_form_test'){alert('الحذف المالي الشامل متاح حالياً لطلبات نموذج TEST فقط. بقية العمليات لم يتم تعديلها.');return;}
+        const {data,error}=await window.PAWAPP_AUTH.client.rpc('test_delete_case_with_finance',{p_case_id:Number(caseId)});
+        if(error)throw error;
         closeModal('completeCaseModal');
         await loadData();
-        renderCases();
-        if(typeof renderCRM==='function') renderCRM();
-        if(typeof renderDashboard==='function') renderDashboard();
-        toast('تم حذف العملية');
-      }catch(e){
-        console.error(e);
-        alert('تعذر حذف العملية');
-      }
+        if(typeof window.PawFinanceInstall==='function')await window.PawFinanceInstall();
+        if(typeof renderCases==='function')renderCases();
+        if(typeof renderCRM==='function')renderCRM();
+        if(typeof renderDashboard==='function')renderDashboard();
+        alert('تم حذف '+code+' مع سجلات الدفع والتسوية المرتبطة به من TEST. تم تحديث البيانات المعروضة.');
+      }catch(e){console.error(e);alert('لم يتم الحذف: '+(e.message||'تعذر إكمال العملية'));}
     };
 
     window.renderCases = function(){

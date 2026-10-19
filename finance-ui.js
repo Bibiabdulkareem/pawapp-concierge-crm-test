@@ -184,7 +184,7 @@ function renderProviderSettlementPeriod(){
  '<div class="mini"><span>المتبقي على الشركة</span><b>'+cash(historical?0n:sum.ours)+'</b></div>'+
  '<div class="mini"><span>المتبقي على PawApp</span><b>'+cash(historical?0n:sum.theirs)+'</b></div></div>'+
  '<div class="miniGrid">'+settlementCards+'</div>'+ 
- '<p><b>التسوية: '+html(status)+'</b> • عمليات مستوفية: '+(historical?lines.length:settled.length)+' • بنود تحتاج مراجعة: '+(historical?0:unresolved.length)+'</p>'+
+ '<button class="btn" onclick="pawPrintProviderReport()">طباعة تقرير رسمي بالشعار / حفظ PDF</button><p><b>التسوية: '+html(status)+'</b> • عمليات مستوفية: '+(historical?lines.length:settled.length)+' • بنود تحتاج مراجعة: '+(historical?0:unresolved.length)+'</p>'+
  '<div class="hint">'+(historical?'الفترة مقفلة خارج النظام؛ بيانات التحويلات الفعلية تظهر أعلاه كما هي ويمكن توثيقها بشكل مستقل.':'البنود الناقصة تحتاج مراجعة قبل اعتماد تسوية جديدة.')+'</div>';
 }
 window.pawProviderSettlementPeriodChanged=renderProviderSettlementPeriod;
@@ -335,6 +335,18 @@ window.exportProviderFullReport=function(id){
  rows.push(['Balance',p.name,from,to,'pawapp_to_provider',pending.theirs>0n?'Pending':settlements.some(x=>x.direction==='pawapp_to_provider')?'Settled':lines.some(x=>x.issues.length)?'Review required':'Not approved',F.format(pending.theirs),'','',''].map(csvCell).join(','));
  const report=header+'\n'+rows.join('\n')+'\n';
  download(report,'PawApp-'+p.name+'-settlements.csv','text/csv;charset=utf-8');
+};
+window.pawPrintProviderReport=function(){
+ const p=model?.providers.find(x=>String(x.id)===String(selectedProvider));
+ const section=el('pawProviderSettlementPeriod');
+ if(!p||!section)return alert('اختاري الشركة والفترة أولاً');
+ const logo=document.querySelector('img.logo')?.src||'';
+ const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
+ const w=window.open('','_blank');
+ if(!w)return alert('اسمحي بفتح نافذة التقرير للطباعة');
+ const safe=x=>html(x);
+ w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>PawApp - '+safe(p.name)+'</title><style>body{font:15px Arial,sans-serif;color:#142b49;margin:32px}header{display:flex;align-items:center;gap:18px;border-bottom:3px solid #163e76;padding-bottom:18px;margin-bottom:20px}header img{width:76px;height:76px;object-fit:contain}h1{font-size:24px;margin:0}.miniGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}.mini{border:1px solid #dce4ed;border-radius:9px;padding:12px}.mini span{display:block;color:#687c91}.mini b{display:block;margin-top:7px}button{display:none}.hint{color:#687c91;margin:12px 0}@media print{body{margin:15mm}}</style></head><body><header>'+(logo?'<img src="'+logo+'" alt="PawApp">':'')+'<div><h1>PawApp Concierge</h1><strong>تقرير تسويات الشركة — '+safe(p.name)+'</strong><p>'+safe(from)+' — '+safe(to)+'</p></div></header>'+section.innerHTML+'<p class="hint">تقرير من نظام TEST — ليس إيصال تحويل بنكي</p></body></html>');
+ w.document.close();w.focus();setTimeout(()=>w.print(),500);
 };
 window.exportProviderReport=window.exportProviderFullReport;
 function csvCell(value){let s=String(value??'');if(/^[\\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}

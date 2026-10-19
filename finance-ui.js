@@ -122,6 +122,10 @@ for(const c of snapshot.cases||[]){
 let customerAudit=el('pawCustomerCountAudit');
 if(!customerAudit){customerAudit=document.createElement('div');customerAudit.id='pawCustomerCountAudit';customerAudit.className='hint';customerAudit.style.cssText='margin:8px 0;padding:10px;border:1px solid #dbe2ed;border-radius:12px';const customerCard=el('kCustomers')?.closest('.card');if(customerCard)customerCard.appendChild(customerAudit);}
 if(customerAudit)customerAudit.textContent='عملاء برقم/معرّف مميز: '+identified.size+' | عمليات بلا رقم أو معرّف: '+unidentified.size+' (تحتاج مطابقة، ليست بالضرورة عملاء جدد). العدد المعروض يشملها مؤقتاً.';set('kClientPaidTotal',cash(s.paid));set('kClientUnpaidTotal',cash(s.unpaid));set('kOursFromProviders',cash(s.ours));set('kOweProviders',cash(s.theirs));
+let settlementsDashboard=el('pawSettlementsDashboard');
+if(!settlementsDashboard){settlementsDashboard=document.createElement('section');settlementsDashboard.id='pawSettlementsDashboard';settlementsDashboard.className='card';el('dashboard')?.appendChild(settlementsDashboard);}
+const settledTotal=periodSettlements.reduce((a,x)=>a+Number(x.amount||0),0);
+if(settlementsDashboard)settlementsDashboard.innerHTML='<h3>تسويات الشركات — TEST</h3><div class="miniGrid"><div class="mini"><span>تسويات معتمدة</span><b>'+periodSettlements.length+'</b></div><div class="mini"><span>إجمالي التحويلات المعتمدة</span><b>'+settledTotal.toFixed(3)+' د.ك</b></div><div class="mini"><span>Pending للشركات على PawApp</span><b>'+cash(s.theirs)+'</b></div><div class="mini"><span>Pending لـ PawApp على الشركات</span><b>'+cash(s.ours)+'</b></div></div><div class="hint">الأرصدة الحالية من سجل المالية نفسه؛ التحويلات المعتمدة لا تُضاف مرة ثانية للإيرادات.</div>';
 let statsBox=el('pawDashboardStats');
 if(!statsBox){statsBox=document.createElement('div');statsBox.id='pawDashboardStats';statsBox.className='card';statsBox.style.margin='10px 0';el('dashboard')?.appendChild(statsBox);}
 const uniqueServices=new Set((snapshot.cases||[]).map(c=>String(c.service_name||c.requested_service||'').trim().toLowerCase()).filter(Boolean));
@@ -298,7 +302,21 @@ const oldFocusedEditor=window.openCaseWorkflow;
 window.openCaseWorkflow=function(id,mode){if(mode==='finance'){const pending=linesFor(id).find(actionable);if(pending){window.pawFinanceOpen(id,pending.component);return;}}oldFocusedEditor(id,mode);};
 window.openNewCase=function(){legacyNewCase();for(const[k,value]of Object.entries({cFinTransportFeeType:'fixed',cFinTransportPaid:'no',cFinTransportRecipient:''})){if(el(k))el(k).value=value;}window.calcCase();};
 window.openSettlement=id=>window.pawFinanceOpen(id,'main');window.openClientPayment=id=>window.pawFinanceOpen(id,'main');window.saveSettlement=()=>{alert('افتحي المستحق من زر الدفع المخصص.');};window.saveClientPayment=window.saveSettlement;
-window.exportProviderFullReport=function(id){const p=model.providers.find(x=>String(x.id)===String(id));if(!p)return;if(!p.summary.ready){alert('التقرير غير جاهز للاعتماد: فيه بنود تحتاج تأكيد سداد أو مراجعة. راجعي تفاصيل الشركة أولًا.');return;}download(F.csv(p.lines,p.name),'PawApp-'+p.name+'-statement.csv','text/csv;charset=utf-8');};window.exportProviderReport=window.exportProviderFullReport;
+window.exportProviderFullReport=function(id){
+ const p=model.providers.find(x=>String(x.id)===String(id));if(!p)return;
+ const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
+ const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
+ const settlements=periodSettlements.filter(x=>String(x.provider_id)===String(id)&&(!from||x.period_to>=from)&&(!to||x.period_from<=to));
+ const header='Report type,Provider,From,To,Direction,Status,Amount KD,Payment date,Method,Reference';
+ const rows=settlements.map(x=>['Settlement',p.name,x.period_from,x.period_to,x.direction,'Settled',Number(x.amount).toFixed(3),x.paid_at,x.method,x.reference||''].map(csvCell).join(','));
+ const pending=F.summarize(lines);
+ rows.push(['Balance',p.name,from,to,'provider_to_pawapp',pending.ours>0n?'Pending':'No outstanding',F.format(pending.ours),'','',''].map(csvCell).join(','));
+ rows.push(['Balance',p.name,from,to,'pawapp_to_provider',pending.theirs>0n?'Pending':'No outstanding',F.format(pending.theirs),'','',''].map(csvCell).join(','));
+ const report=header+'\\n'+rows.join('\\n')+'\\n\\nCase detail\\n'+F.csv(lines,p.name);
+ download(report,'PawApp-'+p.name+'-settlements.csv','text/csv;charset=utf-8');
+};
+window.exportProviderReport=window.exportProviderFullReport;
+function csvCell(value){let s=String(value??'');if(/^[\\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name.replace(/[\\/]/g,'-');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 window.downloadTestBackup=async function(){try{const data=await rpc('test_finance_backup');download(JSON.stringify(data,null,2),'pawapp-test-finance-backup-'+localDate()+'.json','application/json');toast('تم تجهيز نسخة TEST الاحتياطية');}catch(e){alert(message(e))}};
 window.renderDashboard=renderDashboard;window.renderProviders=renderProviders;window.renderCases=renderCases;window.renderAutomaticFollowups=renderFollowups;window.loadData=refresh;window.renderAll=function(){render();};

@@ -842,7 +842,7 @@ window.sourceLabel = function(src){
         if(!groups.has(key)) groups.set(key,{name:x.client_name||'بدون اسم',phone:x.client_phone||'',location:x.location||'',cases:[],pets:new Map()});
         const g=groups.get(key);
         g.cases.push(x);
-        const pkey=[x.pet_type||'',x.breed||'',x.pet_age||''].join('|');
+        const pkey=[String(x.pet_type||'').trim().toLowerCase().replace('cat','قط').replace('dog','كلب'),String(x.breed||'').trim().toLowerCase()].join('|');
         if(!g.pets.has(pkey)) g.pets.set(pkey,{
           pet_type:x.pet_type||'غير محدد',
           breed:x.breed||'',
@@ -870,7 +870,7 @@ window.sourceLabel = function(src){
       if(petCount) petCount.textContent=String(petGroups.size);
       let petNote=document.getElementById('pawPetCountNote');
       if(!petNote){petNote=document.createElement('div');petNote.id='pawPetCountNote';petNote.className='hint';petNote.style.cssText='margin:8px 0;padding:8px;border:1px solid #dbe2ed;border-radius:10px';petCount?.parentElement?.appendChild(petNote);}
-      if(petNote)petNote.textContent='عدد تقديري لمجموعات الحيوانات حسب العميل والنوع والسلالة، وليس عدد حيوانات موثقاً. عمليات بلا نوع حيوان: '+missingPetType+'. يلزم معرّف مستقل لكل حيوان للعد الدقيق.';
+      if(petNote)petNote.textContent='عدد مبدئي للحيوانات المختلفة حسب رقم العميل والنوع والسلالة، وليس عدداً مؤكداً للحيوانات الفردية. العمر قد يتغير ولا يُنشئ حيواناً جديداً وحده. عمليات بدون نوع: '+missingPetType+'. عند تشابه حيوانين لنفس العميل يلزم تمييز إضافي، والاسم اختياري.';
       if(caseCount) caseCount.textContent=String(db.cases.length);
       const out=document.getElementById('crmCustomerList');
       if(!out) return;

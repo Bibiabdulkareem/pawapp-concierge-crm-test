@@ -29,7 +29,7 @@ function renderSeptemberReviews(){
   if(!finance)return;
   let box=el('septemberFinanceReviews');
   if(!box){box=document.createElement('section');box.id='septemberFinanceReviews';finance.before(box);}
-  box.innerHTML=septemberReviewRows.length?
+  box.innerHTML=false&&septemberReviewRows.length?
     '<h3>استكمال البيانات المالية — '+septemberReviewRows.length+' عمليات</h3>'+
     septemberReviewRows.map(r=>{
       const v=r.source_data?.values||[];
@@ -257,7 +257,7 @@ function renderFollowups(){if(!model)return;
   }).join(''):'';
  }
  if(legacyFollowups)legacyFollowups();renderSeptemberReviews();const lines=model.lines.filter(l=>actionable(l)&&!(l.date>='2026-07-01'&&l.date<'2026-10-01'));const box=el('followupFinanceList');if(box)box.innerHTML=lines.map(l=>'<div class="card provider"><div style="display:flex;justify-content:space-between;gap:10px"><h3>'+html(l.client)+'</h3><span class="status unpaid">'+(l.issues.length?'تأكيد / مراجعة':'مستحقات')+'</span></div><div class="hint">'+caseCode(l.caseId)+' • '+html(providerName(l.providerId))+' • '+(l.component==='transport'?'النقل':'الخدمة')+'</div><h3>'+html(actionLabel(l))+'</h3><div class="hint">'+html(detail(l))+'</div><div class="actions">'+actionButton(l)+'</div></div>').join('')||'<div class="card"><b class="green">تمام ✓</b><div class="hint">لا توجد مستحقات أو بيانات مالية معلقة.</div></div>';
-set('fuFinance',new Set(lines.map(l=>l.caseId)).size+septemberReviewRows.length);const pending=new Set(lines.map(l=>l.caseId));for(const id of ['followupAppointmentList','followupMissingList'])el(id)?.querySelectorAll('[onclick]').forEach(b=>{const m=b.getAttribute('onclick')?.match(/\('([^']+)'/);if(m)pending.add(m[1])});set('followupNavBadge',pending.size+septemberReviewRows.length);if(el('followupNavBadge'))el('followupNavBadge').style.display=(pending.size+septemberReviewRows.length)?'inline-block':'none';set('kNeedsFollowup',pending.size+septemberReviewRows.length);
+set('fuFinance',new Set(lines.map(l=>l.caseId)).size);const pending=new Set(lines.map(l=>l.caseId));for(const id of ['followupAppointmentList','followupMissingList'])el(id)?.querySelectorAll('[onclick]').forEach(b=>{const m=b.getAttribute('onclick')?.match(/\('([^']+)'/);if(m)pending.add(m[1])});set('followupNavBadge',pending.size);if(el('followupNavBadge'))el('followupNavBadge').style.display=pending.size?'inline-block':'none';set('kNeedsFollowup',pending.size);
 }
 function isArchivedHistoricalCaseForTable(c){return String(c.workflow_status)==='closed'&&c.client_paid===true&&/\[BULK_IMPORT:2026:(?:7|8|9):ROW:\d+\]/.test(String(c.notes||''));}
 function renderCases(){

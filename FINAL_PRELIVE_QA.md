@@ -18,5 +18,13 @@ Status: PENDING. No LIVE migration without user approval. Keep existing TEST and
 - Verify database and dashboard counts/sums before and after. Preserve audit behavior appropriate to TEST.
 - Do not delete any real case or touch LIVE.
 
+## QA-03: Provider settlement reconciliation across every financial view (after implementation)
+- Before enabling settlements on TEST, confirm new settlement calculations use the existing finance ledger and case-level recipient/direction; do not double count payments, commission or provider balances.
+- Reconcile identical provider/date filters across provider page, finance/accounting dashboard, main dashboard, partner reports, CSV/Excel exports, and underlying SQL ledger.
+- Verify Pending -> Settled moves ONLY outstanding balances, not original revenue, gross case value, PawApp earned commission or provider earned share.
+- Full payment only; no partial settlement, no netting of reciprocal balances. Verify both payment directions independently.
+- Verify selected date range and exact included case IDs, new cases after a period is closed, backdated cases, corrections, duplicate clicks/retries, and role permissions.
+- Record baseline and post-settlement totals and evidence; all tests must PASS before LIVE. No changes to LIVE without explicit approval.
+
 ## Release gate
 - Confirm end-to-end checks from the actual UI and database, document pass/fail and fixes, then obtain explicit user approval before any LIVE deployment.

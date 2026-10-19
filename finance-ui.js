@@ -159,17 +159,17 @@ function renderProviderSettlementPeriod(){
  const settled=lines.filter(l=>l.isPaid&&l.ours===0n&&l.theirs===0n&&!l.issues.length);
  const approved=periodSettlements.filter(x=>String(x.provider_id)===String(selectedProvider)&&(!from||x.period_to>=from)&&(!to||x.period_from<=to));
  const settlementCards=['pawapp_to_provider','provider_to_pawapp'].map(dir=>{
-   const title=dir==='pawapp_to_provider'?'PawApp تدفع للشركة':'الشركة تدفع لـ PawApp';
+   const title=dir==='pawapp_to_provider'?'مستحق للشركة على PawApp':'مستحق لـ PawApp على الشركة';
    const rows=approved.filter(x=>x.direction===dir);
    const amount=rows.reduce((a,x)=>a+Number(x.amount||0),0);
    const due=dir==='pawapp_to_provider'?sum.theirs:sum.ours;
    const relevant=lines.filter(l=>l.isPaid&&l.route===(dir==='pawapp_to_provider'?'pawapp':'provider'));
    const unknown=relevant.some(l=>l.issues.length);
    const label=historical?'تمت التسوية — مقفل خارج النظام':rows.length&&due===0n?'Settled — تمت التسوية':due>0n?'Pending — مستحقات غير مدفوعة':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'غير معتمد — لا يوجد مبلغ متبقٍ مسجل':'لا توجد عمليات في الفترة';
-   const canApprove=['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length;
-   const canReconcile=['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&lines.length>0&&unresolved.length===0&&lines.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
+   const canApprove=['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length&&!historical;
+   const canReconcile=!historical&&['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&lines.length>0&&unresolved.length===0&&lines.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
    return '<div class="mini"><span>'+title+'</span><b>'+label+'</b><div class="hint">المعتمد: '+amount.toFixed(3)+' د.ك • المتبقي: '+cash(due)+'</div>'+
-     (canApprove?'<button class="btn primary" onclick="pawConfirmPeriodSettlement(\''+dir+'\')">تأكيد دفع المبلغ بالكامل</button>':'')+
+     (canApprove?'<button class="btn primary" onclick="pawConfirmPeriodSettlement(\''+dir+'\')">تمت التسوية — تأكيد الدفع/التحصيل</button>':'')+
      (canReconcile?'<button class="btn" onclick="pawConfirmZeroSettlement(\''+dir+'\')">اعتماد تسوية سابقة موثقة</button>':'')+
      (unknown?'<div class="hint">يلزم مراجعة البنود قبل الاعتماد</div>':'')+'</div>';
  }).join('');
@@ -193,6 +193,7 @@ window.pawConfirmPeriodSettlement=async function(direction){
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
  const p=model?.providers.find(x=>String(x.id)===String(selectedProvider));
  if(!p||!from||!to||from>to)return alert('حددي تاريخ البداية والنهاية');
+ if(from<'2026-10-01')return alert('يوليو وأغسطس وسبتمبر مقفلة؛ تسجيل التسويات الجديدة يبدأ من أكتوبر.');
  const rows=p.lines.filter(l=>l.date>=from&&l.date<=to);
  const due=direction==='pawapp_to_provider'?F.summarize(rows).theirs:F.summarize(rows).ours;
  if(due<=0n)return alert('لا توجد مستحقات مفتوحة لهذا الاتجاه');

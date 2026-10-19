@@ -153,16 +153,16 @@ function renderProviderSettlementPeriod(){
  const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
  const sum=F.summarize(lines);
  const cases=(snapshot?.cases||[]).filter(c=>lines.some(l=>l.caseId===String(c.id)));
- const historical=lines.length>0&&lines.every(l=>l.date>='2026-07-01'&&l.date<'2026-10-01');
- const pending=lines.filter(l=>l.ours>0n||l.theirs>0n);
- const unresolved=lines.filter(l=>l.issues.length);
- const settled=lines.filter(l=>l.isPaid&&l.ours===0n&&l.theirs===0n&&!l.issues.length);
+ const historical=from>='2026-07-01'&&to<'2026-10-01';
+ const pending=historical?[]:lines.filter(l=>l.ours>0n||l.theirs>0n);
+ const unresolved=historical?[]:lines.filter(l=>l.issues.length);
+ const settled=historical?lines:lines.filter(l=>l.isPaid&&l.ours===0n&&l.theirs===0n&&!l.issues.length);
  const approved=periodSettlements.filter(x=>String(x.provider_id)===String(selectedProvider)&&(!from||x.period_to>=from)&&(!to||x.period_from<=to));
  const settlementCards=['pawapp_to_provider','provider_to_pawapp'].map(dir=>{
    const title=dir==='pawapp_to_provider'?'مستحق للشركة على PawApp':'مستحق لـ PawApp على الشركة';
    const rows=approved.filter(x=>x.direction===dir);
    const amount=rows.reduce((a,x)=>a+Number(x.amount||0),0);
-   const due=dir==='pawapp_to_provider'?sum.theirs:sum.ours;
+   const due=historical?0n:dir==='pawapp_to_provider'?sum.theirs:sum.ours;
    const relevant=lines.filter(l=>l.isPaid&&l.route===(dir==='pawapp_to_provider'?'pawapp':'provider'));
    const unknown=relevant.some(l=>l.issues.length);
    const label=historical?'تمت التسوية — مقفل خارج النظام':rows.length&&due===0n?'Settled — تمت التسوية':due>0n?'Pending — مستحقات غير مدفوعة':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'غير معتمد — لا يوجد مبلغ متبقٍ مسجل':'لا توجد عمليات في الفترة';
@@ -181,8 +181,8 @@ function renderProviderSettlementPeriod(){
  '<div class="mini"><span>حصة الشركة</span><b>'+cash(sum.provider)+'</b></div>'+
  '<div class="mini"><span>المحصّل من العمولة</span><b>'+cash(sum.pawCollected)+'</b></div>'+
  '<div class="mini"><span>المحوّل للشركة</span><b>'+cash(sum.providerPaid)+'</b></div>'+
- '<div class="mini"><span>المتبقي على الشركة</span><b>'+cash(sum.ours)+'</b></div>'+
- '<div class="mini"><span>المتبقي على PawApp</span><b>'+cash(sum.theirs)+'</b></div></div>'+
+ '<div class="mini"><span>المتبقي على الشركة</span><b>'+cash(historical?0n:sum.ours)+'</b></div>'+
+ '<div class="mini"><span>المتبقي على PawApp</span><b>'+cash(historical?0n:sum.theirs)+'</b></div></div>'+
  '<div class="miniGrid">'+settlementCards+'</div>'+ 
  '<p><b>التسوية: '+html(status)+'</b> • عمليات مستوفية: '+(historical?lines.length:settled.length)+' • بنود تحتاج مراجعة: '+(historical?0:unresolved.length)+'</p>'+
  '<div class="hint">'+(historical?'الفترة مقفلة خارج النظام؛ بيانات التحويلات الفعلية تظهر أعلاه كما هي ويمكن توثيقها بشكل مستقل.':'البنود الناقصة تحتاج مراجعة قبل اعتماد تسوية جديدة.')+'</div>';

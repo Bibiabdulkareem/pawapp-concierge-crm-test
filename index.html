@@ -582,6 +582,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div id="editClientSection" class="grid2">
 <div class="field"><label>رقم العميل</label><input id="ePhone" inputmode="tel"></div>
 <div class="field"><label>المنطقة / الموقع</label><input id="eLocation"></div>
+<div class="field"><label>اسم الحيوان (للتوثيق)</label><input id="ePetName" placeholder="اسم الحيوان"></div>
 <div class="field"><label>نوع الحيوان</label><select id="ePetType"><option value="">غير محدد</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>
 <div class="field"><label>السلالة</label><input id="eBreed"></div>
 <div class="field"><label>العمر</label><input id="ePetAge"></div>
@@ -688,5 +689,5 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   document.addEventListener('DOMContentLoaded',function(){syncTestBulkPreview();new MutationObserver(syncTestBulkPreview).observe(document.body,{attributes:true,attributeFilter:['data-paw-role']});});
 })();
 </script>
-<script>(function(){function syncTestImportPanel(){var e=document.getElementById('testImportPanel');if(e)e.style.display=['admin','operations'].includes(document.body.dataset.pawRole)?'block':'none'}document.addEventListener('DOMContentLoaded',function(){syncTestImportPanel();new MutationObserver(syncTestImportPanel).observe(document.body,{attributes:true,attributeFilter:['data-paw-role']})})})();</script><script>window.pawOpenImport=function(mode){if(!['admin','operations'].includes(document.body.dataset.pawRole)){alert('الاستيراد للأدمن والعمليات فقط');return;}var panel=document.getElementById('testImportPanel');if(panel){panel.style.display='block';document.body.appendChild(panel);window.pawImportMode(mode);panel.scrollIntoView({behavior:'smooth',block:'start'});}};</script><script src="pet-registry.js?v=2"></script></body>
+<script>(function(){function syncTestImportPanel(){var e=document.getElementById('testImportPanel');if(e)e.style.display=['admin','operations'].includes(document.body.dataset.pawRole)?'block':'none'}document.addEventListener('DOMContentLoaded',function(){syncTestImportPanel();new MutationObserver(syncTestImportPanel).observe(document.body,{attributes:true,attributeFilter:['data-paw-role']})})})();</script><script>window.pawOpenImport=function(mode){if(!['admin','operations'].includes(document.body.dataset.pawRole)){alert('الاستيراد للأدمن والعمليات فقط');return;}var panel=document.getElementById('testImportPanel');if(panel){panel.style.display='block';document.body.appendChild(panel);window.pawImportMode(mode);panel.scrollIntoView({behavior:'smooth',block:'start'});}};</script><script src="pet-registry.js?v=4"></script></body>
 </html>

@@ -60,7 +60,7 @@
     if (appLoaded) return;
     appLoaded = true;
     const script = document.createElement('script');
-    script.src = 'finance-entry.js?v=3.16-settlement-gross';
+    script.src = 'finance-entry.js?v=3.17-settlement-status';
     script.async = false;
     script.onerror = () => {
       appLoaded = false;

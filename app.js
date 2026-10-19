@@ -72,6 +72,7 @@
       }catch(e){console.error(e);alert('لم يتم الحذف: '+(e.message||'تعذر إكمال العملية'));}
     };
 
+function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);if(d>='2026-07-01'&&d<'2026-10-01')return 'تمت التسوية';if(!c.client_paid||!c.client_paid_to)return 'تحتاج مراجعة';return 'Pending';}
     window.renderCases = function(){
       const q=(document.getElementById('caseSearch').value||'').toLowerCase();
       const sf=document.getElementById('caseStatusFilter')?.value||'all';
@@ -114,7 +115,7 @@
           <td>${money(due(c))}</td>
           <td><span class="status ${clientPaid?'paid':'unpaid'}">${clientPaid?'تم السداد بالكامل':'لم يسدد'}</span></td>
           <td>${dueTxt}</td>
-          <td><span class="status ${companyStatusClass}">${companyStatus}</span></td>
+          <td><span class="status ${companyStatusClass}">${companyStatus}</span><div class="hint">التسوية: ${testSettlementState(c)}</div></td>
           <td>${esc(c.staff||'—')}<br><span class="status partial" style="margin-top:4px">${esc(sourceLabel(c.source))}</span></td>
           <td><span class="status partial" style="display:inline-block;margin-bottom:5px">${esc(workflowLabel(c.workflow_status))}</span><br><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">تعديلات</button>${(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))?'<button class="btn danger" style="padding:7px" onclick="deleteCaseFromOperations(\''+c.id+'\')">حذف العملية</button>':''}</div></td>
           <td><button class="btn soft" style="padding:7px" onclick="openCaseDetails('${c.id}')">${clientPaid?'بيانات السداد':'تحديث السداد'}</button></td>
@@ -679,8 +680,8 @@ window.sourceLabel = function(src){
     };
     window.exportGeneralReport=function(){
       const rows=reportRows();if(!rows.length){alert('ما في بيانات للتصدير ضمن الفترة المختارة');return}
-      let csv='Case ID,Date,Client,Phone,Provider,Service,Total KD,PawApp KD,Provider Due KD,Source\n';
-      rows.forEach(function(c){const p=byProvider(c.providerId);csv+=[c.id,c.service_date,c.client_name,c.client_phone||'',p.name||'',c.service||c.requested_service||'',Number(c.total_amount||0).toFixed(3),Number(c.pawapp_amount||0).toFixed(3),Number(c.provider_amount||0).toFixed(3),sourceLabel(c.source)].map(function(v){return '"'+String(v).replace(/"/g,'""')+'"'}).join(',')+'\n'});
+      let csv='Case ID,Date,Client,Phone,Provider,Service,Total KD,PawApp KD,Provider Due KD,Source,Settlement Status\n';
+      rows.forEach(function(c){const p=byProvider(c.providerId);csv+=[c.id,c.service_date,c.client_name,c.client_phone||'',p.name||'',c.service||c.requested_service||'',Number(c.total_amount||0).toFixed(3),Number(c.pawapp_amount||0).toFixed(3),Number(c.provider_amount||0).toFixed(3),sourceLabel(c.source),testSettlementState(c)].map(function(v){return '"'+String(v).replace(/"/g,'""')+'"'}).join(',')+'\n'});
       const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),el=document.createElement('a');
       el.href=url;el.download='PawApp-report-'+(document.getElementById('reportFrom').value||'from')+'-'+(document.getElementById('reportTo').value||'to')+'.csv';document.body.appendChild(el);el.click();el.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000);
     };

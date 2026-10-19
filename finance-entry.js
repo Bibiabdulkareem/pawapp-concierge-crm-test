@@ -22,9 +22,9 @@
   }
   try{
     if(!window.PAWAPP_AUTH?.client)throw new Error('سجلي الدخول أولًا.');
-    await script('finance-core.js?v=3.4');
-    await script('finance-ui.js?v=3.23-settlement-control');
-    await script('app.js?v=3.10-pet-owner-fix');
+    await script('finance-core.js?v=3.24-'+Date.now());
+    await script('finance-ui.js?v=3.24-'+Date.now());
+    await script('app.js?v=3.24-'+Date.now());
     const start=Date.now();
     while(typeof window.renderAdminAccess!=='function'||typeof window.downloadTestBackup!=='function'){
       if(Date.now()-start>20000)throw new Error('تأخر تحميل النظام. أعيدي المحاولة.');

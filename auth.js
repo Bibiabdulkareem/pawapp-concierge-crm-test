@@ -60,7 +60,7 @@
     if (appLoaded) return;
     appLoaded = true;
     const script = document.createElement('script');
-    script.src = 'finance-entry.js?v=3.21-zero-reconcile';
+    script.src = 'finance-entry.js?v=3.23-settlement-control';
     script.async = false;
     script.onerror = () => {
       appLoaded = false;

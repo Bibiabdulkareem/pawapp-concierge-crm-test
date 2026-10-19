@@ -327,6 +327,7 @@ window.exportProviderFullReport=function(id){
  const p=model.providers.find(x=>String(x.id)===String(id));if(!p)return;
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
  const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
+  const historicalRows=lines.filter(l=>l.date>='2026-07-01'&&l.date<'2026-10-01').length;
  const report=F.csv(lines,p.name);
  download(report,'PawApp-'+p.name+'-operations.csv','text/csv;charset=utf-8');
 };

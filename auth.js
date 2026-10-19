@@ -60,7 +60,7 @@
     if (appLoaded) return;
     appLoaded = true;
     const script = document.createElement('script');
-    script.src = 'finance-entry.js?v=3.8-pet-grouping';
+    script.src = 'finance-entry.js?v=3.9-pet-merge';
     script.async = false;
     script.onerror = () => {
       appLoaded = false;

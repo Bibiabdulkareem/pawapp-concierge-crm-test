@@ -165,7 +165,7 @@ function renderProviderSettlementPeriod(){
    const due=dir==='pawapp_to_provider'?sum.theirs:sum.ours;
    const relevant=lines.filter(l=>l.isPaid&&l.route===(dir==='pawapp_to_provider'?'pawapp':'provider'));
    const unknown=relevant.some(l=>l.issues.length);
-   const label=due>0n?'Pending — مستحقات':rows.length?'Settled — تمت التسوية':relevant.length?'لا توجد مستحقات متبقية — غير معتمد':'لا توجد عمليات مستحقة';
+   const label=rows.length&&due===0n?'Settled — تمت التسوية':due>0n?'Pending — مستحقات غير مدفوعة':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'غير معتمد — لا يوجد مبلغ متبقٍ مسجل':'لا توجد عمليات في الفترة';
    const canApprove=['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length;
    return '<div class="mini"><span>'+title+'</span><b>'+label+'</b><div class="hint">المعتمد: '+amount.toFixed(3)+' د.ك • المتبقي: '+cash(due)+'</div>'+
      (canApprove?'<button class="btn primary" onclick="pawConfirmPeriodSettlement(\''+dir+'\')">تأكيد دفع المبلغ بالكامل</button>':'')+
@@ -312,8 +312,8 @@ window.exportProviderFullReport=function(id){
  const header='Report type,Provider,From,To,Direction,Status,Amount KD,Payment date,Method,Reference';
  const rows=settlements.map(x=>['Settlement',p.name,x.period_from,x.period_to,x.direction,'Settled',Number(x.amount).toFixed(3),x.paid_at,x.method,x.reference||''].map(csvCell).join(','));
  const pending=F.summarize(lines);
- rows.push(['Balance',p.name,from,to,'provider_to_pawapp',pending.ours>0n?'Pending':'No outstanding',F.format(pending.ours),'','',''].map(csvCell).join(','));
- rows.push(['Balance',p.name,from,to,'pawapp_to_provider',pending.theirs>0n?'Pending':'No outstanding',F.format(pending.theirs),'','',''].map(csvCell).join(','));
+ rows.push(['Balance',p.name,from,to,'provider_to_pawapp',pending.ours>0n?'Pending':settlements.some(x=>x.direction==='provider_to_pawapp')?'Settled':lines.some(x=>x.issues.length)?'Review required':'Not approved',F.format(pending.ours),'','',''].map(csvCell).join(','));
+ rows.push(['Balance',p.name,from,to,'pawapp_to_provider',pending.theirs>0n?'Pending':settlements.some(x=>x.direction==='pawapp_to_provider')?'Settled':lines.some(x=>x.issues.length)?'Review required':'Not approved',F.format(pending.theirs),'','',''].map(csvCell).join(','));
  const report=header+'\\n'+rows.join('\\n')+'\\n\\nCase detail\\n'+F.csv(lines,p.name);
  download(report,'PawApp-'+p.name+'-settlements.csv','text/csv;charset=utf-8');
 };

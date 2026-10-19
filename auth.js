@@ -60,7 +60,7 @@
     if (appLoaded) return;
     appLoaded = true;
     const script = document.createElement('script');
-    script.src = 'finance-entry.js?v=3.18-settlement-full';
+    script.src = 'finance-entry.js?v=3.19-period-reset';
     script.async = false;
     script.onerror = () => {
       appLoaded = false;

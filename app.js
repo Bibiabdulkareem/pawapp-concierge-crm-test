@@ -852,11 +852,11 @@ window.sourceLabel = function(src){
       });
       const result=[];
       byOwner.forEach((group,key)=>{
-        if(group.known.size===0)result.push({key:key+'|?',cases:group.unknown});
+        if(group.known.size===0)result.push({key:key+'|?',owner:key.split('|').slice(0,-1).join('|'),cases:group.unknown});
         else {
           let first=true;
           group.known.forEach((cases,breed)=>{
-            result.push({key:key+'|'+breed,cases:first?cases.concat(group.unknown):cases});
+            result.push({key:key+'|'+breed,owner:key.split('|').slice(0,-1).join('|'),cases:first?cases.concat(group.unknown):cases});
             first=false;
           });
         }
@@ -889,7 +889,7 @@ window.sourceLabel = function(src){
       if(petCount)petCount.textContent=String(petSummary.groups.length);
       groups.forEach((g,key)=>{
         g.pets=new Map();
-        petSummary.groups.filter(p=>p.key.startsWith(key+'|')).forEach(p=>{
+        petSummary.groups.filter(p=>p.owner===key).forEach(p=>{
           const sample=p.cases.find(c=>c.breed)||p.cases[0];
           if(sample)g.pets.set(p.key,{pet_type:sample.pet_type||'غير محدد',breed:sample.breed||'',pet_age:sample.pet_age||'',vaccinated:sample.vaccinated,microchipped:sample.microchipped,has_pet_id:sample.has_pet_id});
         });

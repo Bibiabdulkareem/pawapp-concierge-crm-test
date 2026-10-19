@@ -60,7 +60,7 @@
     if (appLoaded) return;
     appLoaded = true;
     const script = document.createElement('script');
-    script.src = 'finance-entry.js?v=3.10-pet-owner-fix';
+    script.src = 'finance-entry.js?v=3.15-settlement-preview';
     script.async = false;
     script.onerror = () => {
       appLoaded = false;

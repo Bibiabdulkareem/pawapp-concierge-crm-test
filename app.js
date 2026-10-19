@@ -521,6 +521,7 @@ window.sourceLabel = function(src){
       const tri=v=>v===true?'yes':v===false?'no':'';
       document.getElementById('editCaseId').value=id;
       document.getElementById('ePhone').value=c.client_phone||'';
+      if(window.pawPetPrefillCase)window.pawPetPrefillCase(id).catch(console.warn);
       document.getElementById('eLocation').value=c.location||'';
       document.getElementById('ePetType').value=normalizePetType(c.pet_type);
       document.getElementById('eBreed').value=c.breed||'';
@@ -612,6 +613,10 @@ window.sourceLabel = function(src){
               note:'تسديد كامل من شاشة الحالة'
             })
           });
+        }
+        if(window.pawPetConfirmCase){
+          try{await window.pawPetConfirmCase(id)}
+          catch(petErr){alert('تم حفظ العملية لكن توثيق الحيوان يحتاج مراجعة: '+petErr.message)}
         }
         closeModal('completeCaseModal');
         await loadData();

@@ -10,6 +10,9 @@ const F=window.PawFinanceCore,el=id=>document.getElementById(id),v=id=>el(id)?.v
 const cash=x=>F.format(x)+' د.ك',num=x=>Number(F.format(x)),caseCode=id=>'PAW-'+String(id).padStart(4,'0');
 const mayWrite=()=>['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role);
 let snapshot=null,model=null,loading=null,selectedProvider=null,activeAction=null,saving=false,editorRevision=null;
+let periodSettlements=[];
+async function loadPeriodSettlements(){const q=await window.PAWAPP_AUTH.client.from('test_provider_period_settlements').select('id,provider_id,period_from,period_to,direction,amount,paid_at,method,reference,approved_at');if(q.error){console.warn('Settlement records unavailable',q.error.message);periodSettlements=[];}else periodSettlements=q.data||[];}
+
 const requests=new Map();
 let septemberReviewRows=[];
 async function loadSeptemberReviews(){
@@ -100,7 +103,7 @@ function requestFor(key,payload){const signature=JSON.stringify(payload);const o
 async function rpc(name,args={}){if(!name.startsWith('test_finance_'))throw Error('TEST finance calls only');const {data,error}=await window.PAWAPP_AUTH.client.rpc(name,args);if(error)throw Error(error.message||'تعذر حفظ العملية');return data;}
 function message(error){const text=String(error?.message||error);const rules=[['Case changed','الحالة تعدلت من جهاز آخر. أغلقيها وافتحيها من جديد قبل الحفظ.'],['Paid service price/provider','الخدمة فيها دفعات مسجلة؛ لا نغيّر سعرها أو مقدمها بدون تصحيح موثق.'],['Paid transport price/provider','النقل فيه دفعات مسجلة؛ لا نغيّر سعره أو الشركة بدون تصحيح موثق.'],['Cannot change received payment','المبلغ مسجل كمستلم. لا يمكن تحويله إلى غير مدفوع بدون تصحيح موثق.'],['Cannot change a paid transaction recipient','لا يمكن تغيير مستلم دفعة مسجلة بدون مراجعة.'],['Cannot clear recorded commission','العمولة مستلمة ومسجلة؛ لا يمكن مسح استلامها.'],['Choose payment recipient','اختاري جهة استلام دفعة العميل.'],['No permission','ما عندج صلاحية لتعديل الحسابات.'],['Invalid amount','المبلغ غير صحيح أو أكبر من المتبقي.']];return rules.find(r=>text.includes(r[0]))?.[1]||text;}
 function hydrate(){if(!snapshot)return;db.staff=snapshot.employees||[];db.providers=(snapshot.providers||[]).map(p=>({...p,type:p.provider_type,feeType:p.default_fee_type||'percent',feeValue:Number(p.default_fee_value||0),services:(snapshot.services||[]).filter(s=>String(s.provider_id)===String(p.id)).map(s=>s.name)}));db.cases=snapshot.cases.map(c=>({...c,providerId:c.provider_id,service:c.service_name,amount:Number(c.total_amount),staff:db.staff.find(e=>String(e.id)===String(c.employee_id))?.name||'',providerPaid:Number(c.main_provider_paid||0),clientPaidAmount:Number(c.main_paid_recorded||0),schedule:[]}));db.followups=snapshot.followups||[];}
-async function refresh(){const previous=loading;const job=(async()=>{if(previous){try{await previous}catch(e){}}const next=await rpc('test_finance_snapshot');const projected=F.project(next);await loadSeptemberReviews();snapshot=next;model=projected;hydrate();render();return next;})();loading=job;try{return await job}finally{if(loading===job)loading=null}}
+async function refresh(){const previous=loading;const job=(async()=>{if(previous){try{await previous}catch(e){}}const next=await rpc('test_finance_snapshot');const projected=F.project(next);await loadSeptemberReviews();await loadPeriodSettlements();snapshot=next;model=projected;hydrate();render();return next;})();loading=job;try{return await job}finally{if(loading===job)loading=null}}
 const legacyFollowups=window.renderAutomaticFollowups,legacyCases=window.renderCases,legacyOpen=window.openCaseDetails,legacyShowPage=window.showPage,legacyNewCase=window.openNewCase;
 function linesFor(id){return model?.lines.filter(l=>l.caseId===String(id))||[]}
 function findLine(id,component){return linesFor(id).find(l=>l.component===component)}
@@ -148,6 +151,14 @@ function renderProviderSettlementPeriod(){
  const pending=lines.filter(l=>l.ours>0n||l.theirs>0n);
  const unresolved=lines.filter(l=>l.issues.length);
  const settled=lines.filter(l=>l.isPaid&&l.ours===0n&&l.theirs===0n&&!l.issues.length);
+ const approved=periodSettlements.filter(x=>String(x.provider_id)===String(selectedProvider)&&(!from||x.period_to>=from)&&(!to||x.period_from<=to));
+ const settlementCards=['pawapp_to_provider','provider_to_pawapp'].map(dir=>{
+   const title=dir==='pawapp_to_provider'?'PawApp تدفع للشركة':'الشركة تدفع لـ PawApp';
+   const rows=approved.filter(x=>x.direction===dir);
+   const settledAmount=rows.reduce((a,x)=>a+Number(x.amount||0),0);
+   const current=dir==='pawapp_to_provider'?sum.theirs:sum.ours;
+   return '<div class="mini"><span>'+title+'</span><b>'+(rows.length?'Settled — '+rows.length+' تسوية معتمدة':'Pending / غير مؤكد')+'</b><div class="hint">المعتمد: '+settledAmount.toFixed(3)+' د.ك • المتبقي المسجل: '+cash(current)+'</div></div>';
+ }).join('');
  const status=historical&&!pending.length?'شهر مقفل في العمليات — مراجعة تفاصيل التسوية':unresolved.length?'تحتاج مراجعة':pending.length?'Pending — بانتظار التسوية':'لا توجد مستحقات معلقة';
  host.innerHTML='<div class="hint">إجمالي الفترة وحصص الطرفين تظهر دائماً، حتى لو المتبقي صفر. حالة الإقفال لا تثبت التحويل وحدها.</div>'+
  '<div class="miniGrid"><div class="mini"><span>عمليات الفترة</span><b>'+sum.caseCount+'</b></div>'+
@@ -158,6 +169,7 @@ function renderProviderSettlementPeriod(){
  '<div class="mini"><span>المحوّل للشركة</span><b>'+cash(sum.providerPaid)+'</b></div>'+
  '<div class="mini"><span>المتبقي على الشركة</span><b>'+cash(sum.ours)+'</b></div>'+
  '<div class="mini"><span>المتبقي على PawApp</span><b>'+cash(sum.theirs)+'</b></div></div>'+
+ '<div class="miniGrid">'+settlementCards+'</div>'+ 
  '<p><b>الحالة: '+html(status)+'</b> • عمليات مستوفية: '+settled.length+' • بنود تحتاج مراجعة: '+unresolved.length+'</p>'+
  '<div class="hint">بنود المراجعة قد تشمل نقص توثيق جهة الدفع في السجلات القديمة؛ لا تُغيّر التسوية الأصلية تلقائياً.</div>';
 }

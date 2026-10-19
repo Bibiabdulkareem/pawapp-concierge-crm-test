@@ -167,8 +167,10 @@ function renderProviderSettlementPeriod(){
    const unknown=relevant.some(l=>l.issues.length);
    const label=rows.length&&due===0n?'Settled — تمت التسوية':due>0n?'Pending — مستحقات غير مدفوعة':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'غير معتمد — لا يوجد مبلغ متبقٍ مسجل':'لا توجد عمليات في الفترة';
    const canApprove=['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length;
+   const canReconcile=['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&lines.length>0&&unresolved.length===0&&lines.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
    return '<div class="mini"><span>'+title+'</span><b>'+label+'</b><div class="hint">المعتمد: '+amount.toFixed(3)+' د.ك • المتبقي: '+cash(due)+'</div>'+
      (canApprove?'<button class="btn primary" onclick="pawConfirmPeriodSettlement(\''+dir+'\')">تأكيد دفع المبلغ بالكامل</button>':'')+
+     (canReconcile?'<button class="btn" onclick="pawConfirmZeroSettlement(\''+dir+'\')">اعتماد تسوية سابقة موثقة</button>':'')+
      (unknown?'<div class="hint">يلزم مراجعة البنود قبل الاعتماد</div>':'')+'</div>';
  }).join('');
  const status=historical&&!pending.length?'شهر مقفل في العمليات — مراجعة تفاصيل التسوية':unresolved.length?'تحتاج مراجعة':pending.length?'Pending — بانتظار التسوية':'لا توجد مستحقات معلقة';
@@ -215,6 +217,22 @@ window.pawConfirmPeriodSettlement=async function(direction){
  }catch(e){alert('تعذر اعتماد التسوية: '+e.message)}
 };
 
+window.pawConfirmZeroSettlement=async function(direction){
+ if(!['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role))return alert('للمحاسبة والإدارة فقط');
+ const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
+ if(!from||!to||from>to)return alert('اختاري الفترة');
+ const ref=prompt('أدخلي مرجع إثبات التسوية السابقة (إيصال أو مرجع تحويل):','');
+ if(!ref?.trim())return;
+ const date=prompt('تاريخ التسوية الفعلي YYYY-MM-DD:','');
+ if(!date||!/^\\d{4}-\\d{2}-\\d{2}$/.test(date))return alert('تاريخ غير صحيح');
+ if(!confirm('هل راجعتي إثبات الدفع الفعلي؟ سيُعتمد الإقفال برصيد صفر بدون تسجيل تحويل جديد.'))return;
+ try{
+ const q=await window.PAWAPP_AUTH.client.rpc('test_confirm_zero_balance_period',{p_provider:selectedProvider,p_from:from,p_to:to,p_direction:direction,p_reference:ref.trim(),p_paid_at:date});
+ if(q.error)throw q.error;
+ await refresh();el('pawSettlementFrom').value=from;el('pawSettlementTo').value=to;renderProviderSettlementPeriod();
+ toast('تم اعتماد التسوية السابقة دون احتساب مبلغ جديد');
+ }catch(e){alert('لم تُعتمد التسوية: '+e.message);}
+};
 function renderProvider(){if(!selectedProvider||!model)return;
 const savedFrom=v('pawSettlementFrom'),savedTo=v('pawSettlementTo');const p=model.providers.find(x=>String(x.id)===String(selectedProvider));if(!p)return;const s=p.summary;set('providerDetailName',p.name);set('providerDetailType','الخدمة الأساسية والنقل — كل مبلغ محسوب مرة واحدة');set('pdClients',s.customerCount);set('pdOps',s.caseCount);const pendingCases=new Set(p.lines.filter(actionable).map(l=>l.caseId));set('pdPending',pendingCases.size);set('pdComplete',s.caseCount-pendingCases.size);set('pdSales',cash(s.total));set('pdPaw',cash(s.paw));set('pdOurs',cash(s.ours));set('pdTheirs',cash(s.theirs));
 let extra=el('financeProviderCards');if(!extra){extra=document.createElement('div');extra.id='financeProviderCards';extra.className='cards';extra.style.cssText='grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px';el('pdSales').closest('.cards').after(extra);}extra.innerHTML=metric('حصة الشركة','finProviderShare',cash(s.provider))+metric('حُوّل للشركة','finProviderPaid',cash(s.providerPaid))+metric('المحصّل من العمولة','finProviderCollected',cash(s.pawCollected))+metric('بنود تحتاج مراجعة','finProviderIssues',s.issueCount);

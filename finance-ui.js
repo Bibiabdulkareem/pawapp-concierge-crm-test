@@ -153,7 +153,7 @@ function renderProviderSettlementPeriod(){
  const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
  const sum=F.summarize(lines);
  const cases=(snapshot?.cases||[]).filter(c=>lines.some(l=>l.caseId===String(c.id)));
- const historical=cases.length>0&&cases.every(c=>c.workflow_status==='closed'&&c.client_paid===true);
+ const historical=lines.length>0&&lines.every(l=>l.date>='2026-07-01'&&l.date<'2026-10-01');
  const pending=lines.filter(l=>l.ours>0n||l.theirs>0n);
  const unresolved=lines.filter(l=>l.issues.length);
  const settled=lines.filter(l=>l.isPaid&&l.ours===0n&&l.theirs===0n&&!l.issues.length);
@@ -165,7 +165,7 @@ function renderProviderSettlementPeriod(){
    const due=dir==='pawapp_to_provider'?sum.theirs:sum.ours;
    const relevant=lines.filter(l=>l.isPaid&&l.route===(dir==='pawapp_to_provider'?'pawapp':'provider'));
    const unknown=relevant.some(l=>l.issues.length);
-   const label=rows.length&&due===0n?'Settled — تمت التسوية':due>0n?'Pending — مستحقات غير مدفوعة':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'غير معتمد — لا يوجد مبلغ متبقٍ مسجل':'لا توجد عمليات في الفترة';
+   const label=historical?'تمت التسوية — مقفل خارج النظام':rows.length&&due===0n?'Settled — تمت التسوية':due>0n?'Pending — مستحقات غير مدفوعة':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'غير معتمد — لا يوجد مبلغ متبقٍ مسجل':'لا توجد عمليات في الفترة';
    const canApprove=['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length;
    const canReconcile=['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&lines.length>0&&unresolved.length===0&&lines.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
    return '<div class="mini"><span>'+title+'</span><b>'+label+'</b><div class="hint">المعتمد: '+amount.toFixed(3)+' د.ك • المتبقي: '+cash(due)+'</div>'+
@@ -173,7 +173,7 @@ function renderProviderSettlementPeriod(){
      (canReconcile?'<button class="btn" onclick="pawConfirmZeroSettlement(\''+dir+'\')">اعتماد تسوية سابقة موثقة</button>':'')+
      (unknown?'<div class="hint">يلزم مراجعة البنود قبل الاعتماد</div>':'')+'</div>';
  }).join('');
- const status=historical&&!pending.length?'شهر مقفل في العمليات — مراجعة تفاصيل التسوية':unresolved.length?'تحتاج مراجعة':pending.length?'Pending — بانتظار التسوية':'لا توجد مستحقات معلقة';
+ const status=historical?'تمت التسوية — مقفل خارج النظام':unresolved.length?'تحتاج مراجعة':pending.length?'Pending — بانتظار التسوية':'لا توجد مستحقات معلقة';
  host.innerHTML='<div class="hint">إجمالي الفترة وحصص الطرفين تظهر دائماً، حتى لو المتبقي صفر. حالة الإقفال لا تثبت التحويل وحدها.</div>'+
  '<div class="miniGrid"><div class="mini"><span>عمليات الفترة</span><b>'+sum.caseCount+'</b></div>'+
  '<div class="mini"><span>إجمالي العمليات</span><b>'+cash(sum.total)+'</b></div>'+
@@ -184,8 +184,8 @@ function renderProviderSettlementPeriod(){
  '<div class="mini"><span>المتبقي على الشركة</span><b>'+cash(sum.ours)+'</b></div>'+
  '<div class="mini"><span>المتبقي على PawApp</span><b>'+cash(sum.theirs)+'</b></div></div>'+
  '<div class="miniGrid">'+settlementCards+'</div>'+ 
- '<p><b>الحالة: '+html(status)+'</b> • عمليات مستوفية: '+settled.length+' • بنود تحتاج مراجعة: '+unresolved.length+'</p>'+
- '<div class="hint">بنود المراجعة قد تشمل نقص توثيق جهة الدفع في السجلات القديمة؛ لا تُغيّر التسوية الأصلية تلقائياً.</div>';
+ '<p><b>التسوية: '+html(status)+'</b> • عمليات مستوفية: '+(historical?lines.length:settled.length)+' • بنود تحتاج مراجعة: '+(historical?0:unresolved.length)+'</p>'+
+ '<div class="hint">'+(historical?'الفترة مقفلة خارج النظام؛ بيانات التحويلات الفعلية تظهر أعلاه كما هي ويمكن توثيقها بشكل مستقل.':'البنود الناقصة تحتاج مراجعة قبل اعتماد تسوية جديدة.')+'</div>';
 }
 window.pawProviderSettlementPeriodChanged=renderProviderSettlementPeriod;
 window.pawConfirmPeriodSettlement=async function(direction){

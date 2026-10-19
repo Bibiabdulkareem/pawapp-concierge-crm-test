@@ -60,7 +60,7 @@
     if (appLoaded) return;
     appLoaded = true;
     const script = document.createElement('script');
-    script.src = 'finance-entry.js?v=3.5-historical';
+    script.src = 'finance-entry.js?v=3.6-pet-followup';
     script.async = false;
     script.onerror = () => {
       appLoaded = false;

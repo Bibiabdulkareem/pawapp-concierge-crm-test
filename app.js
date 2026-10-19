@@ -832,6 +832,37 @@ window.sourceLabel = function(src){
     };
 
     
+    function pawPetType(v){
+      const t=String(v||'').trim().toLowerCase();
+      return ({cat:'قط',cats:'قط',feline:'قط',dog:'كلب',dogs:'كلب',canine:'كلب'})[t]||t;
+    }
+    function pawGroupedPets(cases){
+      const byOwner=new Map();let missing=0;
+      cases.forEach(c=>{
+        const type=pawPetType(c.pet_type);
+        if(!type||type==='غير محدد'){missing++;return;}
+        const owner=canonicalCustomerKey(c),breed=String(c.breed||'').trim().toLowerCase();
+        const key=owner+'|'+type;
+        if(!byOwner.has(key))byOwner.set(key,{unknown:[],known:new Map()});
+        const group=byOwner.get(key);
+        if(breed){
+          if(!group.known.has(breed))group.known.set(breed,[]);
+          group.known.get(breed).push(c);
+        }else group.unknown.push(c);
+      });
+      const result=[];
+      byOwner.forEach((group,key)=>{
+        if(group.known.size===0)result.push({key:key+'|?',cases:group.unknown});
+        else {
+          let first=true;
+          group.known.forEach((cases,breed)=>{
+            result.push({key:key+'|'+breed,cases:first?cases.concat(group.unknown):cases});
+            first=false;
+          });
+        }
+      });
+      return {groups:result,missing};
+    }
     window.renderCRM = function(){
       window.pawPetCases=db.cases;
       const q=(document.getElementById('crmSearch')?.value||'').trim().toLowerCase();
@@ -842,15 +873,8 @@ window.sourceLabel = function(src){
         if(!groups.has(key)) groups.set(key,{name:x.client_name||'بدون اسم',phone:x.client_phone||'',location:x.location||'',cases:[],pets:new Map()});
         const g=groups.get(key);
         g.cases.push(x);
-        const pkey=[String(x.pet_type||'').trim().toLowerCase().replace('cat','قط').replace('dog','كلب'),String(x.breed||'').trim().toLowerCase()].join('|');
-        if(!g.pets.has(pkey)) g.pets.set(pkey,{
-          pet_type:x.pet_type||'غير محدد',
-          breed:x.breed||'',
-          pet_age:x.pet_age||'',
-          vaccinated:x.vaccinated,
-          microchipped:x.microchipped,
-          has_pet_id:x.has_pet_id
-        });
+        // Pet groups are derived consistently below; missing breed never creates an extra pet.
+
       });
       const all=[...groups.values()];
       const filtered=all.filter(g=>{
@@ -861,16 +885,18 @@ window.sourceLabel = function(src){
       const petCount=document.getElementById('crmPetCount');
       const caseCount=document.getElementById('crmCaseCount');
       if(customerCount) customerCount.textContent=String(all.length);
-      const petGroups=new Set();let missingPetType=0;
-      db.cases.forEach(c=>{
-        const type=String(c.pet_type||'').trim().toLowerCase();
-        if(!type||type==='غير محدد'){missingPetType++;return;}
-        petGroups.add(canonicalCustomerKey(c)+'|'+type+'|'+String(c.breed||'').trim().toLowerCase());
+      const petSummary=pawGroupedPets(db.cases);
+      if(petCount)petCount.textContent=String(petSummary.groups.length);
+      groups.forEach((g,key)=>{
+        g.pets=new Map();
+        petSummary.groups.filter(p=>p.key.startsWith(key+'|')).forEach(p=>{
+          const sample=p.cases.find(c=>c.breed)||p.cases[0];
+          if(sample)g.pets.set(p.key,{pet_type:sample.pet_type||'غير محدد',breed:sample.breed||'',pet_age:sample.pet_age||'',vaccinated:sample.vaccinated,microchipped:sample.microchipped,has_pet_id:sample.has_pet_id});
+        });
       });
-      if(petCount) petCount.textContent=String(petGroups.size);
       let petNote=document.getElementById('pawPetCountNote');
       if(!petNote){petNote=document.createElement('div');petNote.id='pawPetCountNote';petNote.className='hint';petNote.style.cssText='margin:8px 0;padding:8px;border:1px solid #dbe2ed;border-radius:10px';petCount?.parentElement?.appendChild(petNote);}
-      if(petNote)petNote.textContent='عدد مبدئي للحيوانات المختلفة حسب رقم العميل والنوع والسلالة، وليس عدداً مؤكداً للحيوانات الفردية. العمر قد يتغير ولا يُنشئ حيواناً جديداً وحده. عمليات بدون نوع: '+missingPetType+'. عند تشابه حيوانين لنفس العميل يلزم تمييز إضافي، والاسم اختياري.';
+      if(petNote)petNote.textContent='حسبة تلقائية: نفس العميل ونفس النوع = حيوان واحد ما لم تظهر سلالات مختلفة. نقص السلالة لا ينشئ حيواناً جديداً. الاسم اختياري. حالات بدون نوع: '+petSummary.missing+'. العدد قد يحتاج مراجعة إذا لدى العميل حيوانان متشابهان.';
       if(caseCount) caseCount.textContent=String(db.cases.length);
       const out=document.getElementById('crmCustomerList');
       if(!out) return;

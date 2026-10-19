@@ -148,6 +148,8 @@ function renderProviderSettlementPeriod(){
  const host=el('pawProviderSettlementPeriod');if(!host||!model||!selectedProvider)return;
  const p=model.providers.find(x=>String(x.id)===String(selectedProvider));if(!p)return;
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
+ if(!from||!to){host.innerHTML='<p class="hint">اختاري تاريخ البداية والنهاية لعرض تسويات هذه الشركة. ما تم اختيار أي شهر تلقائياً.</p>';return;}
+ if(from>to){host.innerHTML='<p class="hint">تاريخ البداية لازم يكون قبل تاريخ النهاية.</p>';return;}
  const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
  const sum=F.summarize(lines);
  const cases=(snapshot?.cases||[]).filter(c=>lines.some(l=>l.caseId===String(c.id)));
@@ -320,7 +322,7 @@ function csvCell(value){let s=String(value??'');if(/^[\\s]*[=+@-]/.test(s))s="'"
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name.replace(/[\\/]/g,'-');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 window.downloadTestBackup=async function(){try{const data=await rpc('test_finance_backup');download(JSON.stringify(data,null,2),'pawapp-test-finance-backup-'+localDate()+'.json','application/json');toast('تم تجهيز نسخة TEST الاحتياطية');}catch(e){alert(message(e))}};
 window.renderDashboard=renderDashboard;window.renderProviders=renderProviders;window.renderCases=renderCases;window.renderAutomaticFollowups=renderFollowups;window.loadData=refresh;window.renderAll=function(){render();};
-window.openProviderCRM=function(id){selectedProvider=id;legacyShowPage('providerdetail');renderProvider();};window.providerCases=window.openProviderCRM;
+window.openProviderCRM=function(id){selectedProvider=id;if(el('pawSettlementFrom'))el('pawSettlementFrom').value='';if(el('pawSettlementTo'))el('pawSettlementTo').value='';legacyShowPage('providerdetail');renderProvider();};window.providerCases=window.openProviderCRM;
 window.showPage=async function(id){if(id==='admin'&&!window.pawIsAdmin()){toast('Admin only');return;}await legacyShowPage(id);if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();};
 setup();await refresh();if(typeof fillProviders==='function')fillProviders();if(typeof fillStaff==='function')fillStaff();window.PAW_FINANCE_READY=true;window.PAW_FINANCE_VERSION='finance-v3';
 };

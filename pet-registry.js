@@ -22,7 +22,7 @@ function draw(){
  const linkedCases=new Set(links.map(x=>String(x.case_id)));
  const unlinked=pets.filter(p=>!linked.has(p.id)).length;
  const stat=$('pawPetRegistryStatus');
- if(stat)stat.textContent='حيوانات مسجلة بهوية مستقلة: '+pets.length+' | حيوانات مرتبطة بحجز: '+linked.size+' | ملفات بدون حجز: '+unlinked+'. العدد التقديري 201 ليس العدد المؤكد.';
+ if(stat)stat.textContent='حيوانات موثقة: '+pets.filter(p=>p.verified!==false).length+' | حيوانات مبدئية بانتظار الاسم والتأكيد: '+pets.filter(p=>p.verified===false).length+' | حجوزات مرتبطة: '+links.length+' | ملفات بدون حجز: '+unlinked+'. لا تُحسب الملفات المبدئية ضمن العدد المؤكد.';
  const list=$('pawPetRegistryList');
  if(list)list.innerHTML=pets.slice(0,35).map(p=>'<div style="padding:7px;border-bottom:1px solid #e5e9f0">'+esc(p.pet_name)+' — '+esc(p.pet_type||'نوع غير مسجل')+' — '+esc(p.customer_phone)+' <span class="hint">'+(linked.has(p.id)?'مرتبط بحجز':'بانتظار ربط حجز')+'</span></div>').join('')||'<div class="hint">ما تم توثيق أي حيوان بهوية مستقلة حتى الآن. البيانات القديمة باقية كما هي.</div>';
  const c=$('pawPetCaseId');if(c){const keep=c.value;c.innerHTML='<option value="">اختاري العملية</option>';window.pawPetCases?.forEach(x=>{if(linkedCases.has(String(x.id)))return;const o=document.createElement('option');o.value=x.id;o.textContent='PAW-'+String(x.id).padStart(4,'0')+' — '+(x.client_name||'بدون اسم')+' — '+(x.client_phone||'بدون رقم');c.appendChild(o)});c.value=keep;}

@@ -327,14 +327,8 @@ window.exportProviderFullReport=function(id){
  const p=model.providers.find(x=>String(x.id)===String(id));if(!p)return;
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
  const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
- const settlements=periodSettlements.filter(x=>String(x.provider_id)===String(id)&&(!from||x.period_to>=from)&&(!to||x.period_from<=to));
- const header='Report type,Provider,From,To,Direction,Status,Amount KD,Payment date,Method,Reference';
- const rows=settlements.map(x=>['Settlement',p.name,x.period_from,x.period_to,x.direction,'Settled',Number(x.amount).toFixed(3),x.paid_at,x.method,x.reference||''].map(csvCell).join(','));
- const pending=F.summarize(lines);
- rows.push(['Balance',p.name,from,to,'provider_to_pawapp',pending.ours>0n?'Pending':settlements.some(x=>x.direction==='provider_to_pawapp')?'Settled':lines.some(x=>x.issues.length)?'Review required':'Not approved',F.format(pending.ours),'','',''].map(csvCell).join(','));
- rows.push(['Balance',p.name,from,to,'pawapp_to_provider',pending.theirs>0n?'Pending':settlements.some(x=>x.direction==='pawapp_to_provider')?'Settled':lines.some(x=>x.issues.length)?'Review required':'Not approved',F.format(pending.theirs),'','',''].map(csvCell).join(','));
  const report=F.csv(lines,p.name);
- download(report,'PawApp-'+p.name+'-settlements.csv','text/csv;charset=utf-8');
+ download(report,'PawApp-'+p.name+'-operations.csv','text/csv;charset=utf-8');
 };
 window.pawPrintProviderReport=function(){
  const p=model?.providers.find(x=>String(x.id)===String(selectedProvider));

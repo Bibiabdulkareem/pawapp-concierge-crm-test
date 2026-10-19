@@ -46,8 +46,9 @@ function line(c,component){
  if(route==='pawapp'&&commissionReceived>0n)issues.push('duplicate_commission_route');
  if(!c[t?'transport_provider_id':'provider_id'] && !(c.workflow_status==='closed' && c.client_paid===true && String(c.notes||'').includes('[BULK_IMPORT:2026:7:ROW:')))issues.push('provider_missing');
  if(isPaid&&!['pawapp','provider'].includes(route))issues.push('payment_route_missing');
- const ours=isPaid&&route==='provider'?left(paw,commissionReceived):0n;
- const theirs=isPaid&&route==='pawapp'?left(provider,providerPaid):0n;
+ const closedPeriod=String(c.service_date||'')>='2026-07-01'&&String(c.service_date||'')<'2026-10-01';
+ const ours=closedPeriod?0n:isPaid&&route==='provider'?left(paw,commissionReceived):0n;
+ const theirs=closedPeriod?0n:isPaid&&route==='pawapp'?left(provider,providerPaid):0n;
  const pawCollected=isPaid?(route==='pawapp'?paw:route==='provider'?commissionReceived:0n):0n;
  let action=null;
  if(unknown)action='confirm_transport';else if(total>0n&&!isPaid)action='client_paid';else if(isPaid&&!route)action='client_paid';else if(theirs>0n)action='provider_paid';else if(ours>0n)action='commission_received';

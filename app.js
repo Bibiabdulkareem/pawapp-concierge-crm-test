@@ -1978,14 +1978,23 @@ window.sourceLabel = function(src){
     }
 
     function missingFollowupItems(c){
-      if(c.workflow_status==='closed' && c.client_paid) return [];
+      // Client-facing data quality only. Provider payouts and PawApp commission
+      // collections belong exclusively to the settlements ledger.
+      if(c.workflow_status==='cancelled') return [];
+      if(isArchivedHistoricalCase(c)) return [];
       const items=[];
-      if(!c.providerId) items.push('اختيار الشركة / الفريلانسر');
-      if(!(c.service||c.requested_service)) items.push('اختيار الخدمة');
-      if(Number(c.total_amount||0)<=0) items.push('إدخال السعر');
-      if(!c.employee_id && !c.staff) items.push('تحديد الموظف المسؤول');
-      if(!c.pet_type) items.push('نوع الحيوان');
-      if(!c.location) items.push('الموقع / المنطقة');
+      const name=String(c.client_name||'').trim();
+      const phone=String(c.client_phone||'').replace(/[^0-9]/g,'');
+      const pet=String(c.pet_type||'').trim();
+      const service=String(c.service||c.service_name||c.requested_service||'').trim();
+      if(!name || /^(unknown|غير معروف|بدون اسم|n\/a|null)$/i.test(name)) items.push('اسم العميل الحقيقي');
+      if(phone.length<8) items.push('رقم هاتف العميل');
+      if(!pet || /^(unknown|غير معروف|n\/a|null)$/i.test(pet)) items.push('نوع الحيوان');
+      if(!c.providerId && !c.provider_id) items.push('مقدم الخدمة');
+      if(!service || /^(unknown|غير معروف|n\/a|null)$/i.test(service)) items.push('الخدمة المطلوبة');
+      if(Number(c.total_amount||0)<=0 && c.workflow_status!=='cancelled') items.push('تأكيد مبلغ الخدمة');
+      // Missing staff assignment and optional location are operational fields,
+      // not automatic customer follow-ups for imported historical records.
       if(c.transport_provider_id && Number(c.transport_total_amount||0)>0){
         if(!c.pickup_location) items.push('موقع الاستلام Pickup');
         if(!c.dropoff_location) items.push('موقع التوصيل Drop-off');

@@ -34,8 +34,8 @@ else{[name,phone,location,petName,petType,age,provider,service,date,,source,tota
 const missing=[];if(isMissing(name))missing.push('اسم العميل');if(digits(phone).length<8)missing.push('رقم تلفون صالح');if(isMissing(petType))missing.push('نوع الحيوان');if(isMissing(provider))missing.push('مقدم الخدمة');if(isMissing(service))missing.push('الخدمة');if(isMissing(location))missing.push('المنطقة');
 const actualDate=historicalDate(date,monthHint);const iso=actualDate;if(!actualDate)missing.push('تاريخ العملية غير واضح؛ لا يُستخدم تاريخ تقديري');
 const t=money(total),p=money(providerAmount),f=money(fee);if(t===null)missing.push('إجمالي العميل');if(p===null)missing.push('مستحق مقدم الخدمة');if(f===null)missing.push('عمولة PawApp');
-const mismatch=t!==null&&p!==null&&f!==null&&Math.abs(t-p-f)>0.001;if(mismatch)missing.push('اختلاف الحسابات');
-return {name:clean(name),phone:digits(phone),location:isMissing(location)?null:clean(location),petType:isMissing(petType)?null:clean(petType),age:isMissing(age)?null:clean(age),provider:isMissing(provider)?null:clean(provider),service:isMissing(service)?null:clean(service),date:iso,source:isMissing(source)?'historical_excel':clean(source),total:t,providerAmount:p,fee:f,petName:isMissing(petName)?null:clean(petName),paid,providerPaid,pawPaid,missing,mismatch,rawDate:clean(date),extra}}
+const extraAmount=t!==null&&p!==null&&f!==null?Math.round((t-p-f)*1000)/1000:0;const mismatch=extraAmount<0;if(mismatch)missing.push('اختلاف الحسابات: الحصص أكبر من الإجمالي');if(extraAmount>0)missing.push('رسوم إضافية غير مصنفة: يلزم تأكيد تصنيفها قبل الاستيراد');
+return {name:clean(name),phone:digits(phone),location:isMissing(location)?null:clean(location),petType:isMissing(petType)?null:clean(petType),age:isMissing(age)?null:clean(age),provider:isMissing(provider)?null:clean(provider),service:isMissing(service)?null:clean(service),date:iso,source:isMissing(source)?'historical_excel':clean(source),total:t,providerAmount:p,fee:f,petName:isMissing(petName)?null:clean(petName),paid,providerPaid,pawPaid,extraAmount,missing,mismatch,rawDate:clean(date),extra}}
 let customerRows=[],customerMode='template',customerMonth=null,fileImportIdentity='';
 window.pawSetImportMonth=function(v){customerMonth=v?Number(v):null};
 window.pawPreviewCustomers=async function(){
@@ -61,7 +61,7 @@ status(bad.length?'الملف فيه بيانات أساسية أو مالية �
 window.pawCommitImport=async function(){
 if(mode==='services')return window.pawCommitServicesImport();
 if(!['admin','operations'].includes(role())||!customerRows.length||$('importCommit').disabled)return;
-if(customerMode==='historical'){status('استيراد ملفات يوليو–سبتمبر التاريخية مقفل لحماية الحالات المدفوعة والمقفلة؛ لا تعيدي استيرادها. استخدمي نموذج العمليات الجديدة فقط.');return;}if(!confirm('استيراد العمليات الجديدة إلى TEST كعمليات غير مدفوعة حتى يتم إثبات التحصيل؟'))return;
+if(customerMode==='historical'){status('استيراد ملفات يوليو–سبتمبر التاريخية مقفل لحماية الحالات المدفوعة والمقفلة؛ لا تعيدي استيرادها. استخدمي نموذج العمليات الجديدة فقط.');return;}if(!confirm('استيراد العمليات التي اجتازت مراجعة الدفع والمبالغ إلى TEST؟'))return;
 $('importCommit').disabled=true;
 let created=0,followups=0,skipped=0,failed=[];
 try{
@@ -90,9 +90,9 @@ const saved=await req('test_services',{method:'POST',body:JSON.stringify({provid
 svc=saved[0];services.push(svc);
 }
 }
-const notes=[marker,'شهر المصدر: '+(customerMonth||'غير محدد'),'استيراد TEST: السداد غير مثبت',d.petName?'اسم الحيوان: '+d.petName:''].filter(Boolean).join(' | ');
+const clientIsPaid=/^(نعم|yes|paid|true|1)$/i.test(clean(d.paid));const doctorIsPaid=/^(نعم|yes|paid|true|1)$/i.test(clean(d.providerPaid));const pawIsPaid=/^(نعم|yes|paid|true|1)$/i.test(clean(d.pawPaid));const notes=[marker,'شهر المصدر: '+(customerMonth||'غير محدد'),'دفع العميل لشركة باو أب: '+(clientIsPaid?'نعم':'لا'),'الدكتور استلم: '+(doctorIsPaid?'نعم':'لا'),'باو أب حصلت عمولتها: '+(pawIsPaid?'نعم':'لا'),d.petName?'اسم الحيوان: '+d.petName:''].filter(Boolean).join(' | ');
 if(d.missing.length||d.mismatch||!d.date||d.total===null||d.fee===null||!p||!d.service||!d.phone){throw Error('بيانات أساسية/مالية ناقصة أو مقدم خدمة غير معروف');}
-const payload={client_name:d.name,client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p.id,service_name:d.service,service_date:d.date,source:d.source,total_amount:d.total,pawapp_amount:d.fee,client_paid:false,workflow_status:'new',notes};
+const payload={client_name:d.name,client_phone:d.phone,location:d.location,pet_type:d.petType,pet_age:d.age,provider_id:p.id,service_name:d.service,service_date:d.date,source:d.source,total_amount:d.total,pawapp_amount:d.fee,client_paid:clientIsPaid,client_paid_to:clientIsPaid?'pawapp':null,workflow_status:clientIsPaid?'closed':'new',notes};
 const result=await window.PAWAPP_AUTH.client.rpc('test_import_case_atomic',{p_case:payload,p_marker:marker});
 if(result.error)throw Error(result.error.message);
 const saved=[{id:result.data.id,...payload}];

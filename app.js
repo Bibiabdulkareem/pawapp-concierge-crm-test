@@ -54,6 +54,24 @@
       if(!(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))){alert('الحذف متاح للـ Admin و Operations فقط');return;}
       const row=db.cases.find(x=>String(x.id)===String(caseId));if(!row)return;
       const code='PAW-'+String(caseId).padStart(4,'0');
+      if(Number(caseId)===352||Number(caseId)===353){
+        if(window.PAWAPP_AUTH?.access?.role!=='admin'){alert('هذا التنظيف للإدارة فقط');return;}
+        if(!confirm('حذف عمليتي أكتوبر التجريبيتين معاً وإلغاء تسوية TEST بقيمة 30 د.ك بعد حفظ نسخة احتياطية؟'))return;
+        const codeCheck=prompt('اكتبي PAW-0352+PAW-0353 للتأكيد');
+        if(codeCheck!=='PAW-0352+PAW-0353')return;
+        try{
+          const {error}=await window.PAWAPP_AUTH.client.rpc('test_cleanup_october_trial_pair',{p_confirm:codeCheck});
+          if(error)throw error;
+          closeModal('completeCaseModal');
+          await loadData();
+          if(typeof window.PawFinanceInstall==='function')await window.PawFinanceInstall();
+          if(typeof renderCases==='function')renderCases();
+          if(typeof renderCRM==='function')renderCRM();
+          if(typeof renderDashboard==='function')renderDashboard();
+          alert('تم تنظيف العمليتين وتسوية TEST وحفظ نسخة احتياطية.');
+        }catch(e){alert('لم يتم الحذف: '+(e.message||'تعذر التنفيذ'));}
+        return;
+      }
       // Prevent orphaning approved provider-period settlements. Do not delete linked cases.
       const {data:linked,error:linkedError}=await window.PAWAPP_AUTH.client
         .from('test_provider_period_settlements')

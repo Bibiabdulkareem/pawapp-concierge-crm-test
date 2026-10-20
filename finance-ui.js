@@ -165,15 +165,15 @@ function renderProviderSettlementPeriod(){
    const due=historical?0n:dir==='pawapp_to_provider'?sum.theirs:sum.ours;
    const relevant=lines.filter(l=>l.isPaid&&l.route===(dir==='pawapp_to_provider'?'pawapp':'provider'));
    const unknown=relevant.some(l=>l.issues.length);
-   const label=historical?'تمت التسوية — مقفل خارج النظام':rows.length&&due===0n?'Settled — تمت التسوية':due>0n?'Pending — مستحقات غير مدفوعة':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'غير معتمد — لا يوجد مبلغ متبقٍ مسجل':'لا توجد عمليات في الفترة';
+   const label=historical?'إقفال تاريخي — ليس اعتماد تحويل':rows.length&&due===0n?'تسوية معتمدة وموثقة':due>0n?'مستحقات مفتوحة — لم تتم التسوية':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'سداد مسجل — التسوية غير معتمدة':'لا توجد عمليات في الفترة';
    const canApprove=['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length&&!historical;
-   const canReconcile=!historical&&['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&lines.length>0&&unresolved.length===0&&lines.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
+   const canReconcile=!historical&&['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&relevant.length>0&&unresolved.length===0&&relevant.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
    return '<div class="mini"><span>'+title+'</span><b>'+label+'</b><div class="hint">المعتمد: '+amount.toFixed(3)+' د.ك • المتبقي: '+cash(due)+'</div>'+
      (canApprove?'<button class="btn primary" onclick="pawConfirmPeriodSettlement(\''+dir+'\')">تمت التسوية — تأكيد الدفع/التحصيل</button>':'')+
      (canReconcile?'<button class="btn" onclick="pawConfirmZeroSettlement(\''+dir+'\')">اعتماد تسوية سابقة موثقة</button>':'')+
      (unknown?'<div class="hint">يلزم مراجعة البنود قبل الاعتماد</div>':'')+'</div>';
  }).join('');
- const status=historical?'تمت التسوية — مقفل خارج النظام':unresolved.length?'تحتاج مراجعة':pending.length?'Pending — بانتظار التسوية':'لا توجد مستحقات معلقة';
+ const status=historical?'إقفال تاريخي — لا يثبت اعتماد تحويل':unresolved.length?'تحتاج مراجعة':pending.length?'مستحقات مفتوحة — بانتظار التسوية':approved.length?'توجد تسوية معتمدة ولا مستحقات معلقة':'لا توجد مستحقات معلقة — اعتماد التسوية منفصل عن السداد';
  host.innerHTML='<div class="hint">إجمالي الفترة وحصص الطرفين تظهر دائماً، حتى لو المتبقي صفر. حالة الإقفال لا تثبت التحويل وحدها.</div>'+
  '<div class="miniGrid"><div class="mini"><span>عمليات الفترة</span><b>'+sum.caseCount+'</b></div>'+
  '<div class="mini"><span>إجمالي العمليات</span><b>'+cash(sum.total)+'</b></div>'+
@@ -331,14 +331,15 @@ window.exportProviderFullReport=function(id){
  const bom=report.startsWith('\ufeff')?'\ufeff':'';
  const plain=bom?report.slice(1):report;
  const rows=plain.trimEnd().split(/\r?\n/);
- const columns=['حالة الفترة','مرجع العملية','ملاحظة التسوية'];
+ const columns=['حالة الفترة','مرجع العملية','اعتماد التسوية','ملاحظة التسوية'];
  const historical=from>='2026-07-01'&&to<'2026-10-01';
  const header=rows.shift()+','+columns.map(csvCell).join(',');
  const body=rows.map((row,i)=>{
-  if(i>=lines.length)return row+','+['','',''].map(csvCell).join(',');
+  if(i>=lines.length)return row+','+['','','',''].map(csvCell).join(',');
   const l=lines[i];
   const status=historical?'مقفل تاريخياً':l.issues.length?'تحتاج مراجعة':l.ours>0n?'مستحق لـ PawApp على الشركة':l.theirs>0n?'مستحق للشركة على PawApp':l.isPaid?'لا توجد مستحقات':'العميل لم يسدد';
-  return row+','+[status,caseCode(l.caseId),historical?'إقفال تاريخي، ليس إثبات تحويل':'تراجع مع سجل التسويات'].map(csvCell).join(',');
+  const approvedLine=periodSettlements.some(x=>String(x.provider_id)===String(p.id)&&x.period_from<=l.date&&x.period_to>=l.date);
+  return row+','+[status,caseCode(l.caseId),historical?'إقفال تاريخي':approvedLine?'معتمدة':'غير معتمدة',historical?'إقفال تاريخي، ليس إثبات تحويل':'السداد المسجل لا يعني اعتماد تسوية'].map(csvCell).join(',');
  });
  download(bom+[header,...body].join('\r\n')+'\r\n','PawApp-'+p.name+'-operations.csv','text/csv;charset=utf-8');
 };
@@ -354,11 +355,12 @@ window.pawPrintProviderReport=function(){
  const reportLines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
  const historical=from>='2026-07-01'&&to<'2026-10-01';
  const reportRows=reportLines.map(l=>{
-  const status=historical?'مقفل تاريخياً':l.issues.length?'تحتاج مراجعة':l.ours>0n?'الشركة مطالبة لـ PawApp':l.theirs>0n?'PawApp مطالبة للشركة':l.isPaid?'لا توجد مستحقات':'العميل لم يسدد';
+  const status=historical?'إقفال تاريخي':l.issues.length?'تحتاج مراجعة':l.ours>0n?'الشركة مطالبة لـ PawApp':l.theirs>0n?'PawApp مطالبة للشركة':l.isPaid?'سداد مسجل — الاعتماد منفصل':'العميل لم يسدد';
   const route=l.route==='pawapp'?'PawApp':l.route==='provider'?'الشركة':'غير محدد';
-  return '<tr>'+[caseCode(l.caseId),l.date,l.client,l.phone,l.service,providerName(l.providerId),cash(l.total),cash(l.paw),cash(l.provider),cash(l.paid),route,historical?'إقفال تاريخي':cash(l.providerPaid),historical?'إقفال تاريخي':cash(l.commissionReceived),cash(l.ours),cash(l.theirs),status].map(x=>'<td>'+safe(x)+'</td>').join('')+'</tr>';
+  const approval=historical?'إقفال تاريخي':periodSettlements.some(x=>String(x.provider_id)===String(p.id)&&x.period_from<=l.date&&x.period_to>=l.date)?'معتمدة':'غير معتمدة';
+  return '<tr>'+[caseCode(l.caseId),l.date,l.client,l.phone,l.service,providerName(l.providerId),cash(l.total),cash(l.paw),cash(l.provider),cash(l.paid),route,historical?'إقفال تاريخي':cash(l.providerPaid),historical?'إقفال تاريخي':cash(l.commissionReceived),cash(l.ours),cash(l.theirs),status,approval].map(x=>'<td>'+safe(x)+'</td>').join('')+'</tr>';
  }).join('');
- const detailTable='<h2>تفاصيل العمليات والمطالبات</h2><table class="reportDetails"><thead><tr>'+['العملية','التاريخ','العميل','الهاتف','الخدمة','الشركة','الإجمالي','حصة PawApp','حصة الشركة','دفع العميل','استلم العميل لدى','دُفع للشركة','حُصّلت العمولة','للـ PawApp على الشركة','للشركة على PawApp','الحالة'].map(x=>'<th>'+safe(x)+'</th>').join('')+'</tr></thead><tbody>'+reportRows+'</tbody></table>';
+ const detailTable='<h2>تفاصيل العمليات والمطالبات</h2><table class="reportDetails"><thead><tr>'+['العملية','التاريخ','العميل','الهاتف','الخدمة','الشركة','الإجمالي','حصة PawApp','حصة الشركة','دفع العميل','استلم العميل لدى','دُفع للشركة','حُصّلت العمولة','للـ PawApp على الشركة','للشركة على PawApp','الحالة','اعتماد التسوية'].map(x=>'<th>'+safe(x)+'</th>').join('')+'</tr></thead><tbody>'+reportRows+'</tbody></table>';
  w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>PawApp - '+safe(p.name)+'</title><style>body{font:15px Arial,sans-serif;color:#142b49;margin:32px}header{display:flex;align-items:center;gap:18px;border-bottom:3px solid #163e76;padding-bottom:18px;margin-bottom:20px}header img{width:76px;height:76px;object-fit:contain}h1{font-size:24px;margin:0}.miniGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}.mini{border:1px solid #dce4ed;border-radius:9px;padding:12px}.mini span{display:block;color:#687c91}.mini b{display:block;margin-top:7px}button{display:none}.reportDetails{width:100%;border-collapse:collapse;font-size:10px;direction:rtl}.reportDetails th,.reportDetails td{border:1px solid #dce4ed;padding:5px;text-align:right}.reportDetails th{background:#eaf0f7}.hint{color:#687c91;margin:12px 0}@media print{body{margin:15mm}}</style></head><body><header>'+(logo?'<img src="'+logo+'" alt="PawApp">':'')+'<div><h1>PawApp Concierge</h1><strong>تقرير تسويات الشركة — '+safe(p.name)+'</strong><p>'+safe(from)+' — '+safe(to)+'</p></div></header>'+section.innerHTML+detailTable+'<p class="hint">تقرير من نظام TEST — ليس إيصال تحويل بنكي</p></body></html>');
  w.document.close();w.focus();setTimeout(()=>w.print(),500);
 };

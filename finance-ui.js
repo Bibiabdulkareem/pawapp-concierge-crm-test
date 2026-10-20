@@ -328,7 +328,19 @@ window.exportProviderFullReport=function(id){
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
  const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
   const report=F.csv(lines,p.name);
- download(report,'PawApp-'+p.name+'-operations.csv','text/csv;charset=utf-8');
+ const bom=report.startsWith('\ufeff')?'\ufeff':'';
+ const plain=bom?report.slice(1):report;
+ const rows=plain.trimEnd().split(/\r?\n/);
+ const columns=['حالة الفترة','مرجع العملية','ملاحظة التسوية'];
+ const historical=from>='2026-07-01'&&to<'2026-10-01';
+ const header=rows.shift()+','+columns.map(csvCell).join(',');
+ const body=rows.map((row,i)=>{
+  if(i>=lines.length)return row+','+['','',''].map(csvCell).join(',');
+  const l=lines[i];
+  const status=historical?'مقفل تاريخياً':l.issues.length?'تحتاج مراجعة':l.ours>0n?'مستحق لـ PawApp على الشركة':l.theirs>0n?'مستحق للشركة على PawApp':l.isPaid?'لا توجد مستحقات':'العميل لم يسدد';
+  return row+','+[status,caseCode(l.caseId),historical?'إقفال تاريخي، ليس إثبات تحويل':'تراجع مع سجل التسويات'].map(csvCell).join(',');
+ });
+ download(bom+[header,...body].join('\r\n')+'\r\n','PawApp-'+p.name+'-operations.csv','text/csv;charset=utf-8');
 };
 window.pawPrintProviderReport=function(){
  const p=model?.providers.find(x=>String(x.id)===String(selectedProvider));

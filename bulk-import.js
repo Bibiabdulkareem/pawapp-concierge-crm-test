@@ -61,7 +61,7 @@ status(bad.length?'الملف فيه بيانات أساسية أو مالية �
 window.pawCommitImport=async function(){
 if(mode==='services')return window.pawCommitServicesImport();
 if(!['admin','operations'].includes(role())||!customerRows.length||$('importCommit').disabled)return;
-if(customerMode==='historical'){status('استيراد ملفات يوليو–سبتمبر التاريخية مقفل لحماية الحالات المدفوعة والمقفلة؛ لا تعيدي استيرادها. استخدمي نموذج العمليات الجديدة فقط.');return;}if(!confirm('استيراد العمليات التي اجتازت مراجعة الدفع والمبالغ إلى TEST؟'))return;
+if(customerMode==='historical'){status('استيراد ملفات يوليو–سبتمبر التاريخية مقفل لحماية الحالات المدفوعة والمقفلة؛ لا تعيدي استيرادها. استخدمي نموذج العمليات الجديدة فقط.');return;}const readiness=await window.PAWAPP_AUTH.client.rpc('test_import_october_ready');if(readiness.error||readiness.data!==true){status('الاستيراد المالي موقوف مؤقتاً: يلزم إكمال ربط الدفعات والتسويات قبل اعتماد أكتوبر. لم تُضف أي عملية.');return;}if(!confirm('استيراد العمليات التي اجتازت مراجعة الدفع والمبالغ إلى TEST؟'))return;
 $('importCommit').disabled=true;
 let created=0,followups=0,skipped=0,failed=[];
 try{

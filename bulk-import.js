@@ -56,7 +56,7 @@ const duplicates=new Set();
 const seenRows=new Set();for(const x of customerRows){const key=[x.data.phone,x.data.name,x.data.date,x.data.provider,x.data.total].map(normalize).join('|');if(seenRows.has(key))duplicates.add(x.line);seenRows.add(key)}
 $('importPreview').textContent='صفوف '+customerRows.length+' | مراجعة '+review.length+' | تواريخ/هوية تمنع الرفع '+bad.length+' | موجودة مسبقاً في TEST '+existingRows.size+' | تكرارات داخل الملف '+duplicates.size+' | جديدة متوقعة '+(customerRows.length-existingRows.size)+'\n'+customerRows.slice(0,30).map(x=>'صف '+x.line+' — '+x.data.name+' — '+(x.data.date||'تاريخ غير واضح')+' — '+(x.data.missing.join('، ')||'مكتمل')).join('\n');
 $('importPreview').style.whiteSpace='pre-wrap';$('importCommit').disabled=!customerRows.length||!!bad.length||!!duplicates.size||!!review.length;
-status(bad.length?'الملف فيه بيانات أساسية أو مالية ناقصة: لا يمكن الاستيراد':duplicates.size?'راجعي الصفوف المكررة أولاً':review.length?'هناك '+review.length+' صف يحتاج مراجعة، لن نعتمد بيانات ناقصة أو سداداً مفترضاً':'فحص TEST اكتمل. اعتماد العمليات الجديدة يتطلب إثبات السداد أو اعتبارها غير مدفوعة.');
+status(bad.length?'الملف فيه بيانات أساسية أو مالية ناقصة: لا يمكن الاستيراد':duplicates.size?'راجعي الصفوف المكررة أولاً':review.length?'هناك '+review.length+' صف يحتاج مراجعة، لن نعتمد بيانات ناقصة أو سداداً مفترضاً':'فحص بيانات الملف اكتمل؛ راجعي التسويات المالية قبل الاعتماد.');
 };
 window.pawCommitImport=async function(){
 if(mode==='services')return window.pawCommitServicesImport();

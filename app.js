@@ -54,6 +54,21 @@
       if(!(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))){alert('الحذف متاح للـ Admin و Operations فقط');return;}
       const row=db.cases.find(x=>String(x.id)===String(caseId));if(!row)return;
       const code='PAW-'+String(caseId).padStart(4,'0');
+      // Prevent orphaning approved provider-period settlements. Do not delete linked cases.
+      const {data:linked,error:linkedError}=await window.PAWAPP_AUTH.client
+        .from('test_provider_period_settlements')
+        .select('id,amount,period_from,period_to,case_ids')
+        .contains('case_ids',[Number(caseId)]);
+      if(linkedError){alert('تعذر التحقق من التسويات المرتبطة؛ تم إيقاف الحذف لحماية الحسابات.');return;}
+      if(linked?.length){alert('لا يمكن حذف '+code+' لأن عليها تسوية معتمدة. يلزم إلغاء التسوية التجريبية ومراجعة أثرها المالي أولاً. لم تُحذف أي بيانات.');return;}
+      const {data:overlaps,error:overlapError}=await window.PAWAPP_AUTH.client
+        .from('test_provider_period_settlements')
+        .select('id,amount')
+        .eq('provider_id',row.provider_id||row.providerId)
+        .lte('period_from',row.service_date)
+        .gte('period_to',row.service_date);
+      if(overlapError){alert('تعذر فحص الفترة المالية؛ تم إيقاف الحذف.');return;}
+      if(overlaps?.length){alert('لا يمكن حذف '+code+' قبل مراجعة التسوية المعتمدة لنفس الفترة. لم تُحذف أي بيانات.');return;}
       const full=confirm('حذف '+code+'\\n\\nموافق: حذف العملية وجميع مبالغها ودفعات العميل وتسويات مقدم الخدمة من TEST، وإعادة احتساب الإحصائيات.\\n\\nإلغاء: عدم حذف أي شيء، للحفاظ على الحسابات المالية.\\n\\nتنبيه: لا يمكن حذف العملية وحدها مع إبقاء مبالغها في التقارير بدون أرشفة مالية مستقلة.');
       if(!full)return;
       const verify=prompt('للتأكيد النهائي على حذف العملية مع كل مبالغها، اكتبي رقم العملية '+code);

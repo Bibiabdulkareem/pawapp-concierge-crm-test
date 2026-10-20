@@ -1992,7 +1992,8 @@ window.sourceLabel = function(src){
       if(!pet || /^(unknown|غير معروف|n\/a|null)$/i.test(pet)) items.push('نوع الحيوان');
       if(!c.providerId && !c.provider_id) items.push('مقدم الخدمة');
       if(!service || /^(unknown|غير معروف|n\/a|null)$/i.test(service)) items.push('الخدمة المطلوبة');
-      if(Number(c.total_amount||0)<=0 && c.workflow_status!=='cancelled') items.push('تأكيد مبلغ الخدمة');
+      // Missing service price is a finance/data-reconciliation issue, not a customer follow-up.
+      // Keep it out of the operational follow-up count; review it in finance before settlement.
       // Missing staff assignment and optional location are operational fields,
       // not automatic customer follow-ups for imported historical records.
       if(c.transport_provider_id && Number(c.transport_total_amount||0)>0){

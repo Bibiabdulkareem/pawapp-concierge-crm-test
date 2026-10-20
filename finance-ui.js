@@ -188,24 +188,35 @@ function renderProviderSettlementPeriod(){
  '<div class="hint">'+(historical?'الفترة مقفلة خارج النظام؛ بيانات التحويلات الفعلية تظهر أعلاه كما هي ويمكن توثيقها بشكل مستقل.':'البنود الناقصة تحتاج مراجعة قبل اعتماد تسوية جديدة.')+'</div>';
 }
 window.pawProviderSettlementPeriodChanged=renderProviderSettlementPeriod;
+let periodSettlementBusy=false;
 window.pawConfirmPeriodSettlement=async function(direction){
+ if(periodSettlementBusy)return;
  if(!['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role))return alert('صلاحية المحاسبة أو الإدارة فقط');
- const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
- const p=model?.providers.find(x=>String(x.id)===String(selectedProvider));
- if(!p||!from||!to||from>to)return alert('حددي تاريخ البداية والنهاية');
+ if(!['pawapp_to_provider','provider_to_pawapp'].includes(direction))return alert('اتجاه التسوية غير صحيح');
+ const from=v('pawSettlementFrom'),to=v('pawSettlementTo'),provider=selectedProvider;
+ if(!provider||!from||!to||from>to)return alert('حددي تاريخ البداية والنهاية');
  if(from<'2026-10-01')return alert('يوليو وأغسطس وسبتمبر مقفلة؛ تسجيل التسويات الجديدة يبدأ من أكتوبر.');
- const rows=p.lines.filter(l=>l.date>=from&&l.date<=to);
- const due=direction==='pawapp_to_provider'?F.summarize(rows).theirs:F.summarize(rows).ours;
- if(due<=0n)return alert('لا توجد مستحقات مفتوحة لهذا الاتجاه');
- const now=new Date();
- const paidAt=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
- const method='تأكيد يدوي من النظام';
- const reference='TEST-AUTO-'+now.getTime()+'-'+String(selectedProvider)+'-'+direction;
- if(!confirm('هل تؤكدين أن مبلغ '+cash(due)+' تم دفعه أو تحصيله فعلياً؟\\nسيُسجل تاريخ اليوم واسم الحساب تلقائياً، ولا يمكن اعتبار التأكيد مجرد طلب دفع.'))return;
+ periodSettlementBusy=true;
  try{
+  // Always fetch fresh server data before displaying a payable amount.
+  await refresh();
+  const p=model?.providers.find(x=>String(x.id)===String(provider));
+  if(!p)throw Error('الشركة غير موجودة');
+  const rows=p.lines.filter(l=>l.date>=from&&l.date<=to);
+  const relevant=rows.filter(l=>l.isPaid&&l.route===(direction==='pawapp_to_provider'?'pawapp':'provider'));
+  const due=direction==='pawapp_to_provider'?F.summarize(rows).theirs:F.summarize(rows).ours;
+  if(due<=0n)return alert('هذه التسوية مسجلة أو لا توجد مستحقات مفتوحة. لن يتم تسجيل دفع مكرر.');
+  if(relevant.some(l=>l.issues.length))return alert('توجد بيانات مالية تحتاج مراجعة قبل التسوية.');
+  const existing=periodSettlements.some(x=>String(x.provider_id)===String(provider)&&x.direction===direction&&x.period_from<=to&&x.period_to>=from);
+  if(existing)return alert('توجد تسوية معتمدة متداخلة مع هذه الفترة. راجعيها قبل أي اعتماد إضافي.');
+  const now=new Date();
+  const paidAt=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+  if(!confirm('هل تؤكدين سداد '+cash(due)+' فعلياً؟\\nسيُسجل التاريخ تلقائياً. هذه ليست موافقة على طلب دفع.'))return;
   const result=await window.PAWAPP_AUTH.client.rpc('test_confirm_provider_period_settlement',{
-    p_provider:selectedProvider,p_from:from,p_to:to,p_direction:direction,
-    p_method:method.trim(),p_reference:reference,p_paid_at:paidAt,p_expected:Number(F.format(due))
+   p_provider:provider,p_from:from,p_to:to,p_direction:direction,
+   p_method:'تأكيد يدوي من النظام',
+   p_reference:'TEST-AUTO-'+now.getTime()+'-'+String(provider)+'-'+direction,
+   p_paid_at:paidAt,p_expected:Number(F.format(due))
   });
   if(result.error)throw result.error;
   await refresh();
@@ -214,6 +225,7 @@ window.pawConfirmPeriodSettlement=async function(direction){
   renderProviderSettlementPeriod();
   toast('تم اعتماد التسوية وتحديث الحسابات');
  }catch(e){alert('تعذر اعتماد التسوية: '+e.message)}
+ finally{periodSettlementBusy=false;}
 };
 
 window.pawConfirmZeroSettlement=async function(direction){

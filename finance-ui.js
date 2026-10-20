@@ -197,13 +197,11 @@ window.pawConfirmPeriodSettlement=async function(direction){
  const rows=p.lines.filter(l=>l.date>=from&&l.date<=to);
  const due=direction==='pawapp_to_provider'?F.summarize(rows).theirs:F.summarize(rows).ours;
  if(due<=0n)return alert('لا توجد مستحقات مفتوحة لهذا الاتجاه');
- const method=prompt('طريقة التحويل الفعلي (تحويل بنكي / KNET / كاش):','تحويل بنكي');
- if(!method?.trim())return;
- const reference=prompt('رقم مرجع التحويل أو ملاحظة الإثبات:','');
- if(reference===null)return;
- const paidAt=prompt('تاريخ التحويل الفعلي YYYY-MM-DD:',new Date().toISOString().slice(0,10));
- if(!paidAt||!/^\\d{4}-\\d{2}-\\d{2}$/.test(paidAt))return alert('تاريخ غير صحيح');
- if(!confirm('هل تؤكدين أن المبلغ '+cash(due)+' تم تحويله بالكامل فعلياً؟ سيُسجل في العمليات والمالية والتقارير.'))return;
+ const now=new Date();
+ const paidAt=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+ const method='تأكيد يدوي من النظام';
+ const reference='TEST-AUTO-'+now.getTime()+'-'+String(selectedProvider)+'-'+direction;
+ if(!confirm('هل تؤكدين أن مبلغ '+cash(due)+' تم دفعه أو تحصيله فعلياً؟\\nسيُسجل تاريخ اليوم واسم الحساب تلقائياً، ولا يمكن اعتبار التأكيد مجرد طلب دفع.'))return;
  try{
   const result=await window.PAWAPP_AUTH.client.rpc('test_confirm_provider_period_settlement',{
     p_provider:selectedProvider,p_from:from,p_to:to,p_direction:direction,

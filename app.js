@@ -1626,7 +1626,7 @@ window.sourceLabel = function(src){
       db.cases.slice().reverse().slice(0,3).forEach(function(c){
         const pr=byProvider(c.providerId);
         const tp=c.transport_provider_id?byProvider(c.transport_provider_id):null;
-        const needsAttention=!v2ClientPaid(c) || !c.client_paid_to || v2CollectFromProvider(c)>0.0001 || v2PayProvider(c)>0.0001;
+        const needsAttention=financialFollowupItems(c).length>0 || missingFollowupItems(c).length>0 || appointmentFollowupItems(c).length>0;
         let transport='';
         if(tp&&Number(c.transport_total_amount||0)>0){
           const tdir=c.transport_direction==='pickup'?'Pickup':c.transport_direction==='dropoff'?'Drop-off':c.transport_direction==='both'?'Pickup + Drop-off':'Pickup / Drop-off';
@@ -1973,10 +1973,6 @@ window.sourceLabel = function(src){
         items.push({kind:'client',label:'تحصيل من العميل',detail:'متبقي على العميل '+money(clientRem(c)),action:'edit'});
       }else if(paid && !c.client_paid_to){
         items.push({kind:'route',label:'تحديد جهة الدفع',detail:'العميل دفع، حددي دفع لـ PawApp أو للشركة',action:'edit'});
-      }else if(c.client_paid_to==='pawapp' && v2PayProvider(c)>0.0001){
-        items.push({kind:'provider_due',label:'دفع مستحق الشركة',detail:'للشركة عندنا '+money(v2PayProvider(c)),action:'settle'});
-      }else if(c.client_paid_to==='provider' && v2CollectFromProvider(c)>0.0001){
-        items.push({kind:'paw_due',label:'تحصيل حصة PawApp',detail:'لنا عند الشركة '+money(v2CollectFromProvider(c)),action:'edit'});
       }
       return items;
     }

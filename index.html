@@ -677,7 +677,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js?v=finance47-cache-bypass"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="bulk-import.js?v=20261021-mixed-month6"></script>
+<script src="bulk-import.js?v=20261021-diagnostic7"></script>
 <script>
 (function(){
   function syncTestBulkPreview(){
@@ -703,7 +703,7 @@ st.textContent='تم فتح الملف: '+(rows.length-1)+' عملية. جاري
 if(typeof window.pawPreviewCustomers==='function'){try{await window.pawPreviewCustomers();if(pv.textContent.trim()){return}}catch(e){st.textContent='تعذر فحص TEST: '+e.message}}
 var seen=new Set(),duplicates=0,items=rows.slice(1).map((r,i)=>{var key=[r[0],r[1],r[6],r[7],r[8]].map(x=>String(x||'').trim().toLowerCase()).join('|'),dup=seen.has(key);seen.add(key);if(dup)duplicates++;return 'صف '+(i+2)+' — '+(r[0]||'بدون اسم')+' — '+(dup?'مكرر داخل الملف':'يحتاج فحص النظام')});
 pv.textContent='عدد الصفوف: '+items.length+' | مكرر داخل الملف: '+duplicates+'\n'+items.join('\n');
-st.textContent='تمت قراءة الملف، لكن تعذر إكمال فحص التكرار في TEST؛ الاستيراد معطل لحماية البيانات.';
+st.textContent=(st.textContent.includes('تعذر فحص')||st.textContent.includes('خطأ')||st.textContent.includes('الصلاحية'))?st.textContent:'تمت قراءة الملف، لكن فحص قاعدة TEST لم يكتمل؛ الاستيراد معطل لحماية البيانات.';
 }catch(e){st.textContent='خطأ المعاينة: '+e.message}
 };
 </script><script src="pet-registry.js?v=5"></script></body>

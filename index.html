@@ -700,7 +700,7 @@ var wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetName
 var expected=['اسم العميل','رقم العميل','المنطقة','اسم الحيوان','نوع الحيوان','العمر','اسم مقدم الخدمة','اسم الخدمة','تاريخ العملية','الوقت','المصدر','إجمالي العميل','مستحق مقدم الخدمة','عمولة PawApp','العميل سدد','مقدم الخدمة استلم','PawApp حصلت العمولة'];
 if(!rows.length||expected.some((h,i)=>String(rows[0][i]||'').trim()!==h))throw Error('عناوين الملف لا تطابق نموذج العملاء');
 st.textContent='تم فتح الملف: '+(rows.length-1)+' عملية. جاري فحص المكرر في TEST...';
-if(typeof window.pawPreviewCustomers==='function'){try{await window.pawPreviewCustomers();if(pv.textContent.trim()){return}}catch(e){st.textContent='تعذر فحص TEST: '+e.message}}
+if(typeof window.pawPreviewCustomers==='function'){try{await window.pawPreviewCustomers();if(pv.textContent.trim()){return}if(st.textContent!=='تم فتح الملف: '+(rows.length-1)+' عملية. جاري فحص المكرر في TEST...'){return}}catch(e){st.textContent='تعذر فحص TEST: '+(e.stack||e.message);return}}
 var seen=new Set(),duplicates=0,items=rows.slice(1).map((r,i)=>{var key=[r[0],r[1],r[6],r[7],r[8]].map(x=>String(x||'').trim().toLowerCase()).join('|'),dup=seen.has(key);seen.add(key);if(dup)duplicates++;return 'صف '+(i+2)+' — '+(r[0]||'بدون اسم')+' — '+(dup?'مكرر داخل الملف':'يحتاج فحص النظام')});
 pv.textContent='عدد الصفوف: '+items.length+' | مكرر داخل الملف: '+duplicates+'\n'+items.join('\n');
 st.textContent=(st.textContent.includes('تعذر فحص')||st.textContent.includes('خطأ')||st.textContent.includes('الصلاحية'))?st.textContent:'تمت قراءة الملف، لكن فحص قاعدة TEST لم يكتمل؛ الاستيراد معطل لحماية البيانات.';

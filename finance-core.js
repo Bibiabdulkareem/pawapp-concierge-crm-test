@@ -23,7 +23,10 @@ function phone(v){let s=String(v||'').normalize('NFKC').replace(/[\u0660-\u0669]
 function customerKey(c){return c.customer_id?'id:'+c.customer_id:phone(c.client_phone)?'phone:'+phone(c.client_phone):'case:'+c.id;}
 const keys=['total','paw','provider','paid','unpaid','providerPaid','commissionReceived','ours','theirs','pawCollected'];
 function line(c,component){
- const t=component==='transport',pre=t?'transport_':'',issues=[];if(c.workflow_status==='cancelled')issues.push('cancelled_case_requires_review');
+ const t=component==='transport',pre=t?'transport_':'',issues=[];
+ if(c.workflow_status==='cancelled'){
+  return{caseId:String(c.id),component,providerId:String(c[t?'transport_provider_id':'provider_id']||''),customerKey:customerKey(c),client:c.client_name||'',phone:c.client_phone||'',date:c.service_date||'',service:t?'Pickup / Drop-off':c.service_name||c.requested_service||'',feeType:t?(c.transport_fee_type||'fixed'):(c.fee_type||'percent'),feeValue:String(t?(c.transport_fee_value??0):(c.fee_value??0)),route:'',total:0n,paw:0n,provider:0n,paid:0n,unpaid:0n,providerPaid:0n,commissionReceived:0n,ours:0n,theirs:0n,pawCollected:0n,isPaid:false,unknown:false,action:null,issues:[],revision:c.finance_revision||0,raw:c,cancelled:true};
+ }
  const total=minor(c[pre+'total_amount']),paw=minor(c[pre+'pawapp_amount']),provider=minor(c[pre+'provider_amount']);
  const type=t?(c.transport_fee_type||'fixed'):(c.fee_type||'percent');
  const fee=t?(c.transport_fee_value??c.transport_pawapp_amount??0):(c.fee_value??0);

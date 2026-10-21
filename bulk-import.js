@@ -54,9 +54,13 @@ const existingRows=new Set();
 for(const x of customerRows){const marker=customerMode==='historical'?'[BULK_IMPORT:2026:'+String(customerMonth||0)+':ROW:'+x.line+']':newCaseMarker(x);if(existingCases.some(e=>String(e.notes||'').includes(marker)||(normalize(e.client_name)===normalize(x.data.name)&&digits(e.client_phone)===x.data.phone&&e.service_date===x.data.date&&Number(e.total_amount)===Number(x.data.total))))existingRows.add(x.line)}
 const duplicates=new Set();
 const seenRows=new Set();for(const x of customerRows){const key=[x.data.phone,x.data.name,x.data.date,x.data.provider,x.data.total].map(normalize).join('|');if(seenRows.has(key))duplicates.add(x.line);seenRows.add(key)}
-$('importPreview').textContent='صفوف '+customerRows.length+' | مراجعة '+review.length+' | تواريخ/هوية تمنع الرفع '+bad.length+' | موجودة مسبقاً في TEST '+existingRows.size+' | تكرارات داخل الملف '+duplicates.size+' | جديدة متوقعة '+(customerRows.length-existingRows.size)+'\n'+customerRows.slice(0,30).map(x=>'صف '+x.line+' — '+x.data.name+' — '+(x.data.date||'تاريخ غير واضح')+' — '+(x.data.missing.join('، ')||'مكتمل')).join('\n');
-$('importPreview').style.whiteSpace='pre-wrap';$('importCommit').disabled=true;
-status(bad.length?'الملف فيه بيانات أساسية أو مالية ناقصة: لا يمكن الاستيراد':duplicates.size?'راجعي الصفوف المكررة أولاً':review.length?'هناك '+review.length+' صف يحتاج مراجعة، لن نعتمد بيانات ناقصة أو سداداً مفترضاً':'فحص بيانات الملف اكتمل؛ راجعي التسويات المالية قبل الاعتماد.');
+const eligibleRows=customerRows.filter(x=>!existingRows.has(x.line)&&!duplicates.has(x.line)&&!x.data.missing.length&&x.data.date&&x.data.date.startsWith('2026-10-')&&['yes','no','نعم','لا','paid','unpaid','true','false','1','0'].includes(normalize(x.data.paid))&&['yes','no','نعم','لا','paid','unpaid','true','false','1','0'].includes(normalize(x.data.providerPaid))&&['yes','no','نعم','لا','paid','unpaid','true','false','1','0'].includes(normalize(x.data.pawPaid)));
+const eligibleLines=new Set(eligibleRows.map(x=>x.line));
+$('importPreview').textContent='صفوف '+customerRows.length+' | موجودة مسبقاً '+existingRows.size+' | تكرار داخل الملف '+duplicates.size+' | جديدة مكتملة في أكتوبر '+eligibleRows.length+' | مراجعة '+(customerRows.length-existingRows.size-duplicates.size-eligibleRows.length)+'\\n'+customerRows.map(x=>'صف '+x.line+' — '+x.data.name+' — '+(existingRows.has(x.line)?'مكرر في TEST':duplicates.has(x.line)?'مكرر داخل الملف':eligibleLines.has(x.line)?'جديد مكتمل':'مراجعة: '+(x.data.missing.join('، ')||'شهر مقفل أو دفع غير مؤكد')))).join('\\n');
+$('importPreview').style.whiteSpace='pre-wrap';
+$('importCommit').disabled=!eligibleRows.length;
+status('معاينة آمنة: المكرر والناقص والأشهر المقفلة تُستبعد من الاعتماد؛ الجديد المكتمل فقط '+eligibleRows.length+'.');
+
 };
 window.pawCommitImport=async function(){
 if(mode==='services')return window.pawCommitServicesImport();
@@ -69,6 +73,7 @@ const existing=await req('test_cases?select=id,client_name,client_phone,service_
 const providers=await req('test_providers?select=id,name,provider_type,phone&limit=10000');
 const services=await req('test_services?select=id,provider_id,name&limit=10000');
 for(const row of customerRows){
+if(!eligibleLines.has(row.line)){skipped++;continue;}
 status('TEST: معالجة '+(created+skipped)+' من '+customerRows.length+' صف');
 try{
 const d=row.data;

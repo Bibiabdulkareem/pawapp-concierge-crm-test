@@ -36,9 +36,10 @@ const actualDate=historicalDate(date,monthHint);const iso=actualDate;if(!actualD
 const t=money(total),p=money(providerAmount),f=money(fee);if(t===null)missing.push('إجمالي العميل');if(p===null)missing.push('مستحق مقدم الخدمة');if(f===null)missing.push('عمولة PawApp');
 const extraAmount=t!==null&&p!==null&&f!==null?Math.round((t-p-f)*1000)/1000:0;const mismatch=extraAmount<0;if(mismatch)missing.push('اختلاف الحسابات: الحصص أكبر من الإجمالي');if(extraAmount>0)missing.push('رسوم إضافية غير مصنفة: يلزم تأكيد تصنيفها قبل الاستيراد');
 return {name:clean(name),phone:digits(phone),location:isMissing(location)?null:clean(location),petType:isMissing(petType)?null:clean(petType),age:isMissing(age)?null:clean(age),provider:isMissing(provider)?null:clean(provider),service:isMissing(service)?null:clean(service),date:iso,source:isMissing(source)?'historical_excel':clean(source),total:t,providerAmount:p,fee:f,petName:isMissing(petName)?null:clean(petName),paid,providerPaid,pawPaid,extraAmount,missing,mismatch,rawDate:clean(date),extra}}
-let customerRows=[],customerMode='template',customerMonth=null,fileImportIdentity='';
+let customerRows=[],customerMode='template',customerMonth=null,fileImportIdentity='',eligibleLines=new Set();
 window.pawSetImportMonth=function(v){customerMonth=v?Number(v):null};
 window.pawPreviewCustomers=async function(){
+status('جاري فحص ملف Excel...');
 if(!['admin','operations'].includes(role())){status('الصلاحية للأدمن والعمليات فقط');return}
 const file=$('importFile')?.files?.[0];if(!file){status('اختاري ملف Excel أو CSV');return}
 let rows;try{if(/\.xlsx?$/i.test(file.name)){if(!window.XLSX)throw Error('Excel library unavailable');const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',raw:false}).filter(r=>r.some(v=>clean(v)))}else if(/\.csv$/i.test(file.name))rows=parse(await file.text());else throw Error('صيغة غير مدعومة')}catch(e){status('فشل فتح الملف: '+e.message);return}
@@ -55,7 +56,7 @@ for(const x of customerRows){const marker=customerMode==='historical'?'[BULK_IMP
 const duplicates=new Set();
 const seenRows=new Set();for(const x of customerRows){const key=[x.data.phone,x.data.name,x.data.date,x.data.provider,x.data.total].map(normalize).join('|');if(seenRows.has(key))duplicates.add(x.line);seenRows.add(key)}
 const eligibleRows=customerRows.filter(x=>!existingRows.has(x.line)&&!duplicates.has(x.line)&&!x.data.missing.length&&x.data.date&&x.data.date.startsWith('2026-10-')&&['yes','no','نعم','لا','paid','unpaid','true','false','1','0'].includes(normalize(x.data.paid))&&['yes','no','نعم','لا','paid','unpaid','true','false','1','0'].includes(normalize(x.data.providerPaid))&&['yes','no','نعم','لا','paid','unpaid','true','false','1','0'].includes(normalize(x.data.pawPaid)));
-const eligibleLines=new Set(eligibleRows.map(x=>x.line));
+eligibleLines=new Set(eligibleRows.map(x=>x.line));
 $('importPreview').textContent='صفوف '+customerRows.length+' | موجودة مسبقاً '+existingRows.size+' | تكرار داخل الملف '+duplicates.size+' | جديدة مكتملة في أكتوبر '+eligibleRows.length+' | مراجعة '+(customerRows.length-existingRows.size-duplicates.size-eligibleRows.length)+'\\n'+customerRows.map(x=>'صف '+x.line+' — '+x.data.name+' — '+(existingRows.has(x.line)?'مكرر في TEST':duplicates.has(x.line)?'مكرر داخل الملف':eligibleLines.has(x.line)?'جديد مكتمل':'مراجعة: '+(x.data.missing.join('، ')||'شهر مقفل أو دفع غير مؤكد')))).join('\\n');
 $('importPreview').style.whiteSpace='pre-wrap';
 $('importCommit').disabled=!eligibleRows.length;
@@ -126,6 +127,6 @@ finally{if($('importCommit'))$('importCommit').disabled=failed.length>0}
 const oldPreview=window.pawPreviewImport;
 window.pawPreviewImport=function(){if(mode==='cases')return window.pawPreviewCustomers();const file=$('importFile')?.files?.[0];if(file&&/July|PawApp|TEST Import/i.test(file.name))return window.pawPreviewCustomers();return oldPreview()};
 const oldMode=window.pawImportMode;
-window.pawImportMode=function(m){oldMode(m);customerRows=[];if($('importCommit'))$('importCommit').textContent=m==='cases'?'اعتماد استيراد العملاء إلى TEST':'اعتماد استيراد الخدمات إلى TEST'};
+window.pawImportMode=function(m){oldMode(m);customerRows=[];eligibleLines=new Set();if($('importCommit'))$('importCommit').textContent=m==='cases'?'اعتماد استيراد العملاء إلى TEST':'اعتماد استيراد الخدمات إلى TEST'};
 
 })();

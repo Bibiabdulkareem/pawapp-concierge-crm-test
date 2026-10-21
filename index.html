@@ -700,7 +700,27 @@ var wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetName
 var expected=['اسم العميل','رقم العميل','المنطقة','اسم الحيوان','نوع الحيوان','العمر','اسم مقدم الخدمة','اسم الخدمة','تاريخ العملية','الوقت','المصدر','إجمالي العميل','مستحق مقدم الخدمة','عمولة PawApp','العميل سدد','مقدم الخدمة استلم','PawApp حصلت العمولة'];
 if(!rows.length||expected.some((h,i)=>String(rows[0][i]||'').trim()!==h))throw Error('عناوين الملف لا تطابق نموذج العملاء');
 st.textContent='تم فتح الملف: '+(rows.length-1)+' عملية. جاري فحص المكرر في TEST...';
-if(typeof window.pawPreviewCustomers==='function'){try{await window.pawPreviewCustomers();if(pv.textContent.trim()){return}if(st.textContent!=='تم فتح الملف: '+(rows.length-1)+' عملية. جاري فحص المكرر في TEST...'){return}}catch(e){st.textContent='تعذر فحص TEST: '+(e.stack||e.message);return}}
+var client=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.client;
+if(!client)throw Error('جلسة الدخول غير جاهزة');
+var res=await client.from('test_cases').select('id,client_name,client_phone,service_date,total_amount').limit(10000);
+if(res.error)throw Error('فحص TEST: '+res.error.message);
+var records=res.data||[];
+var norm=v=>String(v==null?'':v).trim().toLowerCase().replace(/\s+/g,' ');
+var num=v=>String(v==null?'':v).replace(/\D/g,'');
+var matched=0,duplicate=0,needsReview=0,seen=new Set(),items=[];
+rows.slice(1).forEach((r,i)=>{
+var name=norm(r[0]),phone=num(r[1]),date=String(r[8]||'').slice(0,10),amount=String(r[11]||'').trim();
+var exists=records.some(e=>name&&phone&&date&&norm(e.client_name)===name&&num(e.client_phone)===phone&&String(e.service_date||'').slice(0,10)===date&&(!amount||Number(e.total_amount)===Number(amount)));
+var key=[name,phone,date,norm(r[6]),norm(r[7]),amount].join('|'),repeat=seen.has(key);seen.add(key);
+var incomplete=!name||phone.length<8||!date||!r[6]||!r[7]||!amount||!r[12]||!r[13];
+if(exists)matched++;else if(repeat)duplicate++;else if(incomplete)needsReview++;
+items.push('صف '+(i+2)+' — '+(r[0]||'بدون اسم')+' — '+(exists?'موجود مسبقاً':repeat?'مكرر بالملف':incomplete?'بيانات ناقصة':'جديد للمراجعة'));
+});
+pv.textContent='42 عملية (الملف: '+(rows.length-1)+') | موجودة '+matched+' | مكررة '+duplicate+' | ناقصة '+needsReview+'\n'+items.join('\n');
+pv.style.whiteSpace='pre-wrap';
+st.textContent='اكتمل فحص التكرار مع TEST. الاعتماد مقفل لحين مراجعة التسويات.';
+btn.textContent='اعتماد استيراد العملاء إلى TEST';btn.disabled=true;
+return;
 var seen=new Set(),duplicates=0,items=rows.slice(1).map((r,i)=>{var key=[r[0],r[1],r[6],r[7],r[8]].map(x=>String(x||'').trim().toLowerCase()).join('|'),dup=seen.has(key);seen.add(key);if(dup)duplicates++;return 'صف '+(i+2)+' — '+(r[0]||'بدون اسم')+' — '+(dup?'مكرر داخل الملف':'يحتاج فحص النظام')});
 pv.textContent='عدد الصفوف: '+items.length+' | مكرر داخل الملف: '+duplicates+'\n'+items.join('\n');
 st.textContent=(st.textContent.includes('تعذر فحص')||st.textContent.includes('خطأ')||st.textContent.includes('الصلاحية'))?st.textContent:'تمت قراءة الملف، لكن فحص قاعدة TEST لم يكتمل؛ الاستيراد معطل لحماية البيانات.';

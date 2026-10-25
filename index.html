@@ -348,6 +348,12 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <section id="providers" class="page">
 <div class="card" style="padding:10px;margin:10px 0"><b>إضافة خدمات دفعة واحدة</b><p class="hint">نموذج Excel للخدمات والشركات والفريلانسر.</p><button class="btn soft" type="button" onclick="pawOpenImport('services')">استيراد الخدمات Excel</button></div>
 <div class="title"><div><h1>الشركات / الفريلانسر</h1><p>كل جهة وملخص حسابها — اضغطي التفاصيل لفتح CRM الشركة</p></div><button class="btn primary" onclick="openProvider()">+ إضافة شركة / فريلانسر</button></div>
+<div class="card" style="margin:12px 0;border:2px solid #d9e5f4">
+<div class="section" style="margin:0 0 10px"><h2>المستحقات الشهرية — الشركات والفريلانسر (TEST)</h2></div>
+<div class="grid2"><div class="field"><label>الشهر</label><input type="month" id="pawSettlementMonth" min="2026-10" value="2026-10" onchange="pawMonthlySettlementOverview()"></div><div class="field"><label>عرض</label><select id="pawSettlementDirection" onchange="pawMonthlySettlementOverview()"><option value="all">جميع المستحقات</option><option value="to_provider">باو أب تدفع للشركة</option><option value="to_pawapp">الشركة تدفع لباو أب</option></select></div></div>
+<p id="pawSettlementSummary" class="hint" style="margin:12px 0">اختاري الشهر لعرض المستحقات غير المسوّاة.</p><div id="pawSettlementRows" style="overflow:auto"></div>
+<p class="hint">يظهر المعلّق فقط؛ العمليات غير مؤكدة الدفع تُعرض للمراجعة منفصلة. شهور 7–9 مغلقة ولا تُفتح من هذه الشاشة.</p>
+</div>
 <input id="providerSearch" class="search" placeholder="بحث باسم الشركة / الفريلانسر..." oninput="renderProviders()">
 <div id="providerList" class="providerGrid" style="margin-top:11px"></div>
 </section>
@@ -726,5 +732,43 @@ pv.textContent='عدد الصفوف: '+items.length+' | مكرر داخل الم
 st.textContent=(st.textContent.includes('تعذر فحص')||st.textContent.includes('خطأ')||st.textContent.includes('الصلاحية'))?st.textContent:'تمت قراءة الملف، لكن فحص قاعدة TEST لم يكتمل؛ الاستيراد معطل لحماية البيانات.';
 }catch(e){st.textContent='خطأ المعاينة: '+e.message}
 };
-</script><script src="pet-registry.js?v=5"></script><script src="referral-review-stage.js?v=1"></script><script src="import-validation-v2.js?v=2"></script></body>
+</script><script src="pet-registry.js?v=5"></script><script src="referral-review-stage.js?v=1"></script><script src="import-validation-v2.js?v=2"></script><script>
+window.pawMonthlySettlementOverview=async function(){
+const month=document.getElementById('pawSettlementMonth')?.value||'2026-10',summary=document.getElementById('pawSettlementSummary'),out=document.getElementById('pawSettlementRows');
+if(!summary||!out)return;
+if(month<'2026-10'){summary.textContent='الشهور السابقة لأكتوبر مغلقة.';out.replaceChildren();return}
+summary.textContent='جاري تحميل مستحقات '+month+'...';out.replaceChildren();
+try{
+const client=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.client;if(!client)throw Error('سجلي الدخول أولاً');
+const start=month+'-01',end=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),1)).toISOString().slice(0,10);
+const [a,b,c]=await Promise.all([
+client.from('test_case_settlement_status').select('case_id,provider_id,client_paid,client_paid_to,pawapp_amount,provider_amount,settlement_status').gte('service_date',start).lt('service_date',end).limit(5000),
+client.from('test_providers').select('id,name').limit(1000),
+client.from('test_provider_period_settlements').select('provider_id,direction,status,amount,case_ids').gte('period_from',start).lt('period_from',end).limit(2000)
+]);
+for(const r of [a,b,c])if(r.error)throw Error(r.error.message);
+const names=new Map((b.data||[]).map(p=>[p.id,p.name]));
+const settled=new Set();for(const p of c.data||[])if(['paid','completed','closed','settled'].includes(String(p.status||'').toLowerCase()))for(const id of p.case_ids||[])settled.add(String(id));
+const groups=new Map();let review=0,excluded=0;
+for(const x of a.data||[]){
+if(settled.has(String(x.case_id))||['paid','completed','closed','settled'].includes(String(x.settlement_status||'').toLowerCase())){excluded++;continue}
+if(x.client_paid!==true||!['pawapp','provider'].includes(x.client_paid_to)){review++;continue}
+const direction=x.client_paid_to==='pawapp'?'to_provider':'to_pawapp',amount=Number(direction==='to_provider'?x.provider_amount:x.pawapp_amount);
+if(!Number.isFinite(amount)||amount<=0){review++;continue}
+if(document.getElementById('pawSettlementDirection').value!=='all'&&document.getElementById('pawSettlementDirection').value!==direction)continue;
+const key=(x.provider_id||'missing')+'|'+direction;
+if(!groups.has(key))groups.set(key,{name:names.get(x.provider_id)||'مقدم خدمة غير مربوط',direction,amount:0,count:0});
+const g=groups.get(key);g.amount+=amount;g.count++;
+}
+const arr=[...groups.values()].sort((x,y)=>y.amount-x.amount);
+summary.textContent=arr.length+' جهة/اتجاه مستحق | '+arr.reduce((v,x)=>v+x.count,0)+' عملية معلّقة | '+review+' تحتاج مراجعة بيانات | '+excluded+' مستبعدة لتسجيل تسوية';
+if(!arr.length){out.textContent='لا توجد مستحقات مؤكدة لهذا الاختيار.';return}
+const table=document.createElement('table');table.style.minWidth='580px';
+const head=document.createElement('tr');for(const h of ['الشركة / الفريلانسر','جهة الاستحقاق','العمليات','المبلغ (د.ك)']){const th=document.createElement('th');th.textContent=h;head.appendChild(th)}table.appendChild(head);
+for(const g of arr){const tr=document.createElement('tr');for(const v of [g.name,g.direction==='to_provider'?'باو أب تدفع للشركة':'الشركة تدفع لباو أب',g.count,g.amount.toFixed(3)]){const td=document.createElement('td');td.textContent=String(v);tr.appendChild(td)}table.appendChild(tr)}
+out.appendChild(table);
+}catch(e){summary.textContent='تعذر تحميل المستحقات: '+e.message}
+};
+document.addEventListener('click',e=>{if(e.target.closest('[data-p="providers"]'))setTimeout(()=>window.pawMonthlySettlementOverview(),150)});
+</script></body>
 </html>

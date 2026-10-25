@@ -712,11 +712,11 @@ rows.slice(1).forEach((r,i)=>{
 var name=norm(r[0]),phone=num(r[1]),date=String(r[8]||'').slice(0,10),amount=String(r[11]||'').trim();
 var exists=records.some(e=>name&&phone&&date&&norm(e.client_name)===name&&num(e.client_phone)===phone&&String(e.service_date||'').slice(0,10)===date&&(!amount||Number(e.total_amount)===Number(amount)));
 var key=[name,phone,date,norm(r[6]),norm(r[7]),amount].join('|'),repeat=seen.has(key);seen.add(key);
-var incomplete=!name||phone.length<8||!date||!r[6]||!r[7]||!amount||!r[12]||!r[13];
+var incomplete=!name||phone.length<8||!date||!r[6]||!r[7];
 if(exists)matched++;else if(repeat)duplicate++;else if(incomplete)needsReview++;
-var missing=[];if(!name)missing.push('اسم العميل');if(phone.length<8)missing.push('رقم الهاتف');if(!r[2])missing.push('المنطقة');if(!r[4])missing.push('نوع الحيوان');if(!r[7])missing.push('اسم الخدمة');if(!amount)missing.push('إجمالي الخدمة');if(!r[12])missing.push('مستحق الشريك');if(!r[13])missing.push('عمولة PawApp');if(!r[14])missing.push('حالة سداد العميل');if(!r[15])missing.push('تحويل الشريك');if(!r[16])missing.push('تحصيل عمولة PawApp');items.push('صف '+(i+2)+' — '+(r[0]||'بدون اسم')+' — '+(exists?'موجود مسبقاً — يستبعد':repeat?'مكرر بالملف — يستبعد':missing.length?'مراجعة: '+missing.join('، '):'جديد — مراجعة مالية'));
+var missing=[];if(!name)missing.push('اسم العميل');if(phone.length<8)missing.push('رقم الهاتف');if(!r[2])missing.push('المنطقة');if(!r[4])missing.push('نوع الحيوان');if(!r[7])missing.push('اسم الخدمة');if(!amount)missing.push('إجمالي الخدمة — متابعة الموظفة');if(!r[12])missing.push('مستحق الشريك — متابعة الموظفة');if(!r[13])missing.push('عمولة PawApp — متابعة الموظفة');if(!r[14])missing.push('حالة سداد العميل');if(!r[15])missing.push('تحويل الشريك');if(!r[16])missing.push('تحصيل عمولة PawApp');items.push('صف '+(i+2)+' — '+(r[0]||'بدون اسم')+' — '+(exists?'موجود مسبقاً — يستبعد':repeat?'مكرر بالملف — يستبعد':missing.length?'مراجعة: '+missing.join('، '):'جديد — مراجعة مالية'));
 });
-pv.textContent='42 عملية (الملف: '+(rows.length-1)+') | موجودة '+matched+' | مكررة '+duplicate+' | ناقصة '+needsReview+'\n'+items.join('\n');
+pv.textContent=(rows.length-1)+' عملية | موجودة +matched+' | مكررة '+duplicate+' | ناقصة '+needsReview+'\n'+items.join('\n');
 pv.style.whiteSpace='pre-wrap';
 st.textContent='اكتمل فحص التكرار مع TEST. الاعتماد مقفل لحين مراجعة التسويات.';
 btn.textContent='اعتماد استيراد العملاء إلى TEST';btn.disabled=true;

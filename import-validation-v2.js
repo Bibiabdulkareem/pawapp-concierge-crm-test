@@ -56,7 +56,7 @@ window.pawPreviewWithFeedback=async function(){
    else{valid++;items.push('✓ الصف '+(i+1)+': الأساسيات مكتملة');}
   }
   if(!valid&&!problems.length)throw Error('الملف خالٍ من العمليات');
-  pv.style.whiteSpace='pre-wrap';pv.style.overflowWrap='anywhere';pv.style.wordBreak='break-word';pv.style.direction='rtl';pv.style.textAlign='right';pv.style.fontSize='14px';pv.style.lineHeight='1.8';pv.style.maxHeight='420px';pv.style.overflowY='auto';pv.textContent='الإجمالي: '+(valid+problems.length)+' | مكتمل: '+valid+' | يحتاج تعديل: '+problems.length+'\\n\\n'+items.join('\\n');
+  pv.style.whiteSpace='pre-wrap';pv.style.overflowWrap='anywhere';pv.style.wordBreak='break-word';pv.style.direction='rtl';pv.style.textAlign='right';pv.style.fontSize='14px';pv.style.lineHeight='1.8';pv.style.maxHeight='420px';pv.style.overflowY='auto';pv.textContent='الإجمالي: '+(valid+problems.length)+' | مكتمل: '+valid+' | يحتاج تعديل: '+problems.length+'\n\n'+items.join('\n');
   if(problems.length){st.textContent='الاستيراد ممنوع: عدّلي البيانات الأساسية الموضحة لكل صف، ثم ارفعي الملف مرة ثانية.';return;}
   st.textContent='الأساسيات مكتملة في جميع الصفوف. المعاينة فقط؛ الحفظ للمراجعة في TEST ولا ينشئ تسويات.';
   // Preserve existing safe staging action only for the original historical format.

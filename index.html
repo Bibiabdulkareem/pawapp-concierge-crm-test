@@ -718,7 +718,7 @@ var missing=[];if(!name)missing.push('اسم العميل');if(phone.length<8)mi
 });
 pv.textContent=(rows.length-1)+' عملية | موجودة +matched+' | مكررة '+duplicate+' | ناقصة '+needsReview+'\n'+items.join('\n');
 pv.style.whiteSpace='pre-wrap';
-st.textContent='اكتمل فحص التكرار مع TEST. الاعتماد مقفل لحين مراجعة التسويات.';
+st.textContent='اكتمل فحص التكرار مع TEST. المبالغ الناقصة للمتابعة وليست صفوفاً مرفوضة. الاعتماد مقفل لحين ربط جهة الدفع والتسويات.';
 btn.textContent='اعتماد استيراد العملاء إلى TEST';btn.disabled=true;
 return;
 var seen=new Set(),duplicates=0,items=rows.slice(1).map((r,i)=>{var key=[r[0],r[1],r[6],r[7],r[8]].map(x=>String(x||'').trim().toLowerCase()).join('|'),dup=seen.has(key);seen.add(key);if(dup)duplicates++;return 'صف '+(i+2)+' — '+(r[0]||'بدون اسم')+' — '+(dup?'مكرر داخل الملف':'يحتاج فحص النظام')});

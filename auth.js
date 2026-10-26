@@ -103,7 +103,8 @@
       const accountantInvoicePin = accountant && field.id === 'attachmentPin';
       // Accountants can enter settlement evidence in the finance action dialog only.
       const accountantSettlementField = accountant && !!field.closest('#financeActionModal');
-      if (noWrite && !accountantInvoicePin && !accountantSettlementField) {
+      const personalPasswordField = !!field.closest('#myPasswordModal');
+      if (noWrite && !accountantInvoicePin && !accountantSettlementField && !personalPasswordField) {
         field.disabled = true;
         field.dataset.readOnlyDisabled = '1';
       } else if (field.dataset.readOnlyDisabled === '1') {
@@ -347,6 +348,21 @@
     } finally {
       if (button) button.disabled = false;
     }
+  };
+
+  window.pawOpenMyPassword = function() {
+    if (!window.PAWAPP_AUTH?.session) return;
+    const panel = el('myPasswordModal');
+    if (!panel) return;
+    if (el('myNewPassword')) el('myNewPassword').value = '';
+    if (el('myConfirmPassword')) el('myConfirmPassword').value = '';
+    if (el('myPasswordMessage')) el('myPasswordMessage').textContent = '';
+    panel.classList.add('show');
+  };
+
+  window.pawCloseMyPassword = function() {
+    const panel = el('myPasswordModal');
+    if (panel) panel.classList.remove('show');
   };
 
   window.pawChangeMyPassword = async function() {

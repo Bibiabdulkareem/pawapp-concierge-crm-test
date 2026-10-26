@@ -421,11 +421,12 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   <div class="hint" style="margin-top:5px;line-height:1.7">الـAdmin ينشئ لكل موظف إيميل + باسورد مؤقت + صلاحية. الموظف يقدر يغير الباسورد بعدين من حسابه.</div>
 
   <div id="adminCreateUserBox" class="grid2" style="margin-top:12px">
-    <div class="field"><label>اسم الموظف</label><input id="adminEmployeeName" placeholder="مثال: Heba أو هبة"></div>
+    <div class="field full"><label>اختاري الموظف المسجّل</label><select id="adminEmployeeSelect" onchange="pawAdminSelectEmployee(this.value)"><option value="">اختاري الموظف</option></select><div class="hint">حبيبة وهيبة موجودات بقائمة الموظفين؛ اختاري الاسم ثم حددي الإيميل والصلاحية والباسورد.</div></div>
+    <div class="field"><label>اسم الموظف</label><input id="adminEmployeeName" placeholder="اختاري الموظف أعلاه" readonly></div>
     <div class="field"><label>الإيميل</label><input id="adminEmployeeEmail" type="email" placeholder="name@pawapp.net"></div>
     <div class="field"><label>الباسورد المؤقت</label><input id="adminEmployeePassword" type="password" minlength="8" placeholder="8 أحرف أو أكثر"></div>
     <div class="field"><label>الصلاحية</label><select id="adminEmployeeRole"><option value="operations">Operations</option><option value="accountant">Accountant - محاسب</option><option value="read_only">Read only</option><option value="admin">Admin</option></select></div>
-    <div class="field full"><button class="btn primary" type="button" onclick="pawAdminCreateEmployee()">إنشاء / تفعيل حساب الموظف</button></div>
+    <div class="field full"><button class="btn primary" id="adminCreateUserButton" type="button" onclick="pawAdminCreateEmployee()">حفظ الصلاحية وإنشاء حساب الدخول</button><div class="hint" style="margin-top:6px">الباسورد مؤقت. لا يظهر في قائمة الموظفين ولا يُخزّن فيها. تقدرين تعطينه للموظفة بطريقة آمنة، وتغيّره بعد أول دخول.</div></div>
     <div id="adminCreateUserMessage" class="hint field full"></div>
   </div>
 

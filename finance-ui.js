@@ -209,14 +209,27 @@ window.pawConfirmPeriodSettlement=async function(direction){
   if(relevant.some(l=>l.issues.length))return alert('توجد بيانات مالية تحتاج مراجعة قبل التسوية.');
   const existing=periodSettlements.some(x=>String(x.provider_id)===String(provider)&&x.direction===direction&&x.period_from<=to&&x.period_to>=from);
   if(existing)return alert('توجد تسوية معتمدة متداخلة مع هذه الفترة. راجعيها قبل أي اعتماد إضافي.');
-  const now=new Date();
-  const paidAt=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
-  if(!confirm('هل تؤكدين سداد '+cash(due)+' فعلياً؟\\nسيُسجل التاريخ تلقائياً. هذه ليست موافقة على طلب دفع.'))return;
+  // No settlement may be approved based on customer payment alone.
+  const methodInput=prompt('طريقة التحويل الفعلي (مثلاً تحويل بنكي أو KNET):','');
+  if(methodInput===null)return;
+  const method=methodInput.trim();
+  if(!method)return alert('طريقة التحويل الفعلي مطلوبة لاعتماد التسوية.');
+  const referenceInput=prompt('رقم إيصال أو مرجع التحويل الحقيقي:','');
+  if(referenceInput===null)return;
+  const reference=referenceInput.trim();
+  if(!reference)return alert('مرجع التحويل الحقيقي مطلوب.');
+  const dateInput=prompt('تاريخ التحويل الفعلي YYYY-MM-DD:','');
+  if(dateInput===null)return;
+  const paidAt=dateInput.trim();
+  const parsed=new Date(paidAt+'T00:00:00');
+  const validDate=/^\d{4}-\d{2}-\d{2}$/.test(paidAt) && !Number.isNaN(parsed.getTime())
+    && [parsed.getFullYear(),String(parsed.getMonth()+1).padStart(2,'0'),String(parsed.getDate()).padStart(2,'0')].join('-')===paidAt;
+  if(!validDate)return alert('تاريخ التحويل غير صحيح. اكتبيه بصيغة YYYY-MM-DD.');
+  if(paidAt>localDate())return alert('لا يمكن اعتماد تحويل بتاريخ مستقبلي.');
+  if(!confirm('هل تم تحويل '+cash(due)+' فعلياً؟\nالطريقة: '+method+'\nالمرجع: '+reference+'\nالتاريخ: '+paidAt+'\nلا تعتمدي التسوية بدون إثبات التحويل.'))return;
   const result=await window.PAWAPP_AUTH.client.rpc('test_confirm_provider_period_settlement',{
-   p_provider:provider,p_from:from,p_to:to,p_direction:direction,
-   p_method:'تأكيد يدوي من النظام',
-   p_reference:'TEST-AUTO-'+now.getTime()+'-'+String(provider)+'-'+direction,
-   p_paid_at:paidAt,p_expected:Number(F.format(due))
+    p_provider:provider,p_from:from,p_to:to,p_direction:direction,
+    p_method:method,p_reference:reference,p_paid_at:paidAt,p_expected:Number(F.format(due))
   });
   if(result.error)throw result.error;
   await refresh();

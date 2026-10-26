@@ -227,81 +227,126 @@
   };
 
 
-  window.pawAdminCreateEmployee = async function() {
-    const access = window.PAWAPP_AUTH?.access;
-    if (!access || access.role !== 'admin') {
-      alert('Admin فقط');
+  // Use the existing employee record; never create a duplicate by guessing the name.
+  window.pawAdminSelectEmployee = async function(employeeId) {
+    if (window.PAWAPP_AUTH?.access?.role !== 'admin') return;
+    const select = el('adminEmployeeSelect');
+    const option = select?.selectedOptions?.[0];
+    const name = el('adminEmployeeName');
+    const email = el('adminEmployeeEmail');
+    const password = el('adminEmployeePassword');
+    const role = el('adminEmployeeRole');
+    const message = el('adminCreateUserMessage');
+    if (name) name.value = employeeId && option ? option.textContent.trim() : '';
+    if (email) { email.value = ''; email.readOnly = false; }
+    if (password) password.value = '';
+    if (role) role.value = 'operations';
+    if (message) message.textContent = '';
+    if (!employeeId) return;
+    const {data,error} = await sb.from('test_employee_access')
+      .select('id,email,role,is_active,auth_user_id')
+      .eq('employee_id', employeeId).limit(2);
+    if (select?.value !== employeeId) return;
+    if (error || (data||[]).length > 1) {
+      if (message) message.textContent = 'تعذر قراءة حساب الموظف، راجعي الإدارة.';
       return;
     }
+    const a = (data||[])[0];
+    if (a) {
+      if (email) { email.value = a.email||''; email.readOnly = !!a.auth_user_id; }
+      if (role) role.value = a.role||'operations';
+      if (message) message.textContent = a.auth_user_id
+        ? 'هذا الموظف عنده حساب دخول. تقدرين تغيرين الصلاحية، لكن الباسورد يتغيّر من حساب الموظف نفسه.'
+        : 'الصلاحية محفوظة، لكن حساب الدخول مو مفعّل. اكتبي باسورد مؤقت للتفعيل.';
+    } else if (message) {
+      message.textContent = 'اختاري الإيميل والصلاحية وحطي باسورد مؤقت لهذا الموظف.';
+    }
+  };
 
-    const employeeName = (el('adminEmployeeName')?.value || '').trim();
+  window.pawAdminCreateEmployee = async function() {
+    if (window.PAWAPP_AUTH?.access?.role !== 'admin') return alert('Admin فقط');
+    const employeeId = el('adminEmployeeSelect')?.value || '';
+    const selected = el('adminEmployeeSelect')?.selectedOptions?.[0];
     const email = (el('adminEmployeeEmail')?.value || '').trim().toLowerCase();
     const password = el('adminEmployeePassword')?.value || '';
-    const role = el('adminEmployeeRole')?.value || 'operations';
+    const role = el('adminEmployeeRole')?.value || '';
     const message = el('adminCreateUserMessage');
+    const button = el('adminCreateUserButton');
+    function status(value) { if (message) message.textContent = value; }
+    if (!employeeId || !selected || !selected.textContent.trim()) return status('اختاري الموظف من القائمة أولاً.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return status('اكتبي إيميل صحيح للموظف.');
+    if (!['operations','accountant','read_only','admin'].includes(role)) return status('الصلاحية غير صحيحة.');
+    if (button?.disabled) return;
+    if (button) button.disabled = true;
+    try {
+      status('جاري فحص بيانات الموظف...');
+      const employee = await sb.from('test_employees').select('id,name')
+        .eq('id',employeeId).maybeSingle();
+      if (employee.error || !employee.data) throw new Error('الموظف غير موجود. حدّثي القائمة.');
+      const own = await sb.from('test_employee_access')
+        .select('id,email,role,is_active,auth_user_id')
+        .eq('employee_id',employeeId).limit(2);
+      if (own.error) throw own.error;
+      if ((own.data||[]).length > 1) throw new Error('يوجد أكثر من حساب لهذا الموظف، يلزم مراجعة الإدارة.');
+      const existing = (own.data||[])[0] || null;
 
-    if (!employeeName) { if(message) message.textContent='اكتبي اسم الموظف.'; return; }
-    if (!email) { if(message) message.textContent='اكتبي الإيميل.'; return; }
-    if (password.length < 8) { if(message) message.textContent='الباسورد المؤقت لازم يكون 8 أحرف أو أكثر.'; return; }
+      // Never move another employee's login to this employee, even when email is identical.
+      const others = await sb.from('test_employee_access')
+        .select('employee_id,email').ilike('email',email).limit(3);
+      if (others.error) throw others.error;
+      if ((others.data||[]).some(a=>String(a.employee_id)!==String(employeeId)))
+        throw new Error('الإيميل مستخدم لحساب موظف آخر؛ اختاري إيميل مختلف.');
 
-    if (message) message.textContent='جاري إنشاء الحساب...';
-
-    let employeeId='';
-    try{
-      const existing=await sb.from('test_employees').select('id,name').ilike('name',employeeName).limit(1);
-      if(!existing.error && existing.data && existing.data[0]) employeeId=existing.data[0].id;
-    }catch(e){}
-
-    if(!employeeId){
-      const created=await sb.from('test_employees').insert({name:employeeName}).select('id').single();
-      if(created.error){
-        if(message) message.textContent='تعذر إضافة الموظف: '+created.error.message;
-        return;
-      }
-      employeeId=created.data.id;
-    }
-
-    const { data: row, error: rowError } = await sb
-      .from('test_employee_access')
-      .upsert({
-        employee_id: employeeId,
-        email,
-        role,
-        is_active: true,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'email' })
-      .select('id,email,role,is_active')
-      .single();
-
-    if (rowError) {
-      if (message) message.textContent='تعذر حفظ الصلاحية: '+rowError.message;
-      return;
-    }
-
-    const secondary = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false
-      }
-    });
-
-    const { data, error } = await secondary.auth.signUp({ email, password });
-    if (error) {
-      if (String(error.message||'').includes('already registered')) {
-        if (message) message.textContent='الإيميل موجود من قبل. تم تحديث الصلاحية فقط.';
+      if (existing?.auth_user_id) {
+        if ((existing.email||'').toLowerCase() !== email)
+          throw new Error('لا يمكن تغيير إيميل حساب مفعّل من هنا؛ يلزم تغيير الإيميل بحساب المستخدم.');
+        if (password) throw new Error('الحساب مفعّل مسبقاً. امسحي الباسورد المؤقت؛ تغيير الباسورد يتم من حساب الموظف.');
+        const updated = await sb.from('test_employee_access')
+          .update({role,is_active:true,updated_at:new Date().toISOString()})
+          .eq('id',existing.id).select('id,role').single();
+        if (updated.error) throw updated.error;
+        status('تم تحديث صلاحية '+employee.data.name+' بنجاح. حساب الدخول الحالي والباسورد ما تغيروا.');
       } else {
-        if (message) message.textContent='تم حفظ الصلاحية لكن تعذر إنشاء الحساب: '+error.message;
-        return;
-      }
-    } else {
-      if (message) message.textContent='تم إنشاء الحساب. الموظف يقدر يدخل بالإيميل والباسورد المؤقت.';
-    }
+        if (password.length < 8) throw new Error('الباسورد المؤقت لازم يكون 8 أحرف أو أكثر.');
+        let result;
+        if (existing) {
+          result = await sb.from('test_employee_access')
+            .update({email,role,is_active:true,updated_at:new Date().toISOString()})
+            .eq('id',existing.id).select('id').single();
+        } else {
+          result = await sb.from('test_employee_access')
+            .insert({employee_id:employeeId,email,role,is_active:true})
+            .select('id').single();
+        }
+        if (result.error) throw result.error;
 
-    if (el('adminEmployeePassword')) el('adminEmployeePassword').value='';
-    if (el('adminEmployeeName')) el('adminEmployeeName').value='';
-    if (el('adminEmployeeEmail')) el('adminEmployeeEmail').value='';
-    if (window.renderAdminAccess) window.renderAdminAccess();
+        // Sign-up with an isolated client leaves the Admin's own session untouched.
+        // Credentials are sent to Supabase Auth, not stored in employee/access rows.
+        const secondary = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+          auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}
+        });
+        const signup = await secondary.auth.signUp({email,password});
+        if (signup.error) {
+          status('تم حفظ الصلاحية لكن لم يتم تفعيل حساب الدخول: '+signup.error.message+
+            '. الحساب يظل بانتظار التفعيل.');
+          return;
+        }
+        const checked = await sb.from('test_employee_access')
+          .select('auth_user_id').eq('id',result.data.id).maybeSingle();
+        if (checked.error) throw checked.error;
+        if (!checked.data?.auth_user_id) {
+          status('تم حفظ الصلاحية، لكن حساب الدخول لم يرتبط بعد. جربي تفعيل الحساب من شاشة الدخول أو راجعي رسالة التأكيد.');
+          return;
+        }
+        status('تم تفعيل حساب '+employee.data.name+' بالصلاحية المحددة. يمكنها تسجيل الدخول بالإيميل والباسورد المؤقت.');
+      }
+      if (el('adminEmployeePassword')) el('adminEmployeePassword').value='';
+      if (window.renderAdminAccess) await window.renderAdminAccess();
+    } catch (err) {
+      status('تعذر إكمال العملية: '+String(err?.message||err));
+    } finally {
+      if (button) button.disabled = false;
+    }
   };
 
   window.pawChangeMyPassword = async function() {

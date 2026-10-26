@@ -101,7 +101,9 @@
 
     document.querySelectorAll('.modalBg input, .modalBg select, .modalBg textarea').forEach(field => {
       const accountantInvoicePin = accountant && field.id === 'attachmentPin';
-      if (noWrite && !accountantInvoicePin) {
+      // Accountants can enter settlement evidence in the finance action dialog only.
+      const accountantSettlementField = accountant && !!field.closest('#financeActionModal');
+      if (noWrite && !accountantInvoicePin && !accountantSettlementField) {
         field.disabled = true;
         field.dataset.readOnlyDisabled = '1';
       } else if (field.dataset.readOnlyDisabled === '1') {

@@ -2503,10 +2503,13 @@ window.sourceLabel = function(src){
       if(!rows.length && Array.isArray(db.staff)) rows=db.staff;
 
       if(employeeSelect){
+        const selectedEmployee=employeeSelect.value||'';
         employeeSelect.innerHTML='<option value="">اختاري الموظف</option>'+
           rows.map(function(e){
             return '<option value="'+e.id+'">'+esc(e.name||'موظف')+'</option>';
           }).join('');
+        if(selectedEmployee&&rows.some(function(e){return String(e.id)===selectedEmployee;}))
+          employeeSelect.value=selectedEmployee;
       }
 
       if(!box) return;

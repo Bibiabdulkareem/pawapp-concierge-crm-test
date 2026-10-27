@@ -14,19 +14,20 @@
     'case_attachments':'test_case_attachments'
   };
 
+  const LIVE_PROJECT_URL = 'https://faireklbtnbcvvgiyyxd.supabase.co';
+  const LIVE_PUBLIC_KEY = 'sb_publishable_cdvwsXxtfGu2xmE-NZQyBw_7CAglBch';
   window.fetch = function(input, init){
     let url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
     const method = String((init && init.method) || (typeof input !== 'string' && input && input.method) || 'GET').toUpperCase();
-
     if (url && url.indexOf('/rest/v1/') !== -1) {
-      const token=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.session&&window.PAWAPP_AUTH.session.access_token;
-      if(token){
-        const h=new Headers((init&&init.headers)||(typeof input!=='string'&&input&&input.headers)||{});
-        h.set('Authorization','Bearer '+token);
-        init=Object.assign({},init||{},{headers:h});
-      }
+      // Legacy UI is an immutable script compiled against the OLD instance.
+      // Route ALL REST requests, including embedded legacy requests, to the isolated NEW LIVE instance.
+      url = url.replace(/^https:\/\/fccvnotgsmxirhztveai\.supabase\.co(?=\/)/,LIVE_PROJECT_URL);
+      const token = window.PAWAPP_AUTH?.session?.access_token;
+      const headers = new Headers((init&&init.headers)||(typeof input!=='string'&&input&&input.headers)||{});
+      headers.set('apikey',LIVE_PUBLIC_KEY);
+      headers.set('Authorization',token?'Bearer '+token:'Bearer '+LIVE_PUBLIC_KEY);
       const rpcName = (url.match(/\/rest\/v1\/rpc\/([a-z0-9_]+)(?:[?#]|$)/i)||[])[1]||'';
-      // Accountant can submit only settlement requests. Backend RPCs verify the logged-in role.
       const accountantFinanceRPC = document.body?.dataset.pawRole === 'accountant'
         && method === 'POST'
         && ['test_finance_snapshot','test_finance_action','test_confirm_provider_period_settlement','test_confirm_zero_balance_period'].includes(rpcName);
@@ -34,21 +35,19 @@
         && method === 'POST' && rpcName === 'test_finance_snapshot';
       if (document.body && ['read_only','accountant'].includes(document.body.dataset.pawRole)
           && !['GET','HEAD'].includes(method) && !accountantFinanceRPC && !readOnlySnapshotRPC) {
-        return Promise.resolve(new Response(JSON.stringify({message:'Read only access'}), {
-          status:403,
-          headers:{'Content-Type':'application/json'}
+        return Promise.resolve(new Response(JSON.stringify({message:'Read only access'}),{
+          status:403,headers:{'Content-Type':'application/json'}
         }));
       }
-
       for (const [from,to] of Object.entries(tableMap)) {
         url = url.replace('/rest/v1/' + from, '/rest/v1/' + to);
       }
-      if (typeof input === 'string') return originalFetch(url, init);
-      input = new Request(url, input);
+      if (typeof input === 'string')return originalFetch(url,{...(init||{}),headers});
+      const request = new Request(input,{...(init||{}),headers});
+      return originalFetch(new Request(url,request));
     }
-    return originalFetch(input, init);
+    return originalFetch(input,init);
   };
-
 
 
   const script = document.createElement('script');

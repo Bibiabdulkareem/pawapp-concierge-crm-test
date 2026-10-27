@@ -25,8 +25,15 @@
         h.set('Authorization','Bearer '+token);
         init=Object.assign({},init||{},{headers:h});
       }
-      const isFinanceSnapshotRead = method === 'POST' && /\/rest\/v1\/rpc\/test_finance_snapshot(?:[?#]|$)/.test(url);
-      if (document.body && ['read_only','accountant'].includes(document.body.dataset.pawRole) && !['GET','HEAD'].includes(method) && !isFinanceSnapshotRead) {
+      const rpcName = (url.match(/\/rest\/v1\/rpc\/([a-z0-9_]+)(?:[?#]|$)/i)||[])[1]||'';
+      // Accountant can submit only settlement requests. Backend RPCs verify the logged-in role.
+      const accountantFinanceRPC = document.body?.dataset.pawRole === 'accountant'
+        && method === 'POST'
+        && ['test_finance_snapshot','test_finance_action','test_confirm_provider_period_settlement','test_confirm_zero_balance_period'].includes(rpcName);
+      const readOnlySnapshotRPC = document.body?.dataset.pawRole === 'read_only'
+        && method === 'POST' && rpcName === 'test_finance_snapshot';
+      if (document.body && ['read_only','accountant'].includes(document.body.dataset.pawRole)
+          && !['GET','HEAD'].includes(method) && !accountantFinanceRPC && !readOnlySnapshotRPC) {
         return Promise.resolve(new Response(JSON.stringify({message:'Read only access'}), {
           status:403,
           headers:{'Content-Type':'application/json'}

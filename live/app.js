@@ -58,8 +58,11 @@
       const row=db.cases.find(x=>String(x.id)===String(caseId));if(!row)return;
       const code='PAW-'+String(caseId).padStart(4,'0');
       if(Number(caseId)===352||Number(caseId)===353){
+        alert('حذف عمليات أكتوبر التاريخية غير متاح من واجهة LIVE حفاظاً على التسويات.');return;
+      }
+      if(false){
         if(window.PAWAPP_AUTH?.access?.role!=='admin'){alert('هذا التنظيف للإدارة فقط');return;}
-        if(!confirm('حذف عمليتي أكتوبر التجريبيتين معاً وإلغاء تسوية TEST بقيمة 30 د.ك بعد حفظ نسخة احتياطية؟'))return;
+        if(!confirm('حذف عمليتي أكتوبر التجريبيتين معاً وإلغاء تسوية LIVE بقيمة 30 د.ك بعد حفظ نسخة احتياطية؟'))return;
         const codeCheck=prompt('اكتبي PAW-0352+PAW-0353 للتأكيد');
         if(codeCheck!=='PAW-0352+PAW-0353')return;
         try{
@@ -71,7 +74,7 @@
           if(typeof renderCases==='function')renderCases();
           if(typeof renderCRM==='function')renderCRM();
           if(typeof renderDashboard==='function')renderDashboard();
-          alert('تم تنظيف العمليتين وتسوية TEST وحفظ نسخة احتياطية.');
+          alert('تم تنظيف العمليتين وتسوية LIVE وحفظ نسخة احتياطية.');
         }catch(e){alert('لم يتم الحذف: '+(e.message||'تعذر التنفيذ'));}
         return;
       }
@@ -90,12 +93,12 @@
         .gte('period_to',row.service_date);
       if(overlapError){alert('تعذر فحص الفترة المالية؛ تم إيقاف الحذف.');return;}
       if(overlaps?.length){alert('لا يمكن حذف '+code+' قبل مراجعة التسوية المعتمدة لنفس الفترة. لم تُحذف أي بيانات.');return;}
-      const full=confirm('حذف '+code+'\\n\\nموافق: حذف العملية وجميع مبالغها ودفعات العميل وتسويات مقدم الخدمة من TEST، وإعادة احتساب الإحصائيات.\\n\\nإلغاء: عدم حذف أي شيء، للحفاظ على الحسابات المالية.\\n\\nتنبيه: لا يمكن حذف العملية وحدها مع إبقاء مبالغها في التقارير بدون أرشفة مالية مستقلة.');
+      const full=confirm('حذف '+code+'\\n\\nموافق: حذف العملية وجميع مبالغها ودفعات العميل وتسويات مقدم الخدمة من LIVE، وإعادة احتساب الإحصائيات.\\n\\nإلغاء: عدم حذف أي شيء، للحفاظ على الحسابات المالية.\\n\\nتنبيه: لا يمكن حذف العملية وحدها مع إبقاء مبالغها في التقارير بدون أرشفة مالية مستقلة.');
       if(!full)return;
       const verify=prompt('للتأكيد النهائي على حذف العملية مع كل مبالغها، اكتبي رقم العملية '+code);
       if(verify!==code){if(verify!==null)alert('لم يتم الحذف: رقم التأكيد غير مطابق');return;}
       try{
-        if(row.source!=='booking_form_test'){alert('الحذف المالي الشامل متاح حالياً لطلبات نموذج TEST فقط. بقية العمليات لم يتم تعديلها.');return;}
+        if(row.source!=='booking_form_test'){alert('الحذف المالي الشامل متاح حالياً لطلبات نموذج LIVE فقط. بقية العمليات لم يتم تعديلها.');return;}
         const {data,error}=await window.PAWAPP_AUTH.client.rpc('test_delete_case_with_finance',{p_case_id:Number(caseId)});
         if(error)throw error;
         closeModal('completeCaseModal');
@@ -104,7 +107,7 @@
         if(typeof renderCases==='function')renderCases();
         if(typeof renderCRM==='function')renderCRM();
         if(typeof renderDashboard==='function')renderDashboard();
-        alert('تم حذف '+code+' مع سجلات الدفع والتسوية المرتبطة به من TEST. تم تحديث البيانات المعروضة.');
+        alert('تم حذف '+code+' مع سجلات الدفع والتسوية المرتبطة به من LIVE. تم تحديث البيانات المعروضة.');
       }catch(e){console.error(e);alert('لم يتم الحذف: '+(e.message||'تعذر إكمال العملية'));}
     };
 

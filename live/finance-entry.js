@@ -1,4 +1,4 @@
-/* TEST-only boot sequence. Never changes the Live repository or selects Live finance tables. */
+/* Isolated LIVE boot sequence for the new Supabase environment. */
 (async function(){
   'use strict';
   if(window.__pawFinanceBoot)return;
@@ -8,7 +8,7 @@
   overlay.id='financeBootStatus';
   overlay.setAttribute('role','status');
   overlay.style.cssText='position:fixed;inset:0;z-index:20000;background:#f7f9fc;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;direction:rtl;font:600 18px system-ui';
-  overlay.textContent='جاري تحميل حسابات TEST…';
+  overlay.textContent='جاري تحميل حسابات LIVE…';
   document.body.appendChild(overlay);
   async function script(path){
     await new Promise((resolve,reject)=>{
@@ -34,12 +34,25 @@
     await window.PawFinanceInstall();
     window.PAW_FINANCE_VERSION='3.4';
     overlay.remove();
+    // Keep new form submissions reflected in staff counts without reloading during active editing.
+    let liveRefreshBusy=false;
+    async function refreshLiveIntake(){
+      if(document.visibilityState!=='visible'||!window.PAW_FINANCE_READY||liveRefreshBusy)return;
+      if(document.querySelector('.modalBg.show'))return;
+      liveRefreshBusy=true;
+      try{await window.loadData();}catch(error){console.warn('LIVE dashboard refresh unavailable',error);}
+      finally{liveRefreshBusy=false;}
+    }
+    document.addEventListener('visibilitychange',function(){
+      if(document.visibilityState==='visible')refreshLiveIntake();
+    });
+    setInterval(refreshLiveIntake,60000);
   }catch(error){
-    console.error('TEST finance initialization failed',error);
+    console.error('LIVE finance initialization failed',error);
     overlay.textContent='تعذر فتح الحسابات المحدثة. '+String(error?.message||'');
     const button=document.createElement('button');
     button.className='btn primary';
-    button.textContent='إعادة تحميل TEST';
+    button.textContent='إعادة تحميل LIVE';
     button.style.margin='16px';
     button.onclick=()=>location.reload();
     overlay.appendChild(button);

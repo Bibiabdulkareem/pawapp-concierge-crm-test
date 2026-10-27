@@ -349,7 +349,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="card" style="padding:10px;margin:10px 0"><b>إضافة خدمات دفعة واحدة</b><p class="hint">نموذج Excel للخدمات والشركات والفريلانسر.</p><button class="btn soft" type="button" onclick="pawOpenImport('services')">استيراد الخدمات Excel</button></div>
 <div class="title"><div><h1>الشركات / الفريلانسر</h1><p>كل جهة وملخص حسابها — اضغطي التفاصيل لفتح CRM الشركة</p></div><button class="btn primary" onclick="openProvider()">+ إضافة شركة / فريلانسر</button></div>
 <div class="card" style="margin:12px 0;border:2px solid #d9e5f4">
-<div class="section" style="margin:0 0 10px"><h2>المستحقات الشهرية — الشركات والفريلانسر (TEST)</h2></div>
+<div class="section" style="margin:0 0 10px"><h2>المستحقات الشهرية — الشركات والفريلانسر (LIVE)</h2></div>
 <div class="grid2"><div class="field"><label>الشهر</label><input type="month" id="pawSettlementMonth" min="2026-10" value="2026-10" onchange="pawMonthlySettlementOverview()"></div><div class="field"><label>عرض</label><select id="pawSettlementDirection" onchange="pawMonthlySettlementOverview()"><option value="all">جميع المستحقات</option><option value="to_provider">باو أب تدفع للشركة</option><option value="to_pawapp">الشركة تدفع لباو أب</option></select></div></div>
 <p id="pawSettlementSummary" class="hint" style="margin:12px 0">اختاري الشهر لعرض المستحقات غير المسوّاة.</p><div id="pawSettlementRows" style="overflow:auto"></div>
 <p class="hint">يظهر المعلّق فقط؛ العمليات غير مؤكدة الدفع تُعرض للمراجعة منفصلة. شهور 7–9 مغلقة ولا تُفتح من هذه الشاشة.</p>
@@ -410,7 +410,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="admin" class="page">
-<div class="card" id="testImportPanel" style="margin:14px 0;padding:15px;display:none"><h2>استيراد جماعي — TEST</h2><p class="hint">نزّلي نموذج Excel، انسخي بياناتج فيه، ثم ارفعي ملف XLSX أو CSV. للأدمن وموظف العمليات.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn soft" type="button" onclick="pawImportMode('services')">الخدمات ومقدمو الخدمة</button><button class="btn soft" type="button" onclick="pawImportMode('cases')">العملاء</button><button class="btn primary" type="button" onclick="pawDownloadTemplate()">تحميل القالب</button></div><div style="margin-top:10px"><label>شهر الملف التاريخي فقط (للملفات المختلطة اتركيه غير محدد): </label><select id="importMonth" onchange="pawSetImportMonth(this.value)"><option value="">غير محدد</option><option value="7">يوليو</option><option value="8">أغسطس</option><option value="9">سبتمبر</option><option value="10">أكتوبر</option></select></div><div style="margin-top:12px"><input id="importFile" type="file" accept=".xlsx,.xls,.csv,text/csv" style="width:100%"></div><button class="btn soft" type="button" onclick="pawPreviewWithFeedback()" style="margin-top:10px">معاينة الملف</button><div id="importStatus" class="hint" style="margin-top:10px">الخدمات: رفع جماعي بعد المعاينة. العملاء: معاينة ثم استيراد إلى TEST.</div><div id="importPreview" style="max-height:300px;overflow:auto;margin-top:8px"></div><button id="importCommit" class="btn primary" type="button" onclick="pawCommitImport()" disabled style="margin-top:10px;margin-bottom:100px;min-height:48px;max-width:100%;white-space:normal">اعتماد استيراد الخدمات إلى TEST</button></div>
+<div class="card" id="testImportPanel" style="margin:14px 0;padding:15px;display:none"><h2>استيراد جماعي — LIVE</h2><p class="hint">نزّلي نموذج Excel، انسخي بياناتج فيه، ثم ارفعي ملف XLSX أو CSV. للأدمن وموظف العمليات.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn soft" type="button" onclick="pawImportMode('services')">الخدمات ومقدمو الخدمة</button><button class="btn soft" type="button" onclick="pawImportMode('cases')">العملاء</button><button class="btn primary" type="button" onclick="pawDownloadTemplate()">تحميل القالب</button></div><div style="margin-top:10px"><label>شهر الملف التاريخي فقط (للملفات المختلطة اتركيه غير محدد): </label><select id="importMonth" onchange="pawSetImportMonth(this.value)"><option value="">غير محدد</option><option value="7">يوليو</option><option value="8">أغسطس</option><option value="9">سبتمبر</option><option value="10">أكتوبر</option></select></div><div style="margin-top:12px"><input id="importFile" type="file" accept=".xlsx,.xls,.csv,text/csv" style="width:100%"></div><button class="btn soft" type="button" onclick="pawPreviewWithFeedback()" style="margin-top:10px">معاينة الملف</button><div id="importStatus" class="hint" style="margin-top:10px">الخدمات: رفع جماعي بعد المعاينة. العملاء: معاينة ثم استيراد إلى LIVE.</div><div id="importPreview" style="max-height:300px;overflow:auto;margin-top:8px"></div><button id="importCommit" class="btn primary" type="button" onclick="pawCommitImport()" disabled style="margin-top:10px;margin-bottom:100px;min-height:48px;max-width:100%;white-space:normal">اعتماد استيراد الخدمات إلى LIVE</button></div>
 <div class="title">
   <div><h1>الإدارة</h1><p>الدخول والصلاحيات والنسخ الاحتياطي</p></div>
 </div>
@@ -451,7 +451,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   <div class="miniGrid" style="margin-top:10px">
     <div class="mini"><span>Server Snapshot</span><b class="green">مفعّل</b></div>
     <div class="mini"><span>Restore</span><b>Admin فقط</b></div>
-    <div class="mini"><span>TEST Data</span><b>محفوظة</b></div>
+    <div class="mini"><span>LIVE Data</span><b>محفوظة</b></div>
   </div>
   <button class="btn soft" type="button" style="width:100%;margin-top:10px" onclick="downloadTestBackup(event)">تحميل نسخة JSON على الجهاز</button>
   <div id="testBackupStatus" class="hint" style="margin-top:8px"></div>
@@ -499,7 +499,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="cases" class="page">
-<div id="testBulkCases" class="card" style="margin:10px 0;padding:12px;border:1px solid #e3e9f0;display:none" data-test-bulk-ui="cases"><b>تحديد العمليات</b><p style="font-size:12px;color:#6f8094;margin:6px 0">الحذف المتعدد قيد الربط بقاعدة TEST. لا يمكن الحذف قبل تفعيل النسخة الاحتياطية والتحقق من الصلاحيات.</p><label style="display:flex;gap:7px;align-items:center"><input type="checkbox" id="testSelectAllCases" onchange="document.querySelectorAll('#caseRows tr').forEach(function(tr){tr.classList.toggle('test-selected-row',document.getElementById('testSelectAllCases').checked)})"> تحديد الكل (الصفوف الظاهرة)</label><button class="btn" style="margin-top:8px;background:#eee;color:#777" disabled>حذف المحدد — بانتظار تفعيل الحذف الآمن</button></div>
+<div id="testBulkCases" class="card" style="margin:10px 0;padding:12px;border:1px solid #e3e9f0;display:none" data-test-bulk-ui="cases"><b>تحديد العمليات</b><p style="font-size:12px;color:#6f8094;margin:6px 0">الحذف المتعدد قيد الربط بقاعدة LIVE. لا يمكن الحذف قبل تفعيل النسخة الاحتياطية والتحقق من الصلاحيات.</p><label style="display:flex;gap:7px;align-items:center"><input type="checkbox" id="testSelectAllCases" onchange="document.querySelectorAll('#caseRows tr').forEach(function(tr){tr.classList.toggle('test-selected-row',document.getElementById('testSelectAllCases').checked)})"> تحديد الكل (الصفوف الظاهرة)</label><button class="btn" style="margin-top:8px;background:#eee;color:#777" disabled>حذف المحدد — بانتظار تفعيل الحذف الآمن</button></div>
 
 <div class="title"><div><h1>العمليات والعملاء</h1><p>كل الحالات المسجلة وحالة التسوية</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
 <input id="caseSearch" class="search" placeholder="بحث باسم العميل، الشركة، الموظف أو Case ID..." oninput="renderCases()">
@@ -699,11 +699,11 @@ if(!window.XLSX)throw Error('مكتبة قراءة Excel لم تتحمل');
 var wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetNames.includes('Customers')?'Customers':wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false}).filter(x=>x.some(v=>String(v).trim()));
 var expected=['اسم العميل','رقم العميل','المنطقة','اسم الحيوان','نوع الحيوان','العمر','اسم مقدم الخدمة','اسم الخدمة','تاريخ العملية','الوقت','المصدر','إجمالي العميل','مستحق مقدم الخدمة','عمولة PawApp','العميل سدد','مقدم الخدمة استلم','PawApp حصلت العمولة'];
 if(!rows.length||expected.some((h,i)=>String(rows[0][i]||'').trim()!==h))throw Error('عناوين الملف لا تطابق نموذج العملاء');
-st.textContent='تم فتح الملف: '+(rows.length-1)+' عملية. جاري فحص المكرر في TEST...';
+st.textContent='تم فتح الملف: '+(rows.length-1)+' عملية. جاري فحص المكرر في LIVE...';
 var client=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.client;
 if(!client)throw Error('جلسة الدخول غير جاهزة');
 var res=await client.from('test_cases').select('id,client_name,client_phone,service_date,total_amount').limit(10000);
-if(res.error)throw Error('فحص TEST: '+res.error.message);
+if(res.error)throw Error('فحص LIVE: '+res.error.message);
 var records=res.data||[];
 var norm=v=>String(v==null?'':v).trim().toLowerCase().replace(/\s+/g,' ');
 var num=v=>String(v==null?'':v).replace(/\D/g,'');
@@ -718,12 +718,12 @@ var missing=[];if(!name)missing.push('اسم العميل');if(phone.length<8)mi
 });
 pv.textContent=(rows.length-1)+' عملية | موجودة '+matched+' | مكررة '+duplicate+' | ناقصة '+needsReview+'\n'+items.join('\n');
 pv.style.whiteSpace='pre-wrap';
-st.textContent='اكتمل فحص التكرار مع TEST. المبالغ الناقصة للمتابعة وليست صفوفاً مرفوضة. الاعتماد مقفل لحين ربط جهة الدفع والتسويات.';
-btn.textContent='حفظ الإحالات للمراجعة في TEST';btn.disabled=false;
+st.textContent='اكتمل فحص التكرار مع LIVE. المبالغ الناقصة للمتابعة وليست صفوفاً مرفوضة. الاعتماد مقفل لحين ربط جهة الدفع والتسويات.';
+btn.textContent='حفظ الإحالات للمراجعة في LIVE';btn.disabled=false;
 return;
 var seen=new Set(),duplicates=0,items=rows.slice(1).map((r,i)=>{var key=[r[0],r[1],r[6],r[7],r[8]].map(x=>String(x||'').trim().toLowerCase()).join('|'),dup=seen.has(key);seen.add(key);if(dup)duplicates++;return 'صف '+(i+2)+' — '+(r[0]||'بدون اسم')+' — '+(dup?'مكرر داخل الملف':'يحتاج فحص النظام')});
 pv.textContent='عدد الصفوف: '+items.length+' | مكرر داخل الملف: '+duplicates+'\n'+items.join('\n');
-st.textContent=(st.textContent.includes('تعذر فحص')||st.textContent.includes('خطأ')||st.textContent.includes('الصلاحية'))?st.textContent:'تمت قراءة الملف، لكن فحص قاعدة TEST لم يكتمل؛ الاستيراد معطل لحماية البيانات.';
+st.textContent=(st.textContent.includes('تعذر فحص')||st.textContent.includes('خطأ')||st.textContent.includes('الصلاحية'))?st.textContent:'تمت قراءة الملف، لكن فحص قاعدة LIVE لم يكتمل؛ الاستيراد معطل لحماية البيانات.';
 }catch(e){st.textContent='خطأ المعاينة: '+e.message}
 };
 </script><script src="pet-registry.js?v=5"></script><script src="referral-review-stage.js?v=1"></script><script src="import-validation-v2.js?v=2"></script><script>

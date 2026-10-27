@@ -195,7 +195,8 @@
 
         const { data, error } = await sb.auth.signUp({
           email,
-          password
+          password,
+          options:{emailRedirectTo:location.origin+location.pathname}
         });
         if (error) throw error;
 

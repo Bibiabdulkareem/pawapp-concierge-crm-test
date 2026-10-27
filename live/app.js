@@ -876,30 +876,43 @@ window.sourceLabel = function(src){
       return ({cat:'قط',cats:'قط',feline:'قط',dog:'كلب',dogs:'كلب',canine:'كلب'})[t]||t;
     }
     function pawGroupedPets(cases){
-      const byOwner=new Map();let missing=0;
-      cases.forEach(c=>{
+      // Group real named pets distinctly; keep legacy unnamed records grouped by owner, species and breed.
+      const owners=new Map();let missing=0;
+      for(const c of cases){
         const type=pawPetType(c.pet_type);
-        if(!type||type==='غير محدد'){missing++;return;}
-        const owner=canonicalCustomerKey(c),breed=String(c.breed||'').trim().toLowerCase();
-        const key=owner+'|'+type;
-        if(!byOwner.has(key))byOwner.set(key,{unknown:[],known:new Map()});
-        const group=byOwner.get(key);
-        if(breed){
-          if(!group.known.has(breed))group.known.set(breed,[]);
-          group.known.get(breed).push(c);
-        }else group.unknown.push(c);
-      });
+        if(!type||type==='غير محدد'){missing++;continue;}
+        const owner=canonicalCustomerKey(c);
+        const breed=String(c.breed||'').trim().toLowerCase();
+        const petName=String(c.intake_details?.pet_name||'').trim().toLowerCase();
+        const family=owner+'|'+type;
+        if(!owners.has(family))owners.set(family,{owner,type,named:new Map(),unnamed:new Map(),unknown:[]});
+        const g=owners.get(family);
+        if(petName){
+          const key=petName; // One known pet may have several service bookings
+          if(!g.named.has(key))g.named.set(key,{name:petName,breed,cases:[]});
+          const item=g.named.get(key);
+          if(!item.breed&&breed)item.breed=breed;
+          item.cases.push(c);
+        }else if(breed){
+          if(!g.unnamed.has(breed))g.unnamed.set(breed,[]);
+          g.unnamed.get(breed).push(c);
+        }else g.unknown.push(c);
+      }
       const result=[];
-      byOwner.forEach((group,key)=>{
-        if(group.known.size===0)result.push({key:key+'|?',owner:key.split('|').slice(0,-1).join('|'),cases:group.unknown});
-        else {
-          let first=true;
-          group.known.forEach((cases,breed)=>{
-            result.push({key:key+'|'+breed,owner:key.split('|').slice(0,-1).join('|'),cases:first?cases.concat(group.unknown):cases});
-            first=false;
-          });
+      for(const [family,g] of owners){
+        const items=[];
+        for(const n of g.named.values())items.push({key:family+'|name:'+n.name,owner:g.owner,cases:n.cases,breed:n.breed});
+        for(const [breed,unnamedCases] of g.unnamed){
+          const same=items.find(x=>x.breed===breed)||items.find(x=>!x.breed);
+          if(same)same.cases.push(...unnamedCases);
+          else items.push({key:family+'|breed:'+breed,owner:g.owner,cases:unnamedCases,breed});
         }
-      });
+        if(g.unknown.length){
+          if(items.length)items[0].cases.push(...g.unknown);
+          else items.push({key:family+'|unknown',owner:g.owner,cases:g.unknown,breed:''});
+        }
+        result.push(...items);
+      }
       return {groups:result,missing};
     }
     window.renderCRM = function(){

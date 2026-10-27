@@ -51,7 +51,7 @@
 
 
   const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/gh/Bibiabdulkareem/pop-up-concierge-operation@d2919c2b088c0c17f5ff06339f6a3e5a5c0c4434/app.js';
+  script.src = 'legacy-app.js?v=pawapp-live-isolated-20261027';
   script.onload = function(){
     window.deleteCaseFromOperations=async function(caseId){
       if(!(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))){alert('الحذف متاح للـ Admin و Operations فقط');return;}

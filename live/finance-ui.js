@@ -271,26 +271,29 @@ const counts=new Map();p.lines.forEach(l=>counts.set(l.service,(counts.get(l.ser
 el('pdClientList').innerHTML=p.lines.map(l=>'<div class="card provider"><h3>'+html(l.client)+'</h3><div class="hint">'+caseCode(l.caseId)+' • '+html(l.service)+'</div><div class="miniGrid"><div class="mini"><span>السعر</span><b>'+cash(l.total)+'</b></div><div class="mini"><span>PawApp</span><b>'+cash(l.paw)+'</b></div><div class="mini"><span>الشركة</span><b>'+cash(l.provider)+'</b></div></div><p>'+html(detail(l))+'</p><div class="actions">'+(actionable(l)?actionButton(l):'')+'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">العملية</button></div></div>').join('')||'<div class="card">لا توجد عمليات</div>';el('pdExportBtn').onclick=()=>window.exportProviderFullReport(p.id);
 }
 function renderFollowups(){if(!model)return;
- const pendingBookings=(snapshot?.cases||[]).filter(c=>c.source==='booking_form_test'&&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'&&(!c.provider_id||Number(c.total_amount||0)<=0||!c.service_name));
+ const pendingBookings=(snapshot?.cases||[]).filter(c=>['booking_form_test','booking_form','pet_information_form'].includes(c.source)&&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'&&(!c.provider_id||Number(c.total_amount||0)<=0||!c.service_name));
  const followupBox=el('followupFinanceList');
  if(followupBox){
   let area=el('pawBookingIntakeReview');
   if(!area){area=document.createElement('section');area.id='pawBookingIntakeReview';followupBox.before(area);}
-  area.innerHTML=pendingBookings.length?'<h3>طلبات النموذج — استكمال مباشر من المتابعة</h3>'+pendingBookings.map(c=>{
+  area.innerHTML=pendingBookings.length?'<h3>طلبات النماذج — استكمال مباشر من المتابعة</h3>'+pendingBookings.map(c=>{
    const missing=[!c.provider_id?'مقدم الخدمة':null,!c.service_name?'الخدمة':null,Number(c.total_amount||0)<=0?'السعر والعمولة':null].filter(Boolean);
-   return '<div class="card"><b>'+html(c.client_name||'عميل')+' — '+caseCode(c.id)+'</b><div class="hint">المطلوب: '+html(missing.join('، '))+'</div><button class="btn primary" onclick="pawBookingReview('+Number(c.id)+')">استكمال الطلب وحساب العمولة</button></div>';
+   return '<div class="card"><b>'+html(c.client_name||'عميل')+' — '+caseCode(c.id)+'</b><div class="hint">المصدر: '+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source)+' • الخدمة المطلوبة: '+html(c.requested_service||c.service_name||'استكمال بيانات')+'</div><div class="hint">المطلوب: '+html(missing.join('، '))+'</div><button class="btn primary" onclick="pawBookingReview('+Number(c.id)+')">استكمال الطلب وحساب العمولة</button></div>';
   }).join(''):'';
  }
  if(legacyFollowups)legacyFollowups();renderSeptemberReviews();const financialReviewIssues=new Set(['payment_route_missing','direct_provider_and_payout','duplicate_commission_route','client_overpaid','provider_overpaid','commission_overpaid','paid_flag_mismatch','price_split_mismatch','invalid_price','unpriced_service','transport_payment_unknown']);const lines=model.lines.filter(l=>actionable(l)&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')&&(l.action==='client_paid'||(l.date>='2026-10-01'&&l.issues.some(issue=>financialReviewIssues.has(issue)))));const box=el('followupFinanceList');if(box)box.innerHTML=lines.map(l=>'<div class="card provider"><div style="display:flex;justify-content:space-between;gap:10px"><h3>'+html(l.client)+'</h3><span class="status unpaid">'+(l.issues.length?'تأكيد / مراجعة':'مستحقات')+'</span></div><div class="hint">'+caseCode(l.caseId)+' • '+html(providerName(l.providerId))+' • '+(l.component==='transport'?'النقل':'الخدمة')+'</div><h3>'+html(actionLabel(l))+'</h3><div class="hint">'+html(detail(l))+'</div><div class="actions">'+(l.issues.includes('unpriced_service')?'<button class="btn primary" onclick="pawBookingReview(\''+l.caseId+'\')">استكمال السعر في العملية</button>':(String(l.caseId)==='384'&&l.action==='client_paid'?'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">مراجعة الاسترجاع 47 د.ك — لا تسجلي تحصيل</button>':actionButton(l)))+'</div></div>').join('')||'<div class="card"><b class="green">تمام ✓</b><div class="hint">لا توجد دفعات عملاء تحتاج متابعة. مستحقات الشركات وعمولات PawApp تظهر في التسويات فقط.</div></div>';
-set('fuFinance',new Set(lines.map(l=>l.caseId)).size);const pending=new Set(lines.map(l=>l.caseId));for(const id of ['followupAppointmentList','followupMissingList'])el(id)?.querySelectorAll('[onclick]').forEach(b=>{const m=b.getAttribute('onclick')?.match(/\('([^']+)'/);if(m)pending.add(m[1])});set('followupNavBadge',pending.size);if(el('followupNavBadge'))el('followupNavBadge').style.display=pending.size?'inline-block':'none';set('kNeedsFollowup',pending.size);
+set('fuFinance',new Set(lines.map(l=>l.caseId)).size);const pending=new Set([...lines.map(l=>l.caseId),...pendingBookings.map(c=>String(c.id))]);for(const id of ['followupAppointmentList','followupMissingList'])el(id)?.querySelectorAll('[onclick]').forEach(b=>{const m=b.getAttribute('onclick')?.match(/\('([^']+)'/);if(m)pending.add(m[1])});set('followupNavBadge',pending.size);if(el('followupNavBadge'))el('followupNavBadge').style.display=pending.size?'inline-block':'none';set('kNeedsFollowup',pending.size);
 }
 function isArchivedHistoricalCaseForTable(c){return String(c.workflow_status)==='closed'&&c.client_paid===true&&/\[BULK_IMPORT:2026:(?:7|8|9):ROW:\d+\]/.test(String(c.notes||''));}
 function renderCases(){
  if(!model)return;
- const q=v('caseSearch').toLowerCase(),pf=v('caseProviderFilter')||'all',sf=v('caseStatusFilter')||'all';
+ const q=v('caseSearch').toLowerCase(),pf=v('caseProviderFilter')||'all',sf=v('caseStatusFilter')||'all',origin=v('caseSourceFilter')||'all';
  const rows=snapshot.cases.slice().reverse().filter(c=>{
   const ls=linesFor(c.id),s=F.summarize(ls);
-  if(q&&![caseCode(c.id),c.client_name,c.client_phone,...ls.map(l=>providerName(l.providerId)),...ls.map(l=>l.service),c.pet_type,c.breed,db.staff.find(e=>String(e.id)===String(c.employee_id))?.name].join(' ').toLowerCase().includes(q))return false;
+  if(origin==='booking'&&!['booking_form','booking_form_test'].includes(c.source))return false;
+  if(origin==='pet_information_form'&&c.source!=='pet_information_form')return false;
+  if(origin==='other'&&['booking_form','booking_form_test','pet_information_form'].includes(c.source))return false;
+  if(q&&![caseCode(c.id),c.client_name,c.client_phone,...ls.map(l=>providerName(l.providerId)),...ls.map(l=>l.service),c.pet_type,c.breed,c.requested_service,c.service_name,typeof sourceLabel==='function'?sourceLabel(c.source):c.source,db.staff.find(e=>String(e.id)===String(c.employee_id))?.name].join(' ').toLowerCase().includes(q))return false;
   if(pf!=='all'&&!ls.some(l=>l.providerId===pf))return false;
   if(sf==='client_paid'&&(s.unpaid>0n||s.unknownCount))return false;
   if(sf==='client_unpaid'&&s.unpaid===0n&&!s.unknownCount)return false;
@@ -303,7 +306,7 @@ function renderCases(){
   const ls=linesFor(c.id),s=F.summarize(ls),employee=db.staff.find(e=>String(e.id)===String(c.employee_id));
   const clientTasks=isArchivedHistoricalCaseForTable(c)?[]:ls.filter(l=>l.action==='client_paid'||l.unknown);
   const partnerTasks=isArchivedHistoricalCaseForTable(c)?[]:ls.filter(l=>l.action==='provider_paid'||l.action==='commission_received'||(!l.action&&l.issues.length));
-  const paidText=s.unknownCount?'نقل غير مؤكد':s.unpaid>0n?'غير مدفوع':'تم السداد';
+  const paidText=['booking_form','pet_information_form'].includes(c.source)&&Number(c.total_amount||0)<=0?'السعر غير محدد':s.unknownCount?'نقل غير مؤكد':s.unpaid>0n?'غير مدفوع':'تم السداد';
   const button='<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>';
   return '<tr><td>'+caseCode(c.id)+'</td><td>'+html(c.client_name)+'</td><td>'+html(c.pet_type||'—')+'</td><td>'+html(c.breed||'—')+'</td><td>'+yesNo(c.vaccinated)+'</td><td>'+yesNo(c.microchipped)+'</td><td>'+ls.map(l=>html(providerName(l.providerId))).join('<br>')+'</td><td>'+ls.map(l=>html(l.service)).join('<br>')+'</td>'+['total','paw','provider'].map(k=>'<td>'+cash(s[k])+'</td>').join('')+'<td><span class="status '+(s.unpaid>0n||s.unknownCount?'unpaid':'paid')+'">'+paidText+'</span></td><td>'+html(c.client_due_date||'—')+'</td><td>لنا: '+cash(s.ours)+'<br>علينا: '+cash(s.theirs)+(s.issueCount?'<br><span class="hint">يحتاج مراجعة</span>':'')+'</td><td>'+html(employee?.name||'—')+'<br>'+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source||'')+'</td><td><span class="hint">'+html(c.workflow_status||'new_request')+'</span><br>'+button+'</td><td>'+clientTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td><td>'+partnerTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td></tr>';
  }).join('')||'<tr><td colspan="18">لا توجد عمليات</td></tr>';

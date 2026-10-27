@@ -497,7 +497,9 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
 
 window.sourceLabel = function(src){
       const map={
-        booking_form_test:'فورم واتساب',
+        booking_form_test:'Concierge Booking — حجز خدمة',
+        booking_form:'Concierge Booking — حجز خدمة',
+        pet_information_form:'Pet Information — استكمال بيانات حيوان أليف',
         whatsapp_quick:'واتساب سريع',
         phone_call:'مكالمة',
         manual_test:'إدخال داخلي',

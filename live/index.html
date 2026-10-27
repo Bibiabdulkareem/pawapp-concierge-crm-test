@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c3b78">
+<title>PawApp Concierge Operations</title>
+<style>
+:root{--blue:#0c3b78;--blue2:#082b59;--yellow:#ffd400;--bg:#f4f7fb;--white:#fff;--text:#10233d;--muted:#6f8094;--line:#e3e9f0;--green:#16834f;--red:#c9344b;--orange:#b9760c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,Arial,sans-serif;color:var(--text)}
+button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-height:100vh}.top{background:var(--blue);color:white;padding:12px 14px;position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:11px;box-shadow:0 3px 14px #0b315b33}.logo{width:48px;height:48px;border-radius:13px;object-fit:cover;background:white}.brand{line-height:1.25}.brand b{font-size:17px}.brand small{display:block;opacity:.78;font-size:11px}.top .sp{flex:1}.main{padding:15px 13px 180px}.page{display:none}.page.active{display:block}.title{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:2px 0 14px}.title h1{font-size:22px;margin:0}.title p{font-size:12px;color:var(--muted);margin:4px 0 0}.btn{border:0;border-radius:12px;padding:11px 13px;font-weight:750;cursor:pointer}.primary{background:var(--blue);color:white}.yellow{background:var(--yellow);color:#122b4d}.soft{background:#eaf0f7;color:var(--blue)}.danger{background:#fff0f2;color:var(--red)}.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.card{background:white;border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 5px 18px #1735540b}.stat span{display:block;font-size:11px;color:var(--muted)}.stat b{display:block;font-size:20px;margin-top:7px}.green{color:var(--green)}.red{color:var(--red)}.blue{color:var(--blue)}.section{display:flex;justify-content:space-between;align-items:center;margin:20px 0 9px}.section h2{font-size:16px;margin:0}.table{overflow:auto;background:white;border:1px solid var(--line);border-radius:15px}table{border-collapse:collapse;width:100%;min-width:820px}th,td{padding:11px 9px;border-bottom:1px solid #edf1f5;text-align:right;font-size:12px;white-space:nowrap}th{background:#f8fafc;color:#5f7082;font-size:11px}.status{display:inline-block;padding:5px 8px;border-radius:999px;font-size:10px;font-weight:700}.paid{background:#e8f8ef;color:#11723f}.pending{background:#fff2d8;color:#996108}.partial{background:#eaf0ff;color:#365ba5}.unpaid{background:#ffedf0;color:#ab2940}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:700;color:#5b6d81}.field input,.field select,.field textarea{border:1px solid #d9e2ec;border-radius:11px;padding:12px;background:white;outline:none;color:var(--text)}.field input:focus,.field select:focus,.field textarea:focus{border-color:#91acd0;box-shadow:0 0 0 3px #0c3b7812}.calc{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;background:#f6f9fd;border:1px dashed #adc3df;border-radius:14px;padding:12px;margin-top:12px}.calc span{font-size:10px;color:var(--muted);display:block}.calc b{font-size:17px;color:var(--blue);display:block;margin-top:4px}.providerGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}.provider h3{margin:0 0 5px;font-size:16px}.provider p{font-size:11px;color:var(--muted);margin:4px 0}.miniGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:11px}.mini{background:#f7f9fc;border-radius:10px;padding:8px}.mini span{font-size:9px;color:var(--muted);display:block}.mini b{font-size:12px;display:block;margin-top:3px}.actions{display:flex;gap:7px;margin-top:10px}.actions .btn{flex:1;padding:8px;font-size:11px}.search{width:100%;border:1px solid var(--line);background:white;border-radius:12px;padding:11px}.bottom{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);z-index:40;padding-bottom:max(6px,env(safe-area-inset-bottom));box-shadow:0 -5px 18px #1639570d}.nav{border:0;background:white;padding:10px 3px;color:#718196;font-size:10px;display:flex;flex-direction:column;align-items:center;gap:3px}.nav b{font-size:18px}.nav.active{color:var(--blue);font-weight:800}.fab{position:fixed;left:14px;bottom:78px;width:58px;height:58px;border:0;border-radius:18px;background:var(--yellow);font-size:30px;color:#173251;box-shadow:0 8px 24px #0c3b7833;z-index:45}.modalBg{display:none;position:fixed;inset:0;background:#06182f70;z-index:80;align-items:flex-end;justify-content:center;overflow-y:auto;overscroll-behavior:contain}.modalBg.show{display:flex}.modal{background:white;width:100%;max-width:700px;border-radius:23px 23px 0 0;padding:16px;max-height:88vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-gutter:stable}.modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.modalHead h3{margin:0}.close{border:0;background:#edf2f7;width:35px;height:35px;border-radius:50%;font-size:20px}.hint{font-size:11px;color:var(--muted);line-height:1.7}.toast{position:fixed;top:76px;left:50%;transform:translateX(-50%);background:#102d52;color:#fff;padding:10px 15px;border-radius:12px;z-index:100;display:none;font-size:12px}.toast.show{display:block}
+
+@media(min-width:900px){
+  html,body{
+    width:100%;
+    min-height:100%;
+    overflow-x:hidden;
+    overflow-y:auto;
+  }
+  body{
+    min-height:100vh;
+  }
+  .app{
+    width:100vw !important;
+    max-width:none !important;
+    margin:0 !important;
+    min-height:100vh;
+  }
+  .top{
+    width:100%;
+    max-width:none;
+  }
+  .main{
+    width:100%;
+    max-width:none;
+    padding:18px 28px 120px;
+    overflow:visible;
+  }
+  .page.active{
+    width:100%;
+    max-width:none;
+    overflow:visible;
+  }
+  .table{
+    width:100%;
+    max-width:none;
+    overflow-x:auto;
+    overflow-y:visible;
+  }
+  #cases table{
+    width:100%;
+    min-width:1450px;
+  }
+  .bottom{
+    width:100vw;
+  }
+}
+@media(min-width:561px){
+  .modalBg{
+    align-items:flex-start;
+    padding:24px 18px;
+  }
+  .modalBg.show{
+    overflow-y:auto;
+  }
+  .modal{
+    margin:auto 0;
+    max-height:calc(100dvh - 48px);
+    border-radius:23px;
+    padding:16px 16px 34px;
+    overflow-y:auto;
+    overflow-x:hidden;
+  }
+  .modalHead{
+    position:sticky;
+    top:-16px;
+    z-index:6;
+    background:white;
+    padding:16px 0 10px;
+    margin-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+}
+@media(max-width:800px){.cards{grid-template-columns:1fr 1fr}.cards .card:last-child{grid-column:1/-1}.providerGrid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){
+  .main{padding:13px 11px calc(92px + env(safe-area-inset-bottom))}
+  .title{align-items:flex-start;flex-direction:column}
+  .title .btn{width:100%}
+  .grid2{grid-template-columns:1fr}
+  .field.full{grid-column:auto}
+  .calc{grid-template-columns:1fr}
+  .providerGrid{grid-template-columns:1fr}
+  .cards{gap:8px}
+  .card{padding:12px}
+  .stat b{font-size:18px}
+
+  .bottom{
+    display:flex;
+    grid-template-columns:none;
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    gap:0;
+    padding:4px 6px max(6px,env(safe-area-inset-bottom));
+    white-space:nowrap;
+  }
+  .bottom::-webkit-scrollbar{display:none}
+  .bottom .nav{
+    flex:0 0 72px;
+    min-width:72px;
+    padding:8px 2px;
+    font-size:9px;
+  }
+  .bottom .nav[data-p="newcase"]{display:none}
+  .bottom .nav b{font-size:17px}
+  .fab{
+    left:12px;
+    bottom:calc(68px + env(safe-area-inset-bottom));
+    width:54px;
+    height:54px;
+    border-radius:17px;
+    z-index:55;
+  }
+
+  .modalBg{
+    align-items:flex-start;
+    padding-top:max(8px,env(safe-area-inset-top));
+  }
+  .modal{
+    width:100%;
+    max-width:none;
+    height:calc(100dvh - max(8px,env(safe-area-inset-top)));
+    max-height:none;
+    border-radius:20px 20px 0 0;
+    padding:14px 14px calc(120px + env(safe-area-inset-bottom));
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  .modalHead{
+    position:sticky;
+    top:-14px;
+    z-index:5;
+    background:white;
+    padding:14px 0 10px;
+    margin-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  .modal .btn{min-height:44px}
+}
+
+.authGate{position:fixed;inset:0;z-index:99999;background:#f4f7fb;display:flex;align-items:center;justify-content:center;padding:18px}
+.authGate.hidden{display:none}
+.authCard{width:100%;max-width:420px;background:#fff;border:1px solid #e3e9f0;border-radius:22px;padding:20px;box-shadow:0 12px 40px #17355418}
+.authCard h1{margin:0 0 6px;font-size:24px;color:#0c3b78}
+.authCard p{margin:0 0 16px;color:#6f8094;font-size:13px;line-height:1.7}
+.authMsg{font-size:12px;line-height:1.7;margin-top:10px;min-height:20px}
+.authError{color:#ab2940}.authSuccess{color:#11723f}
+.authSwitch{margin-top:12px;text-align:center}
+.authSwitch button{border:0;background:transparent;color:#0c3b78;font-weight:700;cursor:pointer}
+#authUserBar{display:none;align-items:center;gap:8px;font-size:11px}
+#authUserBar .btn{padding:8px 10px}
+.test-selected-row{outline:2px solid #0c3b78;background:#eaf2ff!important}
+</style>
+</head>
+<body>
+<div id="authGate" class="authGate">
+  <div class="authCard">
+    <h1>PawApp Concierge</h1>
+    <p id="authSubtitle">تسجيل الدخول للموظفين</p>
+    <div class="field">
+      <label>الإيميل</label>
+      <input id="authEmail" type="email" autocomplete="email" placeholder="name@pawapp.net">
+    </div>
+    <div class="field" style="margin-top:10px">
+      <label>الباسورد</label>
+      <input id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <button id="authPrimaryBtn" class="btn primary" type="button" style="width:100%;margin-top:14px" onclick="pawAuthSubmit()">دخول</button>
+    <div class="authSwitch">
+      <button id="authModeBtn" type="button" onclick="pawAuthToggleMode()">أول مرة؟ فعّلي الحساب</button>
+    </div>
+    <div id="authMessage" class="authMsg"></div>
+  </div>
+</div>
+<div class="app">
+<header class="top">
+<img class="logo" alt="PawApp" src="data:image/jpeg;base64,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">
+<div class="brand"><b>PawApp Concierge</b><small>Operations System</small></div><div class="sp"></div><div id="authUserBar"><span id="authUserEmail"></span><button class="btn soft" type="button" onclick="pawOpenMyPassword()">كلمة المرور</button><button class="btn soft" type="button" onclick="pawAuthSignOut()">خروج</button></div>
+</header>
+
+<main class="main">
+<section id="dashboard" class="page active">
+<div class="title"><div><h1>لوحة التحكم</h1><p>نظرة عامة فقط — التفاصيل داخل الأقسام</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
+
+<div class="cards" style="grid-template-columns:repeat(2,1fr)">
+  <div class="card stat" style="cursor:pointer" onclick="showPage('cases')"><span>العمليات</span><b id="kOps" class="blue">0</b><small class="hint">عرض كل العمليات</small></div>
+  <div class="card stat" style="cursor:pointer" onclick="showPage('crm')"><span>العملاء</span><b id="kCustomers" class="green">0</b><small class="hint">عرض العملاء</small></div>
+  <div class="card stat" style="cursor:pointer" onclick="showPage('providers')"><span>الشركات / الفريلانسر</span><b id="kProviders">0</b><small class="hint">عرض الشركات</small></div>
+  <div class="card stat" style="cursor:pointer" onclick="showPage('followups')"><span>تحتاج متابعة</span><b id="kNeedsFollowup" class="red">0</b><small class="hint">عمليات ناقصة أو غير مسددة</small></div>
+</div>
+
+<div class="cards" style="margin-top:10px;grid-template-columns:repeat(2,1fr)">
+  <div class="card stat"><span>تم دفعه من العملاء</span><b id="kClientPaidTotal" class="green">0.000 د.ك</b></div>
+  <div class="card stat"><span>غير مدفوع من العملاء</span><b id="kClientUnpaidTotal" class="red">0.000 د.ك</b></div>
+  <div class="card stat"><span>لنا عند الشركات</span><b id="kOursFromProviders">0.000 د.ك</b></div>
+  <div class="card stat"><span>للشركات عندنا</span><b id="kOweProviders">0.000 د.ك</b></div>
+</div>
+
+<div class="section"><h2>آخر العمليات</h2><button class="btn soft" onclick="showPage('cases')">عرض الكل</button></div>
+<div id="dashboardRecentCards" class="providerGrid"></div>
+
+<div id="legacyDashboardMetrics" style="display:none">
+  <span id="kSales"></span><span id="kPaw"></span><span id="kDue"></span><span id="kPaid"></span><span id="kRemain"></span>
+  <span id="kClientDue"></span><span id="kClientPaid"></span><span id="kClientRemain"></span>
+  <span id="kCollectFromProviders"></span><span id="kPayProviders"></span><span id="kUnpaidClients"></span>
+  <span id="kCompanies"></span><span id="kFreelancers"></span>
+  <div id="financialFollowupSection"></div><div id="financialFollowups"></div><div id="dashboardProviders"></div>
+  <div id="upcomingInstallments"></div><div id="clientDueSection"></div><div id="clientDueReminders"></div>
+  <select id="dashboardProviderFilter"><option value="all">الكل</option></select><select id="dashboardVendorStatusFilter"><option value="all">الكل</option></select>
+  <table><tbody id="recent"></tbody></table>
+</div>
+</section>
+
+<section id="newcase" class="page">
+<div style="margin:10px 0"><button class="btn soft" type="button" onclick="pawOpenImport('cases')">استيراد عملاء Excel</button></div>
+<div class="title"><div><h1>إضافة عميل / عملية</h1><p>4 خطوات بسيطة، والباقي يحسبه النظام تلقائيًا</p></div><button class="btn soft" onclick="showPage('dashboard')">رجوع</button></div>
+
+<div class="card" style="box-shadow:none;margin-bottom:12px;background:#f8fafc">
+  <div class="section" style="margin:0 0 8px"><h2>عميل سابق؟</h2></div>
+  <div class="field">
+    <label>ابحثي برقم التلفون أو اسم العميل</label>
+    <div style="display:flex;gap:8px">
+      <input id="existingCustomerSearch" style="flex:1" placeholder="مثال: 99993407 أو Bibi">
+      <button class="btn soft" type="button" onclick="searchExistingCustomer()">بحث</button>
+    </div>
+  </div>
+  <div id="existingCustomerResults" style="margin-top:10px"></div>
+</div>
+
+<div class="card">
+  <div class="section" style="margin-top:0"><h2>1. العميل والحيوان</h2></div>
+  <div class="grid2">
+    <div class="field"><label>اسم العميل *</label><input id="cClient" placeholder="مثال: نورة أحمد"></div>
+    <div class="field"><label>رقم العميل</label><input id="cPhone" inputmode="tel" placeholder="5xxxxxxx"></div>
+    <div class="field"><label>المنطقة / الموقع</label><input id="cLocation" placeholder="مثال: حولي"></div>
+    <div class="field"><label>نوع الحيوان *</label><select id="cPetType"><option value="">اختاري</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>
+    <div class="field"><label>السلالة</label><input id="cBreed" placeholder="مثال: Pomeranian"></div>
+    <div class="field"><label>العمر</label><input id="cPetAge" placeholder="مثال: 4 سنوات"></div>
+  </div>
+
+  <details style="margin-top:12px">
+    <summary class="btn soft" style="cursor:pointer;list-style:none;text-align:center">+ معلومات إضافية عن الحيوان</summary>
+    <div class="grid2" style="margin-top:10px">
+      <div class="field"><label>سهل التعامل؟</label><select id="cPetFriendly"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+      <div class="field"><label>مطعّم؟</label><select id="cVaccinated"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+      <div class="field"><label>Microchip؟</label><select id="cMicrochipped"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+      <div class="field"><label>Pet ID؟</label><select id="cHasPetId"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+      <div class="field full"><label>سبب الطلب / الحالة</label><textarea id="cReason" rows="2" placeholder="اختياري"></textarea></div>
+    </div>
+  </details>
+</div>
+
+<div class="card">
+  <div class="section" style="margin-top:0"><h2>2. الخدمة</h2></div>
+  <div class="grid2">
+    <div class="field"><label>الشركة / الفريلانسر *</label><select id="cProvider" onchange="providerChanged()"></select></div>
+    <div class="field"><label>الخدمة *</label><select id="cService"></select></div>
+    <div class="field"><label id="cAmountLabel">سعر الخدمة *</label><input id="cAmount" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcCase()"></div>
+    <div class="field"><label>طريقة حصة PawApp *</label><select id="cFeeType" onchange="toggleCasePricing()"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت</option></select></div>
+    <div class="field"><label id="cCommissionLabel">نسبة PawApp % *</label><input id="cCommission" type="number" min="0" step="0.001" oninput="calcCase()"></div>
+    <div class="field"><label>تاريخ العملية *</label><input id="cDate" type="date"></div>
+  </div>
+
+  <div class="calc" style="grid-template-columns:repeat(3,1fr)">
+    <div><span>إجمالي العميل</span><b id="calcTotal">0.000 د.ك</b></div>
+    <div><span>حصة PawApp</span><b id="calcPaw">0.000 د.ك</b></div>
+    <div><span>حصة الشركة / الفريلانسر</span><b id="calcDue">0.000 د.ك</b></div>
+    <b id="calcRemain" style="display:none">0.000 د.ك</b>
+  </div>
+
+  <div style="margin-top:14px;border-top:1px solid #e5e7eb;padding-top:14px">
+    <div class="field">
+      <label>هل يحتاج Pickup / Drop-off؟</label>
+      <select id="cTransportNeeded" onchange="toggleTransportAddon()">
+        <option value="no">لا</option>
+        <option value="yes">نعم</option>
+      </select>
+    </div>
+
+    <div id="cTransportAddon" style="display:none;margin-top:10px">
+      <div class="grid2">
+        <div class="field"><label>الخدمة</label><select id="cTransportDirection"><option value="">اختاري</option><option value="pickup">Pickup</option><option value="dropoff">Drop-off</option><option value="both">Pickup + Drop-off</option></select></div>
+        <div class="field"><label>شركة التوصيل / الفريلانسر</label><select id="cTransportProvider"></select></div>
+        <div class="field"><label>سعر خدمة Pickup / Drop-off</label><input id="cTransportTotal" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcTransportAddon()"></div>
+        <div class="field"><label>حصة PawApp من النقل</label><input id="cTransportPaw" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcTransportAddon()"></div>
+        <div class="field"><label>حصة شركة التوصيل</label><input id="cTransportProviderAmount" readonly></div>
+        <div class="field"><label>التاريخ والوقت</label><input id="cTransportAt" type="datetime-local"></div>
+        <div class="field"><label>مكان الاستلام</label><input id="cPickupLocation"></div>
+        <div class="field"><label>مكان التوصيل</label><input id="cDropoffLocation"></div>
+      </div>
+      <div class="calc" style="grid-template-columns:repeat(3,1fr);margin-top:10px">
+        <div><span>إجمالي النقل</span><b id="calcTransportTotal">0.000 د.ك</b></div>
+        <div><span>حصة PawApp من النقل</span><b id="calcTransportPaw">0.000 د.ك</b></div>
+        <div><span>حصة شركة التوصيل</span><b id="calcTransportProvider">0.000 د.ك</b></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="section" style="margin-top:0"><h2>3. الدفع</h2></div>
+  <div class="grid2">
+    <div class="field"><label>هل العميل دفع؟ *</label><select id="cClientPaid" onchange="toggleNewPaymentFields()"><option value="unpaid">لا</option><option value="paid">نعم</option></select></div>
+    <div class="field" id="cPaidToWrap" style="display:none"><label>دفع لمن؟ *</label><select id="cPaidTo"><option value="pawapp">PawApp</option><option value="provider">الشركة / العيادة / الفريلانسر</option></select></div>
+    <div class="field" id="cDueDateWrap"><label>موعد متابعة السداد</label><input id="cClientDueDate" type="date"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="section" style="margin-top:0"><h2>4. معلومات العملية</h2></div>
+  <div class="grid2">
+    <div class="field"><label>الموظف المسؤول *</label><select id="cStaff"></select></div>
+    <div class="field"><label>مصدر الطلب</label><select id="cSource"><option value="manual_test">إدخال داخلي</option><option value="whatsapp_quick">واتساب</option><option value="phone_call">مكالمة</option><option value="instagram">Instagram</option><option value="referral">تحويل / توصية</option></select></div>
+    <div class="field"><label>موعد العميل</label><input id="cAppointmentAt" type="datetime-local"><div class="hint">إذا فيه موعد، يظهر تلقائيًا في المتابعة.</div></div>
+  </div>
+
+  <details style="margin-top:12px">
+    <summary class="btn soft" style="cursor:pointer;list-style:none;text-align:center">+ تفاصيل إضافية</summary>
+    <div class="grid2" style="margin-top:10px">
+      <div class="field"><label>طريقة دفع العميل</label><select id="cPayMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
+      <div class="field"><label>ملاحظة السداد</label><input id="cPaymentNote" placeholder="اختياري"></div>
+      <div class="field full"><label>ملاحظات</label><textarea id="cNotes" rows="3" placeholder="أي تفاصيل مهمة عن الحالة"></textarea></div>
+    </div>
+  </details>
+</div>
+
+<input type="hidden" id="cPaymentPlan" value="full">
+<input type="hidden" id="cInstallments" value="">
+<div id="installmentsWrap" style="display:none"></div>
+<div id="installmentScheduleWrap" style="display:none"><div id="installmentRows"></div></div>
+
+<button class="btn primary" style="width:100%;margin-top:13px" onclick="saveCase()">حفظ العملية</button>
+<p class="hint" style="text-align:center">كل عملية تأخذ Case ID تلقائيًا.</p>
+</section>
+
+<section id="providers" class="page">
+<div class="card" style="padding:10px;margin:10px 0"><b>إضافة خدمات دفعة واحدة</b><p class="hint">نموذج Excel للخدمات والشركات والفريلانسر.</p><button class="btn soft" type="button" onclick="pawOpenImport('services')">استيراد الخدمات Excel</button></div>
+<div class="title"><div><h1>الشركات / الفريلانسر</h1><p>كل جهة وملخص حسابها — اضغطي التفاصيل لفتح CRM الشركة</p></div><button class="btn primary" onclick="openProvider()">+ إضافة شركة / فريلانسر</button></div>
+<div class="card" style="margin:12px 0;border:2px solid #d9e5f4">
+<div class="section" style="margin:0 0 10px"><h2>المستحقات الشهرية — الشركات والفريلانسر (TEST)</h2></div>
+<div class="grid2"><div class="field"><label>الشهر</label><input type="month" id="pawSettlementMonth" min="2026-10" value="2026-10" onchange="pawMonthlySettlementOverview()"></div><div class="field"><label>عرض</label><select id="pawSettlementDirection" onchange="pawMonthlySettlementOverview()"><option value="all">جميع المستحقات</option><option value="to_provider">باو أب تدفع للشركة</option><option value="to_pawapp">الشركة تدفع لباو أب</option></select></div></div>
+<p id="pawSettlementSummary" class="hint" style="margin:12px 0">اختاري الشهر لعرض المستحقات غير المسوّاة.</p><div id="pawSettlementRows" style="overflow:auto"></div>
+<p class="hint">يظهر المعلّق فقط؛ العمليات غير مؤكدة الدفع تُعرض للمراجعة منفصلة. شهور 7–9 مغلقة ولا تُفتح من هذه الشاشة.</p>
+</div>
+<input id="providerSearch" class="search" placeholder="بحث باسم الشركة / الفريلانسر..." oninput="renderProviders()">
+<div id="providerList" class="providerGrid" style="margin-top:11px"></div>
+</section>
+
+<section id="providerdetail" class="page">
+<div class="title"><div><h1 id="providerDetailName">تفاصيل الشركة</h1><p id="providerDetailType">CRM وتحليل الشركة</p></div><button class="btn soft" onclick="showPage('providers')">رجوع للشركات</button></div>
+
+<div class="cards" style="grid-template-columns:repeat(2,1fr)">
+  <div class="card stat"><span>العملاء</span><b id="pdClients" class="blue">0</b></div>
+  <div class="card stat"><span>العمليات</span><b id="pdOps">0</b></div>
+  <div class="card stat"><span>مكتملة</span><b id="pdComplete" class="green">0</b></div>
+  <div class="card stat"><span>تحتاج متابعة</span><b id="pdPending" class="red">0</b></div>
+</div>
+
+<div class="cards" style="margin-top:10px;grid-template-columns:repeat(2,1fr)">
+  <div class="card stat"><span>إجمالي قيمة العمليات</span><b id="pdSales">0.000 د.ك</b></div>
+  <div class="card stat"><span>حصة PawApp</span><b id="pdPaw">0.000 د.ك</b></div>
+  <div class="card stat"><span>لنا عندهم</span><b id="pdOurs">0.000 د.ك</b></div>
+  <div class="card stat"><span>لهم عندنا</span><b id="pdTheirs">0.000 د.ك</b></div>
+</div>
+
+<div class="section"><h2>تحليل الخدمات</h2><button id="pdExportBtn" class="btn soft" type="button">تقرير CSV</button></div>
+<div id="pdServices" class="card"></div>
+
+<div class="section"><h2>العملاء والعمليات</h2></div>
+<div id="pdClientList" class="providerGrid"></div>
+</section>
+
+<section id="reports" class="page">
+<div class="title"><div><h1>التقارير</h1><p>تقارير يومية، أسبوعية، شهرية أو فترة مخصصة</p></div></div>
+<div class="card" style="box-shadow:none">
+  <div class="grid2">
+    <div class="field"><label>الفترة</label><select id="reportPreset" onchange="reportPresetChanged()"><option value="today">اليوم</option><option value="week">آخر 7 أيام</option><option value="month" selected>هذا الشهر</option><option value="custom">فترة مخصصة</option></select></div>
+    <div class="field"><label>الشركة / الفريلانسر</label><select id="reportProvider" onchange="renderReports()"><option value="all">الكل</option></select></div>
+    <div class="field"><label>من تاريخ</label><input id="reportFrom" type="date" onchange="renderReports()"></div>
+    <div class="field"><label>إلى تاريخ</label><input id="reportTo" type="date" onchange="renderReports()"></div>
+  </div>
+</div>
+<div class="cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
+  <div class="card stat"><span>العملاء</span><b id="reportClients" class="blue">0</b></div>
+  <div class="card stat"><span>الشركات / الفريلانسر النشطة</span><b id="reportProviders">0</b></div>
+  <div class="card stat"><span>العمليات</span><b id="reportCases">0</b></div>
+  <div class="card stat"><span>إجمالي العمليات</span><b id="reportSales">0.000 د.ك</b></div>
+  <div class="card stat"><span>حصة PawApp</span><b id="reportPaw" class="green">0.000 د.ك</b></div>
+  <div class="card stat"><span>مستحق الشركات</span><b id="reportProviderDue">0.000 د.ك</b></div>
+</div>
+<div class="section"><h2>ملخص الفترة</h2><button class="btn soft" type="button" onclick="exportGeneralReport()">تصدير CSV</button></div>
+<div id="reportSummary" class="providerGrid"></div>
+</section>
+
+<section id="staff" class="page">
+<div class="title"><div><h1>الموظفون</h1><p>فريق PawApp اللي يستلم ويسجل طلبات العملاء</p></div><button class="btn primary" onclick="openStaff()">+ إضافة موظف</button></div>
+<div id="staffList" class="providerGrid"></div>
+</section>
+
+<section id="admin" class="page">
+<div class="card" id="testImportPanel" style="margin:14px 0;padding:15px;display:none"><h2>استيراد جماعي — TEST</h2><p class="hint">نزّلي نموذج Excel، انسخي بياناتج فيه، ثم ارفعي ملف XLSX أو CSV. للأدمن وموظف العمليات.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn soft" type="button" onclick="pawImportMode('services')">الخدمات ومقدمو الخدمة</button><button class="btn soft" type="button" onclick="pawImportMode('cases')">العملاء</button><button class="btn primary" type="button" onclick="pawDownloadTemplate()">تحميل القالب</button></div><div style="margin-top:10px"><label>شهر الملف التاريخي فقط (للملفات المختلطة اتركيه غير محدد): </label><select id="importMonth" onchange="pawSetImportMonth(this.value)"><option value="">غير محدد</option><option value="7">يوليو</option><option value="8">أغسطس</option><option value="9">سبتمبر</option><option value="10">أكتوبر</option></select></div><div style="margin-top:12px"><input id="importFile" type="file" accept=".xlsx,.xls,.csv,text/csv" style="width:100%"></div><button class="btn soft" type="button" onclick="pawPreviewWithFeedback()" style="margin-top:10px">معاينة الملف</button><div id="importStatus" class="hint" style="margin-top:10px">الخدمات: رفع جماعي بعد المعاينة. العملاء: معاينة ثم استيراد إلى TEST.</div><div id="importPreview" style="max-height:300px;overflow:auto;margin-top:8px"></div><button id="importCommit" class="btn primary" type="button" onclick="pawCommitImport()" disabled style="margin-top:10px;margin-bottom:100px;min-height:48px;max-width:100%;white-space:normal">اعتماد استيراد الخدمات إلى TEST</button></div>
+<div class="title">
+  <div><h1>الإدارة</h1><p>الدخول والصلاحيات والنسخ الاحتياطي</p></div>
+</div>
+
+<div class="section" style="margin-top:0"><h2>دخول الموظفين</h2></div>
+<div class="card" style="box-shadow:none">
+  <b>Employee Access</b>
+  <div class="hint" style="margin-top:5px;line-height:1.7">الـAdmin ينشئ لكل موظف إيميل + باسورد مؤقت + صلاحية. الموظف يقدر يغير الباسورد بعدين من حسابه.</div>
+
+  <div id="adminCreateUserBox" class="grid2" style="margin-top:12px">
+    <div class="field full"><label>اختاري الموظف المسجّل</label><select id="adminEmployeeSelect" onchange="pawAdminSelectEmployee(this.value)"><option value="">اختاري الموظف</option></select><div class="hint">حبيبة وهيبة موجودات بقائمة الموظفين؛ اختاري الاسم ثم حددي الإيميل والصلاحية والباسورد.</div></div>
+    <div class="field"><label>اسم الموظف</label><input id="adminEmployeeName" placeholder="اختاري الموظف أعلاه" readonly></div>
+    <div class="field"><label>الإيميل</label><input id="adminEmployeeEmail" type="email" placeholder="name@pawapp.net"></div>
+    <div class="field"><label>الباسورد المؤقت</label><input id="adminEmployeePassword" type="password" minlength="8" placeholder="8 أحرف أو أكثر"></div>
+    <div class="field"><label>الصلاحية</label><select id="adminEmployeeRole"><option value="operations">Operations</option><option value="accountant">Accountant - محاسب</option><option value="read_only">Read only</option><option value="admin">Admin</option></select></div>
+    <div class="field full"><button class="btn primary" id="adminCreateUserButton" type="button" onclick="pawAdminCreateEmployee()">حفظ الصلاحية وإنشاء حساب الدخول</button><div class="hint" style="margin-top:6px">الباسورد مؤقت. لا يظهر في قائمة الموظفين ولا يُخزّن فيها. تقدرين تعطينه للموظفة بطريقة آمنة، وتغيّره بعد أول دخول.</div></div>
+    <div id="adminCreateUserMessage" class="hint field full"></div>
+  </div>
+
+  <div class="section" style="margin:14px 0 8px"><h2>الحسابات الحالية</h2></div>
+  <div id="adminAccessList"></div>
+</div>
+
+<div class="hint" style="margin:12px 0">تغيير كلمة المرور متاح لكل موظف بعد الدخول من زر «كلمة المرور» أعلى الشاشة.</div>
+
+<div class="section"><h2>Activity Log</h2></div>
+<div class="card" style="box-shadow:none">
+  <b>سجل التعديلات</b>
+  <div class="hint" style="margin-top:5px;line-height:1.7">يسجل منو سوّى التعديل، أي Case، شنو تغير، والوقت — خصوصًا الحالات والمدفوعات والتسويات والمرفقات.</div>
+  <input id="activitySearch" class="search" style="margin-top:10px" placeholder="بحث بالإيميل، Case ID أو نوع التعديل..." oninput="renderActivityLog()">
+  <div id="activityLogList" style="margin-top:10px"></div>
+</div>
+
+<div class="section"><h2>Backup & Restore</h2></div>
+<div class="card" style="box-shadow:none">
+  <b>حماية الداتا</b>
+  <div class="hint" style="margin-top:5px;line-height:1.7">النسخ التلقائي على السيرفر مفعّل: أول تعديل على الداتا كل يوم ينشئ Snapshot قبل التغيير. والاسترجاع موجود في الخلفية ومحمي، وما راح نخليه زر مفتوح لأي موظف.</div>
+  <div class="miniGrid" style="margin-top:10px">
+    <div class="mini"><span>Server Snapshot</span><b class="green">مفعّل</b></div>
+    <div class="mini"><span>Restore</span><b>Admin فقط</b></div>
+    <div class="mini"><span>TEST Data</span><b>محفوظة</b></div>
+  </div>
+  <button class="btn soft" type="button" style="width:100%;margin-top:10px" onclick="downloadTestBackup(event)">تحميل نسخة JSON على الجهاز</button>
+  <div id="testBackupStatus" class="hint" style="margin-top:8px"></div>
+</div>
+</section>
+
+<section id="crm" class="page">
+<div class="card" style="padding:10px;margin:10px 0"><b>استيراد جماعي</b><p class="hint">حمّلي النموذج، عبّيه في Excel أو Numbers، ثم ارفعيه.</p><button class="btn soft" type="button" onclick="pawOpenImport('cases')">استيراد العملاء Excel</button></div>
+<div class="title"><div><h1>CRM العملاء والحيوانات</h1><p>أسماء العملاء، عدد حيوانات كل عميل، وسجل خدماته</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
+<input id="crmSearch" class="search" placeholder="بحث باسم العميل، رقم التلفون أو Case ID..." oninput="renderCRM()">
+<div class="cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
+<div class="card stat"><span>العملاء</span><b id="crmCustomerCount" class="blue">0</b></div>
+<div class="card stat"><span>الحيوانات</span><b id="crmPetCount" class="green">0</b></div>
+<div class="card stat"><span>العمليات</span><b id="crmCaseCount">0</b></div>
+</div>
+<div id="crmCustomerList" class="providerGrid" style="margin-top:12px"></div>
+</section>
+
+<section id="followups" class="page">
+<div class="title">
+  <div><h1>المتابعة</h1><p>مرتبة حسب الأولوية: المستحقات، المواعيد، ثم البيانات الناقصة</p></div>
+</div>
+
+<div class="cards" style="grid-template-columns:repeat(3,1fr)">
+  <div class="card stat"><span>مستحقات ومدفوعات</span><b id="fuFinance" class="red">0</b></div>
+  <div class="card stat"><span>تذكير المواعيد</span><b id="fuAppointments" class="blue">0</b></div>
+  <div class="card stat"><span>بيانات ناقصة</span><b id="fuMissing">0</b></div>
+</div>
+
+<div class="section"><h2>1. المستحقات والمدفوعات</h2></div>
+<div id="followupFinanceList" class="providerGrid"></div>
+
+<div class="section"><h2>2. تذكير المواعيد</h2></div>
+<div id="followupAppointmentList" class="providerGrid"></div>
+
+<div class="section"><h2>3. البيانات الناقصة</h2></div>
+<div id="followupMissingList" class="providerGrid"></div>
+
+<div style="display:none">
+  <div id="followupAlertBanner"></div><span id="followupAlertText"></span>
+  <span id="followToday"></span><span id="followLate"></span><span id="followUpcoming"></span>
+  <div id="followupUrgentList"></div><div id="followupList"></div><div id="followupHistoryList"></div>
+  <span id="fuAll"></span><span id="fuClients"></span><span id="fuProviders"></span><span id="fuIncomplete"></span>
+</div>
+</section>
+
+<section id="cases" class="page">
+<div id="testBulkCases" class="card" style="margin:10px 0;padding:12px;border:1px solid #e3e9f0;display:none" data-test-bulk-ui="cases"><b>تحديد العمليات</b><p style="font-size:12px;color:#6f8094;margin:6px 0">الحذف المتعدد قيد الربط بقاعدة TEST. لا يمكن الحذف قبل تفعيل النسخة الاحتياطية والتحقق من الصلاحيات.</p><label style="display:flex;gap:7px;align-items:center"><input type="checkbox" id="testSelectAllCases" onchange="document.querySelectorAll('#caseRows tr').forEach(function(tr){tr.classList.toggle('test-selected-row',document.getElementById('testSelectAllCases').checked)})"> تحديد الكل (الصفوف الظاهرة)</label><button class="btn" style="margin-top:8px;background:#eee;color:#777" disabled>حذف المحدد — بانتظار تفعيل الحذف الآمن</button></div>
+
+<div class="title"><div><h1>العمليات والعملاء</h1><p>كل الحالات المسجلة وحالة التسوية</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
+<input id="caseSearch" class="search" placeholder="بحث باسم العميل، الشركة، الموظف أو Case ID..." oninput="renderCases()">
+<div class="grid2" style="margin-top:10px">
+<div class="field"><label>فلتر الحالة</label><select id="caseStatusFilter" onchange="renderCases()"><option value="all">كل الحالات</option><option value="client_unpaid">العميل لم يسدد</option><option value="client_paid">العميل سدد</option><option value="vendor_unpaid">مستحق للشركة عند PawApp</option><option value="vendor_paid">لا يوجد مستحق للشركة عند PawApp</option></select></div>
+<div class="field"><label>فلتر الشركة / الفريلانسر</label><select id="caseProviderFilter" onchange="renderCases()"><option value="all">كل الشركات / الفريلانسر</option></select></div>
+</div>
+<div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th>العميل</th><th>الحيوان</th><th>السلالة</th><th>مطعّم</th><th>Microchip</th><th>الشركة / الفريلانسر</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق الشركة / الفريلانسر</th><th>حالة العميل</th><th>موعد السداد</th><th>حالة الشركة / الفريلانسر</th><th>الموظف / المصدر</th><th>بيانات الحالة</th><th>إجراء العميل</th><th>إجراء الشركة / الفريلانسر</th></tr></thead><tbody id="caseRows"></tbody></table></div>
+</section>
+</main>
+
+<button class="fab" onclick="openNewCase()">+</button>
+<nav class="bottom">
+<button class="nav active" data-p="dashboard" onclick="showPage('dashboard')"><b>⌂</b>الرئيسية</button>
+<button class="nav" data-p="cases" onclick="showPage('cases')"><b>▤</b>العمليات</button>
+<button class="nav" data-p="crm" onclick="showPage('crm')"><b>♡</b>العملاء</button>
+<button class="nav" data-p="followups" onclick="showPage('followups')" style="position:relative"><b>⏰</b>المتابعة<span id="followupNavBadge" style="display:none;position:absolute;top:2px;left:50%;transform:translateX(-50%);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#c62828;color:#fff;font-size:10px;line-height:18px;font-weight:800">0</span></button>
+<button class="nav" data-p="providers" onclick="showPage('providers')"><b>♙</b>الشركات / الفريلانسر</button>
+<button class="nav" data-p="reports" onclick="showPage('reports')"><b>▦</b>التقارير</button>
+<button class="nav" data-p="staff" onclick="showPage('staff')"><b>♟</b>الموظفون</button>
+<button class="nav" data-p="admin" onclick="showPage('admin')"><b>⚙</b>الإدارة</button>
+<button class="nav" data-p="newcase" onclick="openNewCase()"><b>＋</b>عميل جديد</button>
+</nav>
+
+<div id="providerModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3>إضافة شركة / فريلانسر خدمة</h3><button class="close" onclick="closeModal('providerModal')">×</button></div>
+<div class="grid2">
+<div class="field"><label>النوع</label><select id="pType" onchange="typeChanged()"><option value="company">Company</option><option value="freelancer">Freelancer</option></select></div>
+<div id="pCatWrap" class="field"><label>تصنيف الشركة</label><select id="pCategory"><option value="veterinary">Veterinary</option><option value="services">Services</option></select></div>
+<div class="field"><label>الاسم *</label><input id="pName" placeholder="اسم الشركة / الدكتور"></div>
+<div class="field"><label>رقم التواصل</label><input id="pPhone"></div>
+<div class="field"><label>طريقة حصة PawApp الافتراضية</label><select id="pFeeType" onchange="toggleProviderPricing()"><option value="percent">نسبة %</option><option value="fixed">سعر ثابت د.ك</option></select></div>
+<div class="field"><label id="pCommissionLabel">نسبة PawApp الافتراضية %</label><input id="pCommission" type="number" value="7" min="0" step="0.001"></div>
+<div class="field full"><div class="hint">احفظي الشركة / الفريلانسر أولاً، وبعدها أضيفي خدماته من زر «إدارة الخدمات» تحت الاسم.</div></div>
+</div>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveProvider()">حفظ الشركة / الفريلانسر</button>
+</div></div>
+
+<div id="serviceModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3 id="serviceModalTitle">إدارة الخدمات</h3><button class="close" onclick="closeModal('serviceModal')">×</button></div>
+<input id="serviceProviderId" type="hidden">
+<div class="card" style="box-shadow:none;margin-bottom:12px">
+<div class="field"><label>إضافة خدمة جديدة</label><input id="serviceName" placeholder="مثال: كشف، أشعة، تطعيم، عملية"></div>
+<button class="btn primary" style="width:100%;margin-top:10px" onclick="addProviderService()">+ إضافة الخدمة</button>
+</div>
+<div class="section" style="margin-top:10px"><h2>الخدمات الحالية</h2></div>
+<div id="serviceList"></div>
+</div></div>
+
+<div id="staffModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3>إضافة موظف PawApp</h3><button class="close" onclick="closeModal('staffModal')">×</button></div>
+<div class="field"><label>اسم الموظف *</label><input id="staffName" placeholder="مثال: هبة"></div>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveStaff()">حفظ الموظف</button>
+</div></div>
+
+<div id="completeCaseModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3>استكمال بيانات الحالة</h3><button class="close" onclick="closeModal('completeCaseModal')">×</button></div>
+<input id="editCaseId" type="hidden">
+<div id="workflowNowBox" class="card" style="box-shadow:none;margin:0 0 12px;background:#f8fafc">
+  <div class="hint">المرحلة الحالية</div>
+  <b id="workflowStageLabel">—</b>
+  <div class="field" style="margin-top:10px">
+    <label>تغيير مرحلة الحالة</label>
+    <select id="eWorkflowStatus" onchange="saveWorkflowStatus()">
+      <option value="new_request">New — جديد</option>
+      <option value="client_contacted">Client Contacted — تم التواصل مع العميل</option>
+      <option value="provider_confirmed">Doctor / Provider Confirmed — تم تأكيد الطبيب / مقدم الخدمة</option>
+      <option value="appointment_completed">Appointment Completed — تم الموعد / الخدمة</option>
+      <option value="payment_completed">Payment Completed — اكتمل الدفع والتسويات</option>
+      <option value="closed">Closed — مغلقة</option>
+      <option value="cancelled">Cancelled — ملغاة</option>
+    </select>
+  </div>
+  <div class="hint" style="margin-top:6px">المطلوب الآن</div>
+  <b id="workflowTaskLabel">—</b>
+  <button id="workflowShowAllBtn" class="btn soft" type="button" style="width:100%;margin-top:10px;display:none" onclick="showAllCaseEditSections()">عرض كل بيانات العملية</button>
+</div>
+<div id="editClientSectionTitle" class="section" style="margin-top:0"><h2>بيانات العميل والحيوان</h2></div>
+<div id="editClientSection" class="grid2">
+<div class="field"><label>رقم العميل</label><input id="ePhone" inputmode="tel"></div>
+<div class="field"><label>المنطقة / الموقع</label><input id="eLocation"></div>
+<div class="field"><label>اسم الحيوان</label><input id="ePetName" placeholder="اكتبي اسم الحيوان إذا معروف"></div>
+<div class="field"><label>نوع الحيوان</label><select id="ePetType"><option value="">غير محدد</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>
+<div class="field"><label>السلالة</label><input id="eBreed"></div>
+<div class="field"><label>العمر</label><input id="ePetAge"></div>
+<div class="field"><label>سهل التعامل؟</label><select id="ePetFriendly"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field"><label>مطعّم؟</label><select id="eVaccinated"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field"><label>Microchip؟</label><select id="eMicrochipped"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field"><label>Pet ID؟</label><select id="eHasPetId"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
+<div class="field full"><label>سبب الطلب / الحالة</label><textarea id="eReason" rows="2"></textarea></div>
+<div class="field full"><label>الموظف المسؤول</label><select id="eEmployee"><option value="">اختاري الموظف المسؤول</option></select></div>
+</div>
+<div id="editServiceSectionTitle" class="section"><h2>الخدمة والسعر</h2></div>
+<div id="editServiceSection" class="grid2">
+<div class="field"><label>الشركة / الفريلانسر</label><select id="eProvider" onchange="editProviderChanged()"></select></div>
+<div class="field"><label>الخدمة</label><select id="eService" onchange="toggleTransportFields('e')"></select></div>
+<div id="eTransportFields" class="field full" style="display:none">
+  <div class="card" style="box-shadow:none;margin:0">
+    <b>بيانات Pickup / Drop-off</b>
+    <div class="grid2" style="margin-top:8px">
+      <div class="field"><label>نوع المشوار</label><select id="eTransportDirection"><option value="">اختاري</option><option value="pickup">Pickup</option><option value="dropoff">Drop-off</option><option value="both">Pickup + Drop-off</option></select></div>
+      <div class="field"><label>التاريخ والوقت</label><input id="eTransportAt" type="datetime-local"></div>
+      <div class="field"><label>مكان الاستلام</label><input id="ePickupLocation"></div>
+      <div class="field"><label>مكان التوصيل</label><input id="eDropoffLocation"></div>
+    </div>
+  </div>
+</div>
+<div class="field"><label>إجمالي ما يدفعه العميل (د.ك)</label><input id="eTotalAmount" type="number" min="0" step="0.001" oninput="calcEditCase()"></div>
+<div class="field"><label>طريقة حصة PawApp</label><select id="eFeeType" onchange="calcEditCase()"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت</option></select></div>
+<div class="field"><label id="eFeeValueLabel">نسبة PawApp %</label><input id="eFeeValue" type="number" min="0" step="0.001" oninput="calcEditCase()"></div>
+<div class="field"><label>مستحق الشركة / الفريلانسر</label><input id="eProviderAmount" readonly></div>
+</div>
+<div id="editPaymentSectionTitle" class="section"><h2>الدفع والمستحقات</h2></div>
+<div id="editPaymentSection" class="grid2">
+<div class="field"><label>العميل دفع؟</label><select id="eClientPaid" onchange="toggleEditPaymentFields()"><option value="unpaid">لا</option><option value="paid">نعم</option></select></div>
+<div class="field" id="ePaidToWrap" style="display:none"><label>العميل دفع لمن؟</label><select id="ePaidTo" onchange="toggleEditPaymentFields()"><option value="">اختاري جهة الدفع</option><option value="pawapp">PawApp</option><option value="provider">العيادة / الشركة / الفريلانسر مباشرة</option></select></div>
+<div class="field" id="eDueDateWrap"><label>موعد متابعة السداد</label><input id="eClientDueDate" type="date"><div class="hint">إذا لم يسدد، يظهر كتذكير للموظف.</div></div>
+
+<div class="field"><label>موعد العميل</label><input id="eAppointmentAt" type="datetime-local"><div class="hint">يظهر كرينمايندر للموظفة.</div></div>
+<div class="field"><label>طريقة الدفع</label><select id="ePaymentMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
+<div class="field" id="ePawappCollectedWrap" style="display:none"><label>تم استلام حصة PawApp من الشركة؟</label><select id="ePawappCollected" onchange="toggleEditPaymentFields()"><option value="no">لا</option><option value="yes">نعم</option></select></div>
+<div class="field full"><div id="eFinancialSummary" class="card" style="box-shadow:none;margin:0;background:#f8fafc"></div></div>
+</div>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCaseDetails()">حفظ كل التعديلات</button>
+<button id="deleteCurrentCaseBtn" class="btn danger" style="width:100%;margin-top:8px" type="button" onclick="deleteCaseFromOperations(document.getElementById('editCaseId').value)">حذف هذه العملية</button>
+</div></div>
+
+<div id="clientPayModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3>تسجيل دفعة العميل</h3><button class="close" onclick="closeModal('clientPayModal')">×</button></div>
+<input id="cpCase" type="hidden">
+<div class="grid2">
+<div class="field"><label>المبلغ المدفوع</label><input id="cpAmount" type="number" min="0" step="0.001"></div>
+<div class="field"><label>تاريخ الدفع</label><input id="cpDate" type="date"></div>
+<div class="field"><label>طريقة الدفع</label><select id="cpMethod"><option>كاش</option><option>KNET</option><option>كريدت كارد</option><option>تحويل</option><option>رابط دفع</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
+<div class="field"><label>ملاحظة</label><input id="cpNote" placeholder="اختياري"></div>
+</div>
+<p class="hint" id="cpSummary"></p>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveClientPayment()">حفظ دفعة العميل</button>
+</div></div>
+
+<div id="settleModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3>تسجيل دفعة للشركة / الفريلانسر</h3><button class="close" onclick="closeModal('settleModal')">×</button></div>
+<input id="sCase" type="hidden">
+<div class="grid2">
+<div class="field"><label>المبلغ المدفوع</label><input id="sAmount" type="number" min="0" step="0.001"></div>
+<div class="field"><label>تاريخ الدفع</label><input id="sDate" type="date"></div>
+<div class="field"><label>رقم التحويل / المرجع</label><input id="sRef" placeholder="اختياري"></div>
+<div class="field"><label>طريقة الدفع</label><select id="sMethod"><option>تحويل بنكي</option><option>KNET</option><option>نقدي</option><option>أخرى</option></select></div>
+</div>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveSettlement()">حفظ الدفعة</button>
+</div></div>
+
+<div id="missingTaskModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3 id="missingTaskTitle">استكمال المطلوب</h3><button class="close" onclick="closeModal('missingTaskModal')">×</button></div>
+<input id="missingTaskCaseId" type="hidden">
+<input id="missingTaskKey" type="hidden">
+<div class="card" style="box-shadow:none;margin-bottom:12px;background:#f8fafc">
+  <div class="hint">المطلوب الآن</div>
+  <b id="missingTaskLabel">—</b>
+</div>
+<div id="missingTaskField"></div>
+<button class="btn primary" style="width:100%;margin-top:12px" type="button" onclick="saveMissingTask()">حفظ ومتابعة</button>
+</div></div>
+
+<div id="appointmentReminderModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3>تأجيل تذكير الموعد</h3><button class="close" onclick="closeModal('appointmentReminderModal')">×</button></div>
+<input id="appointmentReminderCaseId" type="hidden">
+<div class="field"><label>ذكّريني مرة ثانية بتاريخ ووقت</label><input id="appointmentReminderAt" type="datetime-local"></div>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveAppointmentReminder()">حفظ التذكير</button>
+</div></div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js?v=finance48-staff-accounts-20261026"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="bulk-import.js?v=20261021-diagnostic7"></script>
+<script>
+(function(){
+  function syncTestBulkPreview(){
+    var el=document.getElementById('testBulkCases');
+    if(!el)return;
+    var role=(document.body&&document.body.dataset.pawRole)||'';
+    el.style.display=role==='admin'?'block':'none';
+  }
+  document.addEventListener('DOMContentLoaded',function(){syncTestBulkPreview();new MutationObserver(syncTestBulkPreview).observe(document.body,{attributes:true,attributeFilter:['data-paw-role']});});
+})();
+</script>
+<script>(function(){function syncTestImportPanel(){var e=document.getElementById('testImportPanel');if(e)e.style.display=['admin','operations'].includes(document.body.dataset.pawRole)?'block':'none'}document.addEventListener('DOMContentLoaded',function(){syncTestImportPanel();new MutationObserver(syncTestImportPanel).observe(document.body,{attributes:true,attributeFilter:['data-paw-role']})})})();</script><script>window.pawOpenImport=function(mode){var role=(window.PAWAPP_AUTH&&window.PAWAPP_AUTH.access&&window.PAWAPP_AUTH.access.role)||document.body.dataset.pawRole;if(!['admin','operations'].includes(role)){alert('الاستيراد للأدمن والعمليات فقط');return;}var panel=document.getElementById('testImportPanel');if(!panel){alert('لوحة الاستيراد غير متوفرة، حدثي الصفحة');return;}document.body.appendChild(panel);panel.style.setProperty('display','block','important');panel.style.position='relative';panel.style.zIndex='100';if(typeof window.pawImportMode==='function')window.pawImportMode(mode);else alert('جاري تحميل الاستيراد، حدثي الصفحة');panel.scrollIntoView({behavior:'auto',block:'start'});};</script><style>#pawPetRegistryPanel{display:none!important}</style><script>
+window.pawPreviewWithFeedback=async function(){
+var st=document.getElementById('importStatus'),pv=document.getElementById('importPreview'),btn=document.getElementById('importCommit'),f=document.getElementById('importFile').files[0];
+st.textContent='جاري فتح ملف الإكسل وفحص الصفوف...';pv.textContent='';btn.disabled=true;
+if(!f){st.textContent='اختاري ملف الإكسل أولاً';return}
+try{
+if(!window.XLSX)throw Error('مكتبة قراءة Excel لم تتحمل');
+var wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetNames.includes('Customers')?'Customers':wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false}).filter(x=>x.some(v=>String(v).trim()));
+var expected=['اسم العميل','رقم العميل','المنطقة','اسم الحيوان','نوع الحيوان','العمر','اسم مقدم الخدمة','اسم الخدمة','تاريخ العملية','الوقت','المصدر','إجمالي العميل','مستحق مقدم الخدمة','عمولة PawApp','العميل سدد','مقدم الخدمة استلم','PawApp حصلت العمولة'];
+if(!rows.length||expected.some((h,i)=>String(rows[0][i]||'').trim()!==h))throw Error('عناوين الملف لا تطابق نموذج العملاء');
+st.textContent='تم فتح الملف: '+(rows.length-1)+' عملية. جاري فحص المكرر في TEST...';
+var client=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.client;
+if(!client)throw Error('جلسة الدخول غير جاهزة');
+var res=await client.from('test_cases').select('id,client_name,client_phone,service_date,total_amount').limit(10000);
+if(res.error)throw Error('فحص TEST: '+res.error.message);
+var records=res.data||[];
+var norm=v=>String(v==null?'':v).trim().toLowerCase().replace(/\s+/g,' ');
+var num=v=>String(v==null?'':v).replace(/\D/g,'');
+var matched=0,duplicate=0,needsReview=0,seen=new Set(),items=[];
+rows.slice(1).forEach((r,i)=>{
+var name=norm(r[0]),phone=num(r[1]),date=String(r[8]||'').slice(0,10),amount=String(r[11]||'').trim();
+var exists=records.some(e=>name&&phone&&date&&norm(e.client_name)===name&&num(e.client_phone)===phone&&String(e.service_date||'').slice(0,10)===date&&(!amount||Number(e.total_amount)===Number(amount)));
+var key=[name,phone,date,norm(r[6]),norm(r[7]),amount].join('|'),repeat=seen.has(key);seen.add(key);
+var incomplete=!name||phone.length<8||!date||!r[6]||!r[7];
+if(exists)matched++;else if(repeat)duplicate++;else if(incomplete)needsReview++;
+var missing=[];if(!name)missing.push('اسم العميل');if(phone.length<8)missing.push('رقم الهاتف');if(!r[2])missing.push('المنطقة');if(!r[4])missing.push('نوع الحيوان');if(!r[7])missing.push('اسم الخدمة');if(!amount)missing.push('إجمالي الخدمة — متابعة الموظفة');if(!r[12])missing.push('مستحق الشريك — متابعة الموظفة');if(!r[13])missing.push('عمولة PawApp — متابعة الموظفة');if(!r[14])missing.push('حالة سداد العميل');if(!r[15])missing.push('تحويل الشريك');if(!r[16])missing.push('تحصيل عمولة PawApp');items.push('صف '+(i+2)+' — '+(r[0]||'بدون اسم')+' — '+(exists?'موجود مسبقاً — يستبعد':repeat?'مكرر بالملف — يستبعد':missing.length?'مراجعة: '+missing.join('، '):'جديد — مراجعة مالية'));
+});
+pv.textContent=(rows.length-1)+' عملية | موجودة '+matched+' | مكررة '+duplicate+' | ناقصة '+needsReview+'\n'+items.join('\n');
+pv.style.whiteSpace='pre-wrap';
+st.textContent='اكتمل فحص التكرار مع TEST. المبالغ الناقصة للمتابعة وليست صفوفاً مرفوضة. الاعتماد مقفل لحين ربط جهة الدفع والتسويات.';
+btn.textContent='حفظ الإحالات للمراجعة في TEST';btn.disabled=false;
+return;
+var seen=new Set(),duplicates=0,items=rows.slice(1).map((r,i)=>{var key=[r[0],r[1],r[6],r[7],r[8]].map(x=>String(x||'').trim().toLowerCase()).join('|'),dup=seen.has(key);seen.add(key);if(dup)duplicates++;return 'صف '+(i+2)+' — '+(r[0]||'بدون اسم')+' — '+(dup?'مكرر داخل الملف':'يحتاج فحص النظام')});
+pv.textContent='عدد الصفوف: '+items.length+' | مكرر داخل الملف: '+duplicates+'\n'+items.join('\n');
+st.textContent=(st.textContent.includes('تعذر فحص')||st.textContent.includes('خطأ')||st.textContent.includes('الصلاحية'))?st.textContent:'تمت قراءة الملف، لكن فحص قاعدة TEST لم يكتمل؛ الاستيراد معطل لحماية البيانات.';
+}catch(e){st.textContent='خطأ المعاينة: '+e.message}
+};
+</script><script src="pet-registry.js?v=5"></script><script src="referral-review-stage.js?v=1"></script><script src="import-validation-v2.js?v=2"></script><script>
+window.pawMonthlySettlementOverview=async function(){
+const month=document.getElementById('pawSettlementMonth')?.value||'2026-10',summary=document.getElementById('pawSettlementSummary'),out=document.getElementById('pawSettlementRows');
+if(!summary||!out)return;
+if(month<'2026-10'){summary.textContent='الشهور السابقة لأكتوبر مغلقة.';out.replaceChildren();return}
+summary.textContent='جاري تحميل مستحقات '+month+'...';out.replaceChildren();
+try{
+const client=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.client;if(!client)throw Error('سجلي الدخول أولاً');
+const start=month+'-01',end=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),1)).toISOString().slice(0,10);
+const [a,b,c]=await Promise.all([
+client.from('test_case_settlement_status').select('case_id,provider_id,client_paid,client_paid_to,pawapp_amount,provider_amount,settlement_status').gte('service_date',start).lt('service_date',end).limit(5000),
+client.from('test_providers').select('id,name').limit(1000),
+client.from('test_provider_period_settlements').select('provider_id,direction,status,amount,case_ids').gte('period_from',start).lt('period_from',end).limit(2000)
+]);
+for(const r of [a,b,c])if(r.error)throw Error(r.error.message);
+const names=new Map((b.data||[]).map(p=>[p.id,p.name]));
+const settled=new Set();for(const p of c.data||[])if(['paid','completed','closed','settled'].includes(String(p.status||'').toLowerCase()))for(const id of p.case_ids||[])settled.add(String(id));
+const groups=new Map();let review=0,excluded=0;
+for(const x of a.data||[]){
+if(settled.has(String(x.case_id))||['paid','completed','closed','settled'].includes(String(x.settlement_status||'').toLowerCase())){excluded++;continue}
+if(x.client_paid!==true||!['pawapp','provider'].includes(x.client_paid_to)){review++;continue}
+const direction=x.client_paid_to==='pawapp'?'to_provider':'to_pawapp',amount=Number(direction==='to_provider'?x.provider_amount:x.pawapp_amount);
+if(!Number.isFinite(amount)||amount<=0){review++;continue}
+if(document.getElementById('pawSettlementDirection').value!=='all'&&document.getElementById('pawSettlementDirection').value!==direction)continue;
+const key=(x.provider_id||'missing')+'|'+direction;
+if(!groups.has(key))groups.set(key,{name:names.get(x.provider_id)||'مقدم خدمة غير مربوط',direction,amount:0,count:0});
+const g=groups.get(key);g.amount+=amount;g.count++;
+}
+const arr=[...groups.values()].sort((x,y)=>y.amount-x.amount);
+summary.textContent=arr.length+' جهة/اتجاه مستحق | '+arr.reduce((v,x)=>v+x.count,0)+' عملية معلّقة | '+review+' تحتاج مراجعة بيانات | '+excluded+' مستبعدة لتسجيل تسوية';
+if(!arr.length){out.textContent='لا توجد مستحقات مؤكدة لهذا الاختيار.';return}
+const table=document.createElement('table');table.style.minWidth='580px';
+const head=document.createElement('tr');for(const h of ['الشركة / الفريلانسر','جهة الاستحقاق','العمليات','المبلغ (د.ك)']){const th=document.createElement('th');th.textContent=h;head.appendChild(th)}table.appendChild(head);
+for(const g of arr){const tr=document.createElement('tr');for(const v of [g.name,g.direction==='to_provider'?'باو أب تدفع للشركة':'الشركة تدفع لباو أب',g.count,g.amount.toFixed(3)]){const td=document.createElement('td');td.textContent=String(v);tr.appendChild(td)}table.appendChild(tr)}
+out.appendChild(table);
+}catch(e){summary.textContent='تعذر تحميل المستحقات: '+e.message}
+};
+document.addEventListener('click',e=>{if(e.target.closest('[data-p="providers"]'))setTimeout(()=>window.pawMonthlySettlementOverview(),150)});
+</script><div id="myPasswordModal" class="modalBg"><div class="modal">
+<div class="modalHead"><h3>تغيير كلمة المرور</h3><button class="close" type="button" onclick="pawCloseMyPassword()">×</button></div>
+<div class="field"><label>الباسورد الجديد (8 أحرف أو أكثر)</label><input id="myNewPassword" type="password" minlength="8" autocomplete="new-password"></div>
+<div class="field"><label>تأكيد الباسورد الجديد</label><input id="myConfirmPassword" type="password" minlength="8" autocomplete="new-password"></div>
+<button class="btn primary" type="button" onclick="pawChangeMyPassword()">حفظ الباسورد الجديد</button>
+<div id="myPasswordMessage" class="hint"></div>
+</div></div>
+</body>
+</html>

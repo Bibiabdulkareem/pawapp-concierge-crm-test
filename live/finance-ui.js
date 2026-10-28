@@ -271,13 +271,13 @@ const counts=new Map();p.lines.forEach(l=>counts.set(l.service,(counts.get(l.ser
 el('pdClientList').innerHTML=p.lines.map(l=>'<div class="card provider"><h3>'+html(l.client)+'</h3><div class="hint">'+caseCode(l.caseId)+' • '+html(l.service)+'</div><div class="miniGrid"><div class="mini"><span>السعر</span><b>'+cash(l.total)+'</b></div><div class="mini"><span>PawApp</span><b>'+cash(l.paw)+'</b></div><div class="mini"><span>الشركة</span><b>'+cash(l.provider)+'</b></div></div><p>'+html(detail(l))+'</p><div class="actions">'+(actionable(l)?actionButton(l):'')+'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">العملية</button></div></div>').join('')||'<div class="card">لا توجد عمليات</div>';el('pdExportBtn').onclick=()=>window.exportProviderFullReport(p.id);
 }
 function renderFollowups(){if(!model)return;
- const pendingBookings=(snapshot?.cases||[]).filter(c=>['booking_form_test','booking_form','pet_information_form'].includes(c.source)&&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'&&(!c.provider_id||Number(c.total_amount||0)<=0||!c.service_name));
+ const pendingBookings=(snapshot?.cases||[]).filter(c=>['booking_form_test','booking_form','pet_information_form'].includes(c.source)&&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'&&intakeMissing(c).length>0);
  const followupBox=el('followupFinanceList');
  if(followupBox){
   let area=el('pawBookingIntakeReview');
   if(!area){area=document.createElement('section');area.id='pawBookingIntakeReview';followupBox.before(area);}
   area.innerHTML=pendingBookings.length?'<h3>طلبات النماذج — استكمال مباشر من المتابعة</h3>'+pendingBookings.map(c=>{
-   const missing=[!c.provider_id?'مقدم الخدمة':null,!c.service_name?'الخدمة':null,Number(c.total_amount||0)<=0?'السعر والعمولة':null].filter(Boolean);
+   const missing=intakeMissing(c);
    return '<div class="card"><b>'+html(c.client_name||'عميل')+' — '+caseCode(c.id)+'</b><div class="hint">المصدر: '+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source)+' • الخدمة المطلوبة: '+html(c.requested_service||c.service_name||'استكمال بيانات')+'</div>'+(Array.isArray(c.intake_details?.requested_services)&&c.intake_details.requested_services.length?'<div class="hint">تفاصيل الخدمات: '+html(c.intake_details.requested_services.join('، '))+'</div>':'')+'<div class="hint">المطلوب: '+html(missing.join('، '))+'</div><button class="btn primary" onclick="pawBookingReview('+Number(c.id)+')">استكمال الطلب وحساب العمولة</button></div>';
   }).join(''):'';
  }
@@ -363,7 +363,7 @@ window.pawIntakeProviderChanged=function(){
  if(desired&&!services.some(s=>String(s.id)===desired))intakeInput('Service').value='';
  intakeInput('Service').disabled=!p;
  intakeInput('ServiceHint').textContent=!p?'اختاري الشركة أولاً حتى تظهر خدماتها':!services.length?'لا توجد خدمات للشركة حالياً؛ اختاري إضافة خدمة جديدة.':'اختاري من خدمات الشركة المسجلة';
- if(p && String(c?.provider_id)!==String(p.id)){
+ if(p && (String(c?.provider_id)!==String(p.id)||(Number(c?.total_amount||0)<=0&&Number(c?.fee_value||0)===0))){
    intakeInput('FeeType').value=p.default_fee_type||'percent';
    intakeInput('Fee').value=String(p.default_fee_value||0);
  }

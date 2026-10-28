@@ -322,7 +322,7 @@ const intakeCase=()=>snapshot?.cases.find(c=>String(c.id)===String(intakeId));
 function intakeInput(id){return el('pawIntake'+id);}
 function intakeVal(id){return String(intakeInput(id)?.value??'').trim();}
 function intakeMissing(c){
- const service=(snapshot?.services||[]).find(s=>String(s.provider_id)===String(c.provider_id)&&s.name===c.service_name);
+ const service=(snapshot?.services||[]).find(s=>String(s.provider_id)===String(c.provider_id)&&String(s.id)===String(c.service_id)&&s.name===c.service_name);
  return [!c.employee_id?'الموظف المسؤول':null,!c.provider_id?'الشركة / الفريلانسر':null,!service?'الخدمة الفعلية':null,Number(c.total_amount||0)<=0?'السعر والعمولة':null].filter(Boolean);
 }
 function ensureIntakeModal(){

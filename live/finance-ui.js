@@ -441,7 +441,11 @@ window.pawIntakeSave=async function(){
   let service=(snapshot.services||[]).find(s=>String(s.id)===serviceChoice);
   if(serviceChoice==='__new__'){
     const name=intakeVal('NewService');
-    service=(snapshot.services||[]).find(s=>String(s.provider_id)===provider&&String(s.name).trim().toLowerCase()===name.toLowerCase());
+    // Query the current catalog, not only the cached snapshot: a previous
+    // interrupted save may already have added this service.
+    const catalog=await window.PAWAPP_AUTH.client.from('test_services').select('id,name,provider_id').eq('provider_id',provider);
+    if(catalog.error)throw Error('تعذر تحميل خدمات الشركة: '+catalog.error.message);
+    service=(catalog.data||[]).find(s=>String(s.name).trim().toLowerCase()===name.toLowerCase());
     if(!service){
       const saved=await window.PAWAPP_AUTH.client.from('test_services').insert({provider_id:provider,name}).select('id,name,provider_id').single();
       if(saved.error)throw Error('تعذر إضافة الخدمة إلى كتالوج الشركة: '+saved.error.message);

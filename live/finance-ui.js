@@ -281,7 +281,7 @@ function renderFollowups(){if(!model)return;
    return '<div class="card"><b>'+html(c.client_name||'عميل')+' — '+caseCode(c.id)+'</b><div class="hint">المصدر: '+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source)+' • الخدمة المطلوبة: '+html(c.requested_service||c.service_name||'استكمال بيانات')+'</div>'+(Array.isArray(c.intake_details?.requested_services)&&c.intake_details.requested_services.length?'<div class="hint">تفاصيل الخدمات: '+html(c.intake_details.requested_services.join('، '))+'</div>':'')+'<div class="hint">المطلوب: '+html(missing.join('، '))+'</div><button class="btn primary" onclick="pawBookingReview('+Number(c.id)+')">استكمال الطلب وحساب العمولة</button></div>';
   }).join(''):'';
  }
- if(legacyFollowups)legacyFollowups();renderSeptemberReviews();const financialReviewIssues=new Set(['payment_route_missing','direct_provider_and_payout','duplicate_commission_route','client_overpaid','provider_overpaid','commission_overpaid','paid_flag_mismatch','price_split_mismatch','invalid_price','unpriced_service','transport_payment_unknown']);const lines=model.lines.filter(l=>actionable(l)&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')&&(l.action==='client_paid'||(l.date>='2026-10-01'&&l.issues.some(issue=>financialReviewIssues.has(issue)))));const box=el('followupFinanceList');if(box)box.innerHTML=lines.map(l=>'<div class="card provider"><div style="display:flex;justify-content:space-between;gap:10px"><h3>'+html(l.client)+'</h3><span class="status unpaid">'+(l.issues.length?'تأكيد / مراجعة':'مستحقات')+'</span></div><div class="hint">'+caseCode(l.caseId)+' • '+html(providerName(l.providerId))+' • '+(l.component==='transport'?'النقل':'الخدمة')+'</div><h3>'+html(actionLabel(l))+'</h3><div class="hint">'+html(detail(l))+'</div><div class="actions">'+(l.issues.includes('unpriced_service')?'<button class="btn primary" onclick="pawBookingReview(\''+l.caseId+'\')">استكمال السعر في العملية</button>':(String(l.caseId)==='384'&&l.action==='client_paid'?'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">مراجعة الاسترجاع 47 د.ك — لا تسجلي تحصيل</button>':actionButton(l)))+'</div></div>').join('')||'<div class="card"><b class="green">تمام ✓</b><div class="hint">لا توجد دفعات عملاء تحتاج متابعة. مستحقات الشركات وعمولات PawApp تظهر في التسويات فقط.</div></div>';
+ if(legacyFollowups)legacyFollowups();renderSeptemberReviews();const financialReviewIssues=new Set(['payment_route_missing','direct_provider_and_payout','duplicate_commission_route','client_overpaid','provider_overpaid','commission_overpaid','paid_flag_mismatch','price_split_mismatch','invalid_price','unpriced_service','transport_payment_unknown']);const lines=model.lines.filter(l=>!pendingBookings.some(c=>String(c.id)===l.caseId)&&actionable(l)&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')&&(l.action==='client_paid'||(l.date>='2026-10-01'&&l.issues.some(issue=>financialReviewIssues.has(issue)))));const box=el('followupFinanceList');if(box)box.innerHTML=lines.map(l=>'<div class="card provider"><div style="display:flex;justify-content:space-between;gap:10px"><h3>'+html(l.client)+'</h3><span class="status unpaid">'+(l.issues.length?'تأكيد / مراجعة':'مستحقات')+'</span></div><div class="hint">'+caseCode(l.caseId)+' • '+html(providerName(l.providerId))+' • '+(l.component==='transport'?'النقل':'الخدمة')+'</div><h3>'+html(actionLabel(l))+'</h3><div class="hint">'+html(detail(l))+'</div><div class="actions">'+(l.issues.includes('unpriced_service')?'<button class="btn primary" onclick="pawBookingReview(\''+l.caseId+'\')">استكمال السعر في العملية</button>':(String(l.caseId)==='384'&&l.action==='client_paid'?'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">مراجعة الاسترجاع 47 د.ك — لا تسجلي تحصيل</button>':actionButton(l)))+'</div></div>').join('')||'<div class="card"><b class="green">تمام ✓</b><div class="hint">لا توجد دفعات عملاء تحتاج متابعة. مستحقات الشركات وعمولات PawApp تظهر في التسويات فقط.</div></div>';
 set('fuFinance',new Set(lines.map(l=>l.caseId)).size);const pending=new Set([...lines.map(l=>l.caseId),...pendingBookings.map(c=>String(c.id))]);for(const id of ['followupAppointmentList','followupMissingList'])el(id)?.querySelectorAll('[onclick]').forEach(b=>{const m=b.getAttribute('onclick')?.match(/\('([^']+)'/);if(m)pending.add(m[1])});set('followupNavBadge',pending.size);if(el('followupNavBadge'))el('followupNavBadge').style.display=pending.size?'inline-block':'none';set('kNeedsFollowup',pending.size);
 }
 function isArchivedHistoricalCaseForTable(c){return String(c.workflow_status)==='closed'&&c.client_paid===true&&/\[BULK_IMPORT:2026:(?:7|8|9):ROW:\d+\]/.test(String(c.notes||''));}
@@ -314,12 +314,155 @@ function renderCases(){
 }
 function render(){if(!snapshot)return;hydrate();renderDashboard();renderProviders();renderProvider();renderCases();renderFollowups();}
 function dialog(){if(el('financeActionModal'))return;document.body.insertAdjacentHTML('beforeend','<div id="financeActionModal" class="modalBg"><div class="modal"><div class="modalHead"><h3 id="financeActionTitle"></h3><button class="close" onclick="closeModal(\'financeActionModal\')">×</button></div><div id="financeActionBody"></div><div id="financeActionError" class="hint" style="color:#b42318;margin:10px 0" role="alert"></div><button id="financeActionSave" class="btn primary" style="width:100%" onclick="pawFinanceSaveAction()">حفظ وتحديث الحسابات</button></div></div>');}
+// Form intake is a separate, deliberately minimal flow: do not resubmit
+// the entire case and accidentally overwrite information from customer forms.
+let intakeId=null,intakeBusy=false,intakeRequestId=null;
+const intakeCases=new Set(['booking_form','booking_form_test','pet_information_form']);
+const intakeCase=()=>snapshot?.cases.find(c=>String(c.id)===String(intakeId));
+function intakeInput(id){return el('pawIntake'+id);}
+function intakeVal(id){return String(intakeInput(id)?.value??'').trim();}
+function intakeMissing(c){
+ const service=(snapshot?.services||[]).find(s=>String(s.provider_id)===String(c.provider_id)&&s.name===c.service_name);
+ return [!c.employee_id?'الموظف المسؤول':null,!c.provider_id?'الشركة / الفريلانسر':null,!service?'الخدمة الفعلية':null,Number(c.total_amount||0)<=0?'السعر والعمولة':null].filter(Boolean);
+}
+function ensureIntakeModal(){
+ if(el('pawQuickIntakeModal'))return;
+ const m=document.createElement('div');m.id='pawQuickIntakeModal';m.className='modalBg';
+ m.innerHTML='<div class="modal" style="max-height:88vh;overflow-y:auto;overscroll-behavior:contain">'+
+ '<div class="modalHead"><h3>استكمال الطلب — البيانات الناقصة فقط</h3><button class="close" type="button" onclick="closeModal(\'pawQuickIntakeModal\')">×</button></div>'+
+ '<div id="pawIntakeSummary" class="card" style="box-shadow:none;margin-bottom:12px"></div>'+
+ '<div id="pawIntakeMissing" class="hint" style="margin:8px 0"></div>'+
+ '<div class="grid2">'+
+ '<div class="field"><label>الموظف المسؤول</label><select id="pawIntakeEmployee"></select></div>'+
+ '<div class="field"><label>الشركة / الفريلانسر</label><select id="pawIntakeProvider" onchange="pawIntakeProviderChanged()"></select></div>'+
+ '<div class="field full"><label>الخدمة الفعلية لدى الشركة</label><select id="pawIntakeService" onchange="pawIntakeServiceChanged()"></select><div id="pawIntakeServiceHint" class="hint"></div><input id="pawIntakeNewService" placeholder="اسم الخدمة الجديدة" style="display:none;margin-top:8px"></div>'+
+ '<div class="field"><label>إجمالي سعر الخدمة على العميل (د.ك)</label><input id="pawIntakePrice" type="number" min="0.001" step="0.001" inputmode="decimal" oninput="pawIntakeRecalculate()"></div>'+
+ '<div class="field"><label>طريقة حصة PawApp</label><select id="pawIntakeFeeType" onchange="pawIntakeRecalculate()"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت من الإجمالي</option></select></div>'+
+ '<div class="field"><label id="pawIntakeFeeLabel">نسبة PawApp %</label><input id="pawIntakeFee" type="number" min="0" step="0.001" inputmode="decimal" oninput="pawIntakeRecalculate()"></div>'+
+ '<div class="field full"><div id="pawIntakeQuote" class="hint"></div></div>'+
+ '<div class="field"><label>العميل دفع؟</label><select id="pawIntakePaid" onchange="pawIntakePaidChanged()"><option value="no">لا، لم يدفع</option><option value="yes">نعم، دفع كامل المبلغ</option></select></div>'+
+ '<div class="field" id="pawIntakeAmountWrap" style="display:none"><label>المبلغ اللي دفعه العميل (د.ك)</label><input id="pawIntakePaidAmount" type="number" min="0.001" step="0.001" inputmode="decimal"></div>'+
+ '<div class="field" id="pawIntakeRecipientWrap" style="display:none"><label>العميل دفع لمن؟</label><select id="pawIntakeRecipient"><option value="">اختاري جهة الاستلام</option><option value="pawapp">PawApp</option><option value="provider">الشركة / الفريلانسر مباشرة</option></select></div>'+
+ '<div class="field" id="pawIntakeMethodWrap" style="display:none"><label>طريقة الدفع</label><select id="pawIntakeMethod"><option>KNET</option><option>رابط دفع</option><option>كاش</option><option>تحويل بنكي</option><option>دفع للعيادة مباشرة</option></select></div>'+
+ '<div class="field" id="pawIntakeDueWrap"><label>موعد متابعة الدفع (اختياري)</label><input id="pawIntakeDueDate" type="date"></div>'+
+ '</div><div id="pawIntakeError" role="alert" style="color:#a4262c;margin:10px 0"></div>'+
+ '<button id="pawIntakeSaveBtn" type="button" class="btn primary" style="width:100%;margin-top:12px" onclick="pawIntakeSave()">حفظ البيانات الناقصة وتحديث الحسابات</button>'+
+ '<button type="button" class="btn soft" style="width:100%;margin-top:8px" onclick="pawIntakeShowFullCase()">عرض باقي بيانات الحالة</button></div>';
+ document.body.appendChild(m);
+}
+function intakeOptions(list,selected){
+ const s=selected==null?'':String(selected);
+ return list.map(([value,label])=>'<option value="'+html(value)+'"'+(String(value)===s?' selected':'')+'>'+html(label)+'</option>').join('');
+}
+window.pawIntakeProviderChanged=function(){
+ const c=intakeCase(),p=(snapshot?.providers||[]).find(x=>String(x.id)===intakeVal('Provider'));
+ const services=(snapshot?.services||[]).filter(x=>String(x.provider_id)===String(p?.id));
+ const previous=intakeVal('Service');
+ const desired=c&&String(c.provider_id)===String(p?.id)?(services.find(s=>s.name===c.service_name)?.id||''):previous;
+ intakeInput('Service').innerHTML=intakeOptions([['','اختاري الخدمة'],...services.map(s=>[s.id,s.name]),['__new__','+ إضافة خدمة جديدة لهذه الشركة']],desired);
+ if(desired&&!services.some(s=>String(s.id)===desired))intakeInput('Service').value='';
+ intakeInput('Service').disabled=!p;
+ intakeInput('ServiceHint').textContent=!p?'اختاري الشركة أولاً حتى تظهر خدماتها':!services.length?'لا توجد خدمات للشركة حالياً؛ اختاري إضافة خدمة جديدة.':'اختاري من خدمات الشركة المسجلة';
+ if(p && String(c?.provider_id)!==String(p.id)){
+   intakeInput('FeeType').value=p.default_fee_type||'percent';
+   intakeInput('Fee').value=String(p.default_fee_value||0);
+ }
+ window.pawIntakeServiceChanged();
+ window.pawIntakeRecalculate();
+};
+window.pawIntakeServiceChanged=function(){
+ intakeInput('NewService').style.display=intakeVal('Service')==='__new__'?'':'none';
+};
+window.pawIntakeRecalculate=function(){
+ try{
+   const quote=F.quote(intakeVal('Price')||'0',intakeVal('FeeType')||'percent',intakeVal('Fee')||'0');
+   intakeInput('Quote').textContent='حصة PawApp: '+F.format(quote.paw)+' د.ك | مستحق الشركة: '+F.format(quote.provider)+' د.ك';
+   intakeInput('FeeLabel').textContent=intakeVal('FeeType')==='fixed'?'حصة PawApp (د.ك)':'نسبة PawApp %';
+   if(intakeVal('Paid')==='yes' && !intakeInput('PaidAmount').dataset.edited)intakeInput('PaidAmount').value=F.format(quote.total);
+   intakeInput('Error').textContent='';
+ }catch(e){
+   intakeInput('Quote').textContent='راجعي السعر والعمولة';
+   intakeInput('Error').textContent=String(e?.message||e);
+ }
+};
+window.pawIntakePaidChanged=function(){
+ const paid=intakeVal('Paid')==='yes';
+ for(const id of ['AmountWrap','RecipientWrap','MethodWrap'])intakeInput(id).style.display=paid?'':'none';
+ intakeInput('DueWrap').style.display=paid?'none':'';
+ if(paid)window.pawIntakeRecalculate();
+};
+window.pawIntakeShowFullCase=function(){
+ const id=intakeId;closeModal('pawQuickIntakeModal');if(id!=null)window.openCaseDetails(id);
+};
 window.pawBookingReview=function(id){
  if(!mayWrite())return alert('هذه العملية تتطلب صلاحية التعديل');
- if(typeof window.openCaseDetails==='function'){
-  window.openCaseDetails(id);
-  document.getElementById('completeCaseModal')?.classList.add('show');
- }else alert('تعذر فتح استكمال العملية');
+ const c=snapshot?.cases.find(x=>String(x.id)===String(id));
+ if(!c)return alert('لم يتم العثور على الحالة. حدّثي الصفحة.');
+ if(!intakeCases.has(c.source)){window.openCaseDetails(id);return;}
+ intakeId=String(id);intakeRequestId=crypto.randomUUID();ensureIntakeModal();
+ const details=c.intake_details||{},requested=(details.requested_services||[]);
+ intakeInput('Summary').innerHTML='<b>'+html(c.client_name||'العميل')+' — '+caseCode(c.id)+'</b>'+
+ '<div class="hint">'+html(c.client_phone||'')+' • '+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source)+'</div>'+
+ '<div class="hint">الطلب من العميل: '+html(c.requested_service||'غير محدد')+'</div>'+
+ (requested.length?'<div class="hint">الخدمات المختارة: '+html(requested.join('، '))+'</div>':'');
+ intakeInput('Missing').textContent='المطلوب استكماله: '+(intakeMissing(c).join('، ')||'تأكيد البيانات المالية فقط');
+ intakeInput('Employee').innerHTML=intakeOptions([['','اختاري الموظف'],...(snapshot.employees||[]).map(e=>[e.id,e.name])],c.employee_id||window.PAWAPP_AUTH?.access?.employee_id||'');
+ intakeInput('Provider').innerHTML=intakeOptions([['','اختاري الشركة / الفريلانسر'],...(snapshot.providers||[]).map(p=>[p.id,p.name])],c.provider_id||'');
+ intakeInput('Price').value=Number(c.total_amount||0)>0?F.format(F.minor(c.total_amount)):'';
+ intakeInput('FeeType').value=c.fee_type||'percent';
+ intakeInput('Fee').value=String(c.fee_value||0);
+ intakeInput('Paid').value=c.client_paid?'yes':'no';
+ intakeInput('PaidAmount').value=c.client_paid?F.format(F.minor(c.total_amount||0)):'';
+ delete intakeInput('PaidAmount').dataset.edited;
+ intakeInput('PaidAmount').oninput=()=>{intakeInput('PaidAmount').dataset.edited='1'};
+ intakeInput('Recipient').value=c.client_paid_to||'';
+ intakeInput('Method').value=c.payment_method||'KNET';
+ intakeInput('DueDate').value=c.client_due_date||'';
+ intakeInput('Error').textContent='';
+ window.pawIntakeProviderChanged();
+ window.pawIntakePaidChanged();
+ el('pawQuickIntakeModal').classList.add('show');
+};
+window.pawIntakeSave=async function(){
+ if(intakeBusy||!mayWrite())return;
+ const c=intakeCase();if(!c)return;
+ const error=intakeInput('Error'),btn=intakeInput('SaveBtn');
+ try{
+  const provider=intakeVal('Provider'),serviceChoice=intakeVal('Service'),employee=intakeVal('Employee');
+  if(!employee||!provider||!serviceChoice)throw Error('اختاري الموظف والشركة والخدمة أولاً.');
+  const q=F.quote(intakeVal('Price'),intakeVal('FeeType'),intakeVal('Fee')||'0');
+  if(q.total<=0n)throw Error('أدخلي سعر الخدمة أكبر من صفر.');
+  const paid=intakeVal('Paid')==='yes',recipient=intakeVal('Recipient');
+  if(paid&&!recipient)throw Error('اختاري العميل دفع لمن: PawApp أو الشركة.');
+  if(paid && F.minor(intakeVal('PaidAmount'))!==q.total)throw Error('المبلغ المدفوع لازم يساوي إجمالي الخدمة عند اختيار سداد كامل. لا تسجلي دفعة جزئية كأنها مدفوعة بالكامل.');
+  if(c.client_paid&&!paid)throw Error('لا يمكن تغيير دفعة عميل مسجلة إلى غير مدفوع.');
+  if(serviceChoice==='__new__'&&!intakeVal('NewService'))throw Error('اكتبي اسم الخدمة الجديدة.');
+  intakeBusy=true;btn.disabled=true;btn.textContent='جاري حفظ البيانات...';error.textContent='';
+  let service=(snapshot.services||[]).find(s=>String(s.id)===serviceChoice);
+  if(serviceChoice==='__new__'){
+    const name=intakeVal('NewService');
+    service=(snapshot.services||[]).find(s=>String(s.provider_id)===provider&&String(s.name).trim().toLowerCase()===name.toLowerCase());
+    if(!service){
+      const saved=await window.PAWAPP_AUTH.client.from('test_services').insert({provider_id:provider,name}).select('id,name,provider_id').single();
+      if(saved.error)throw Error('تعذر إضافة الخدمة إلى كتالوج الشركة: '+saved.error.message);
+      service=saved.data;
+    }
+  }
+  if(!service||String(service.provider_id)!==provider)throw Error('الخدمة لا تتبع الشركة المختارة. أعيدي الاختيار.');
+  const patch={provider_id:provider,service_id:service.id,service_name:service.name,employee_id:employee,
+    total_amount:F.format(q.total),fee_type:intakeVal('FeeType'),fee_value:intakeVal('Fee')||'0',
+    client_due_date:paid?null:(intakeVal('DueDate')||null)};
+  if(paid)patch.payment_method=intakeVal('Method')||'KNET';
+  const payments={main:{paid,recipient:paid?recipient:null}};
+  const {error:rpcError}=await window.PAWAPP_AUTH.client.rpc('test_finance_save',{
+    p_request_id:intakeRequestId,p_case_id:Number(intakeId),p_patch:patch,p_payments:payments,p_revision:c.finance_revision||0});
+  if(rpcError)throw rpcError;
+  closeModal('pawQuickIntakeModal');
+  await refresh();
+  intakeId=null;intakeRequestId=null;
+  toast('تم تحديث الخدمة والسعر والحسابات ✓');
+ }catch(e){error.textContent=message(e);}
+ finally{intakeBusy=false;btn.disabled=false;btn.textContent='حفظ البيانات الناقصة وتحديث الحسابات';}
 };
 window.pawFinanceOpen=function(caseId,component='main'){if(saving)return;const l=findLine(caseId,component);if(!l)return;if(!mayActOnLine(l)){alert('مشاهدة فقط');return}dialog();activeAction={caseId:String(caseId),component,revision:l.revision,requestId:crypto.randomUUID(),line:l};set('financeActionTitle',actionLabel(l));set('financeActionError','');let body='<div class="card" style="box-shadow:none"><b>'+html(detail(l))+'</b><div class="hint">'+caseCode(caseId)+' • '+html(providerName(l.providerId))+' • '+(component==='transport'?'النقل':'الخدمة')+'</div></div>';const reviewOnly=!l.action;el('financeActionSave').style.display=reviewOnly?'none':'';if(l.unknown)body+='<div class="field"><label>هل العميل دفع قيمة النقل؟</label><select id="finConfirmPaid"><option value="">اختاري</option><option value="yes">نعم، تم استلامه</option><option value="no">لا، لم يدفع النقل</option></select></div>';
 if(l.action==='client_paid'||l.unknown)body+='<div class="field"><label>جهة استلام دفعة العميل</label><select id="finRecipient" onchange="pawFinanceTransportRouteChanged()"><option value="">اختاري جهة الاستلام</option><option value="pawapp">PawApp</option><option value="provider">'+html(providerName(l.providerId))+' مباشرة</option></select></div>';

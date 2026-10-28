@@ -2197,6 +2197,18 @@ window.sourceLabel = function(src){
 
       const financeRows=[],appointmentRows=[],missingRows=[];
       db.cases.slice().reverse().forEach(function(c){
+        // Unpriced customer-form requests are handled once in the focused intake queue,
+        // not repeated as both a finance debt and a missing-file task.
+        const isForm=['booking_form','booking_form_test','pet_information_form'].includes(c.source);
+        const matchingProvider=db.providers.find(p=>String(p.id)===String(c.providerId||c.provider_id));
+        const actualService=matchingProvider?.services?.includes(c.service||c.service_name);
+        const pendingForm=isForm&&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'&&
+          (!c.employee_id||!matchingProvider||!actualService||Number(c.total_amount||0)<=0);
+        if(pendingForm){
+          const appointments=appointmentFollowupItems(c);
+          if(appointments.length)appointmentRows.push({c:c,items:appointments});
+          return;
+        }
         const financial=financialFollowupItems(c);
         if(financial.length) financeRows.push({c:c,items:financial});
         const appointments=appointmentFollowupItems(c);

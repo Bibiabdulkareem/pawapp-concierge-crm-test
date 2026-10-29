@@ -747,28 +747,80 @@ window.pawMonthlySettlementOverview=async function(){
    const cases=new Map((data.cases||[]).map(c=>[String(c.id),c]));
    const lines=model.lines.filter(l=>l.date>=from&&l.date<until&&matches(cases.get(l.caseId)||{}));
    const groups=new Map(),needsReview=new Set(),unpaid=new Set();
+   const unpriced=new Set(),paidNoProvider=new Set(),missingService=new Set(),paidCases=new Set();
+   const serviceCatalog=new Set((data.services||[]).map(s=>String(s.provider_id)+'|'+String(s.id)));
    for(const l of lines){
+     const c=cases.get(l.caseId)||{};
+     if(l.isPaid)paidCases.add(l.caseId);
+     if(l.total<=0n)unpriced.add(l.caseId);
+     if(l.isPaid&&!c.provider_id)paidNoProvider.add(l.caseId);
+     if(l.isPaid&&c.provider_id&&(!c.service_id||!serviceCatalog.has(String(c.provider_id)+'|'+String(c.service_id))))missingService.add(l.caseId);
      if(l.issues.length)needsReview.add(l.caseId);
      if(!l.isPaid&&l.total>0n)unpaid.add(l.caseId);
      if(l.issues.length)continue; // Never present uncertain totals as settled or verified.
      for(const [dir,balance] of [['to_provider',l.theirs],['to_pawapp',l.ours]]){
        if(balance<=0n || (direction!=='all'&&direction!==dir))continue;
        const key=l.providerId+'|'+dir;
-       if(!groups.has(key))groups.set(key,{name:(data.providers||[]).find(p=>String(p.id)===l.providerId)?.name||'مقدم خدمة غير مربوط',direction:dir,amount:0n,ids:new Set()});
+       if(!groups.has(key))groups.set(key,{providerId:l.providerId,name:(data.providers||[]).find(p=>String(p.id)===l.providerId)?.name||'مقدم خدمة غير مربوط',direction:dir,amount:0n,ids:new Set()});
        const g=groups.get(key);g.amount+=balance;g.ids.add(l.caseId);
      }
    }
    const label=source==='pet_information_form'?'Pet Information فقط':source==='other'?'باقي الكونسيرج':'جميع المصادر';
    const items=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'ar'));
-   summary.textContent=label+' | '+new Set(lines.map(l=>l.caseId)).size+' عملية | '+items.length+' جهات/اتجاهات مستحقة | '+needsReview.size+' حالات مالية تحتاج مراجعة | '+unpaid.size+' حالات تنتظر دفع العميل';
-   if(!items.length){out.textContent='ما في مستحقات مسجلة بهذا المصدر والاتجاه. العمليات الناقصة تظهر ضمن المراجعة.';return;}
+   const count=new Set(lines.map(l=>l.caseId)).size;
+   summary.textContent=label+' | '+count+' عملية حسب تاريخ الخدمة | '+items.length+' جهة/اتجاه مستحق | '+needsReview.size+' حالة تحتاج تدقيق مالي';
+   const metrics=document.createElement('div');metrics.className='miniGrid';metrics.style.margin='10px 0';
+   const stat=(title,n)=>{const cell=document.createElement('div');cell.className='mini';const name=document.createElement('span');name.textContent=title;const number=document.createElement('b');number.textContent=String(n);cell.append(name,number);metrics.appendChild(cell)};
+   stat('الطلبات بلا سعر',unpriced.size);stat('عملاء دفعوا',paidCases.size);stat('مدفوع بلا شركة',paidNoProvider.size);stat('مدفوع بلا خدمة مربوطة',missingService.size);
+   out.appendChild(metrics);
+   if(source==='pet_information_form'){
+      const head=document.createElement('p');head.className='hint';
+      head.textContent='الطلبات بدون سعر تبقى في المتابعات، ولا تُعتبر مستحقات. المدفوعات ذات بيانات شركة/خدمة ناقصة تحتاج تصحيحًا ماليًا ولا يصح اعتماد تسويتها.';
+      out.appendChild(head);
+   }
+   if(!items.length){const empty=document.createElement('p');empty.className='hint';empty.textContent='ما في مستحقات مؤكدة بهذا المصدر والاتجاه. راجعي بيانات العمليات الناقصة أعلاه.';out.appendChild(empty);} 
    const table=document.createElement('table');table.style.minWidth='600px';
-   const tr=document.createElement('tr');for(const h of ['الشركة / الفريلانسر','المصدر','الاتجاه','عدد العمليات','المتبقي د.ك']){const th=document.createElement('th');th.textContent=h;tr.appendChild(th)}table.appendChild(tr);
-   for(const g of items){const row=document.createElement('tr');for(const t of [g.name,label,g.direction==='to_provider'?'باو أب تدفع للعيادة':'العيادة تدفع لباو أب',g.ids.size,F.format(g.amount)]){const td=document.createElement('td');td.textContent=String(t);row.appendChild(td)}table.appendChild(row);}
-   out.appendChild(table);
+   const tr=document.createElement('tr');for(const h of ['الشركة / الفريلانسر','المصدر','الاتجاه','عدد العمليات','المتبقي د.ك','فتح التفاصيل']){const th=document.createElement('th');th.textContent=h;tr.appendChild(th)}table.appendChild(tr);
+   for(const g of items){
+      const row=document.createElement('tr');
+      for(const t of [g.name,label,g.direction==='to_provider'?'باو أب تدفع للعيادة':'العيادة تدفع لباو أب',g.ids.size,F.format(g.amount)]){
+        const td=document.createElement('td');td.textContent=String(t);row.appendChild(td);
+      }
+      const cell=document.createElement('td'),btn=document.createElement('button');btn.type='button';btn.className='btn soft';btn.textContent='عرض تفاصيل '+g.name;
+      btn.onclick=()=>window.pawOpenMonthlyProvider(g.providerId,month,source);
+      cell.appendChild(btn);row.appendChild(cell);table.appendChild(row);
+   }
+   if(items.length)out.appendChild(table);
+   if(source==='pet_information_form'&&(paidNoProvider.size||missingService.size)){
+     const review=document.createElement('section');review.className='card';review.style.margin='12px 0';
+     const title=document.createElement('h3');title.textContent='حالات مدفوعة تحتاج تصحيح البيانات قبل التسوية';review.appendChild(title);
+     for(const id of new Set([...paidNoProvider,...missingService])){
+       const c=cases.get(id)||{},line=lines.find(l=>l.caseId===id);
+       const row=document.createElement('div');row.className='kpi-line';
+       const label=document.createElement('span');label.textContent='PAW-'+String(id).padStart(4,'0')+' — '+String(c.client_name||'عميل')+' | '+(!c.provider_id?'الشركة ناقصة':'الخدمة الفعلية ناقصة')+' | '+F.format(line?.total??0n)+' د.ك';
+       const btn=document.createElement('button');btn.type='button';btn.className='btn soft';btn.textContent='عرض الحالة';btn.onclick=()=>window.openCaseDetails(id);
+       row.append(label,btn);review.appendChild(row);
+     }
+     out.appendChild(review);
+   }
    const note=document.createElement('p');note.className='hint';note.textContent='الأرصدة محسوبة من الدفعات والتحويلات المسجلة في الكونسيرج. اختيار المصدر لا يسجل تسوية ولا يثبت تحويلًا فعليًا.';out.appendChild(note);
  }catch(e){summary.textContent='تعذر تحميل المستحقات: '+String(e?.message||e)}
 };
+window.pawOpenMonthlyProvider=function(providerId,month,source){
+  if(!providerId||typeof window.openProviderCRM!=='function')return alert('تفاصيل الشركة لم تُحمّل بعد. جرّبي تحديث الصفحة.');
+  window.openProviderCRM(providerId);
+  const select=document.getElementById('pawProviderSettlementSource');
+  if(select)select.value=source==='pet_information_form'?'pet_information_form':source==='other'?'other':'all';
+  const start=document.getElementById('pawSettlementFrom'),end=document.getElementById('pawSettlementTo');
+  if(start)start.value=month+'-01';
+  if(end){
+    const year=Number(month.slice(0,4)),m=Number(month.slice(5,7));
+    end.value=new Date(Date.UTC(year,m,0)).toISOString().slice(0,10);
+  }
+  window.pawProviderSettlementPeriodChanged?.();
+  window.renderProviderSourceCases?.();
+};
+
 document.addEventListener('click',e=>{if(e.target.closest('[data-p="providers"]'))setTimeout(()=>window.pawMonthlySettlementOverview(),150)});
 </script><div id="myPasswordModal" class="modalBg"><div class="modal">
 <div class="modalHead"><h3>تغيير كلمة المرور</h3><button class="close" type="button" onclick="pawCloseMyPassword()">×</button></div>

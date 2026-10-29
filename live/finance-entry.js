@@ -40,7 +40,10 @@
       if(document.visibilityState!=='visible'||!window.PAW_FINANCE_READY||liveRefreshBusy)return;
       if(document.querySelector('.modalBg.show'))return;
       liveRefreshBusy=true;
-      try{await window.loadData();}catch(error){console.warn('LIVE dashboard refresh unavailable',error);}
+      try{
+        await window.loadData();
+        if(typeof window.pawFinanceRefresh==='function')await window.pawFinanceRefresh();
+      }catch(error){console.warn('LIVE dashboard refresh unavailable',error);}
       finally{liveRefreshBusy=false;}
     }
     document.addEventListener('visibilitychange',function(){

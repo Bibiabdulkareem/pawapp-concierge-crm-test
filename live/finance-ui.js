@@ -164,6 +164,11 @@ function renderProviderSettlementPeriod(){
  const historical=from>='2026-07-01'&&to<'2026-10-01';
  const pending=historical?[]:lines.filter(l=>l.ours>0n||l.theirs>0n);
  const unresolved=historical?[]:lines.filter(l=>l.issues.length);
+ const unlinkedServices=historical?[]:lines.filter(l=>{
+    if(!l.isPaid||l.component!=='main')return false;
+    const c=(snapshot?.cases||[]).find(c=>String(c.id)===l.caseId);
+    return !c?.service_id||!(snapshot?.services||[]).some(s=>String(s.id)===String(c.service_id)&&String(s.provider_id)===l.providerId);
+ });
  const settled=historical?lines:lines.filter(l=>l.isPaid&&l.ours===0n&&l.theirs===0n&&!l.issues.length);
  const approved=pawSettlementSource()==='all'?periodSettlements.filter(x=>String(x.provider_id)===String(selectedProvider)&&(!from||x.period_to>=from)&&(!to||x.period_from<=to)):[];
  const settlementCards=['pawapp_to_provider','provider_to_pawapp'].map(dir=>{
@@ -172,7 +177,7 @@ function renderProviderSettlementPeriod(){
    const amount=rows.reduce((a,x)=>a+Number(x.amount||0),0);
    const due=historical?0n:dir==='pawapp_to_provider'?sum.theirs:sum.ours;
    const relevant=lines.filter(l=>l.isPaid&&l.route===(dir==='pawapp_to_provider'?'pawapp':'provider'));
-   const unknown=relevant.some(l=>l.issues.length);
+   const unknown=relevant.some(l=>l.issues.length)||unlinkedServices.some(l=>relevant.includes(l));
    const label=historical?'إقفال تاريخي — ليس اعتماد تحويل':rows.length&&due===0n?'تسوية معتمدة وموثقة':due>0n?'مستحقات مفتوحة — لم تتم التسوية':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'سداد مسجل — التسوية غير معتمدة':'لا توجد عمليات في الفترة';
    const canApprove=['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length&&!historical&&pawSettlementSource()==='all';
    const canReconcile=pawSettlementSource()==='all'&&!historical&&['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&relevant.length>0&&unresolved.length===0&&relevant.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
@@ -191,7 +196,13 @@ function renderProviderSettlementPeriod(){
  '<div class="mini"><span>المحوّل للشركة</span><b>'+cash(sum.providerPaid)+'</b></div>'+
  '<div class="mini"><span>المتبقي على الشركة</span><b>'+cash(historical?0n:sum.ours)+'</b></div>'+
  '<div class="mini"><span>المتبقي على PawApp</span><b>'+cash(historical?0n:sum.theirs)+'</b></div></div>'+
- '<div class="miniGrid">'+settlementCards+'</div>'+ 
+ '<div class="miniGrid">'+settlementCards+'</div>'+
+ (unlinkedServices.length?'<p class="hint" style="font-weight:700;color:#9e5220">يوجد '+unlinkedServices.length+' دفعة مؤكدة لكن الخدمة الفعلية ناقصة. المبلغ يبقى ظاهرًا كمستحق، ولا تُعتمد تسوية مجمعة قبل استكمال الخدمة.</p>':'')+
+ '<div style="overflow-x:auto;margin:12px 0"><b>تفاصيل العمليات لهذا المصدر والفترة</b><table style="min-width:620px;width:100%"><thead><tr><th>رقم الحالة</th><th>العميل</th><th>إجمالي د.ك</th><th>حصة PawApp</th><th>حصة الشركة</th><th>المتبقي للشركة</th><th>الحالة</th></tr></thead><tbody>'+lines.map(l=>{
+   const c=(snapshot?.cases||[]).find(c=>String(c.id)===l.caseId);
+   const noService=l.component==='main'&&(!c?.service_id||!(snapshot?.services||[]).some(s=>String(s.id)===String(c.service_id)&&String(s.provider_id)===l.providerId));
+   return '<tr><td><button class="btn soft" type="button" onclick="openCaseDetails(\''+l.caseId+'\')">'+caseCode(l.caseId)+'</button></td><td>'+html(l.client)+'</td><td>'+cash(l.total)+'</td><td>'+cash(l.paw)+'</td><td>'+cash(l.provider)+'</td><td>'+cash(l.theirs)+'</td><td>'+html(!l.isPaid?'بانتظار دفع العميل':noService?'مدفوع — الخدمة تحتاج ربط':l.theirs>0n?'مدفوع — تسوية مفتوحة':'لا يوجد متبقٍ')+'</td></tr>';
+ }).join('')+'</tbody></table></div>'+ 
  '<button class="btn" onclick="pawPrintProviderReport()">طباعة تقرير رسمي بالشعار / حفظ PDF</button><p><b>التسوية: '+html(status)+'</b> • عمليات مستوفية: '+(historical?lines.length:settled.length)+' • بنود تحتاج مراجعة: '+(historical?0:unresolved.length)+'</p>'+
  '<div class="hint">'+(historical?'الفترة مقفلة خارج النظام؛ بيانات التحويلات الفعلية تظهر أعلاه كما هي ويمكن توثيقها بشكل مستقل.':'البنود الناقصة تحتاج مراجعة قبل اعتماد تسوية جديدة.')+'</div>';
 }
@@ -213,7 +224,9 @@ window.pawConfirmPeriodSettlement=async function(direction){
   if(!p)throw Error('الشركة غير موجودة');
   const rows=p.lines.filter(l=>l.date>=from&&l.date<=to);
   const relevant=rows.filter(l=>l.isPaid&&l.route===(direction==='pawapp_to_provider'?'pawapp':'provider'));
-  const due=direction==='pawapp_to_provider'?F.summarize(rows).theirs:F.summarize(rows).ours;
+  const missingService=relevant.some(l=>l.component==='main'&&!(snapshot?.services||[]).some(s=>String(s.provider_id)===l.providerId&&String(s.id)===String(l.raw.service_id||'')));
+  if(missingService)return alert('توجد دفعة مؤكدة تحتاج ربط الخدمة الفعلية قبل اعتماد التسوية. افتحي تفاصيل الحالة.');
+  const due='pawapp_to_provider'?F.summarize(rows).theirs:F.summarize(rows).ours;
   if(due<=0n)return alert('هذه التسوية مسجلة أو لا توجد مستحقات مفتوحة. لن يتم تسجيل دفع مكرر.');
   if(relevant.some(l=>l.issues.length))return alert('توجد بيانات مالية تحتاج مراجعة قبل التسوية.');
   const existing=periodSettlements.some(x=>String(x.provider_id)===String(provider)&&x.direction===direction&&x.period_from<=to&&x.period_to>=from);
@@ -285,7 +298,8 @@ function renderFollowups(){if(!model)return;
  if(followupBox){
   let area=el('pawBookingIntakeReview');
   if(!area){area=document.createElement('section');area.id='pawBookingIntakeReview';followupBox.before(area);}
-  area.innerHTML=pendingBookings.length?'<h3>طلبات النماذج — استكمال مباشر من المتابعة</h3>'+pendingBookings.map(c=>{
+  const petPending=pendingBookings.filter(c=>c.source==='pet_information_form').length;
+  area.innerHTML=pendingBookings.length?'<h3>طلبات النماذج — '+pendingBookings.length+' طلب بانتظار الاستكمال</h3><p class="hint">منها '+petPending+' طلب Pet Information. هذا العدد منفصل عن عدد المستحقات المالية؛ الطلب المدفوع يخرج من متابعة الاستكمال وتبقى تسويته عند الشركة.</p>'+pendingBookings.map(c=>{
    const missing=intakeMissing(c);
    return '<div class="card"><b>'+html(c.client_name||'عميل')+' — '+caseCode(c.id)+'</b><div class="hint">المصدر: '+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source)+' • الخدمة المطلوبة: '+html(c.requested_service||c.service_name||'استكمال بيانات')+'</div>'+(Array.isArray(c.intake_details?.requested_services)&&c.intake_details.requested_services.length?'<div class="hint">تفاصيل الخدمات: '+html(c.intake_details.requested_services.join('، '))+'</div>':'')+'<div class="hint">المطلوب: '+html(missing.join('، '))+'</div><button class="btn primary" onclick="pawBookingReview('+Number(c.id)+')">استكمال الطلب وحساب العمولة</button></div>';
   }).join(''):'';
@@ -331,6 +345,11 @@ const intakeCase=()=>snapshot?.cases.find(c=>String(c.id)===String(intakeId));
 function intakeInput(id){return el('pawIntake'+id);}
 function intakeVal(id){return String(intakeInput(id)?.value??'').trim();}
 function intakeMissing(c){
+ if(c.source==='pet_information_form'&&c.client_paid===true&&c.client_paid_to==='pawapp'&&Number(c.total_amount||0)>0){
+   // Payment is confirmed: intake is over. Incomplete provider/service data
+   // remains visible in settlement review, never silently treated as settled.
+   return [];
+ }
  const service=(snapshot?.services||[]).find(s=>String(s.provider_id)===String(c.provider_id)&&String(s.id)===String(c.service_id)&&s.name===c.service_name);
  const isPetInfo=c.source==='pet_information_form';
  // Appointment staff work under the existing shared Firebase login. A CRM

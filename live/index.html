@@ -754,8 +754,8 @@ window.pawMonthlySettlementOverview=async function(){
      if(l.isPaid)paidCases.add(l.caseId);
      if(l.total<=0n)unpriced.add(l.caseId);
      if(l.isPaid&&!c.provider_id)paidNoProvider.add(l.caseId);
-     if(l.isPaid&&c.provider_id&&(!c.service_id||!serviceCatalog.has(String(c.provider_id)+'|'+String(c.service_id))))missingService.add(l.caseId);
-     if(l.issues.length)needsReview.add(l.caseId);
+     if(l.isPaid&&c.provider_id&&(!c.service_id||!serviceCatalog.has(String(c.provider_id)+'|'+String(c.service_id)))){missingService.add(l.caseId);needsReview.add(l.caseId);}
+     if(l.issues.length&&(source!=='pet_information_form'||l.total>0n))needsReview.add(l.caseId);
      if(!l.isPaid&&l.total>0n)unpaid.add(l.caseId);
      if(l.issues.length)continue; // Never present uncertain totals as settled or verified.
      for(const [dir,balance] of [['to_provider',l.theirs],['to_pawapp',l.ours]]){

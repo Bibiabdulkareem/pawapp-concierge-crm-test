@@ -585,7 +585,21 @@ function csvCell(value){let s=String(value??'');if(/^[\\s]*[=+@-]/.test(s))s="'"
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name.replace(/[\\/]/g,'-');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 window.downloadTestBackup=async function(){try{const data=await rpc('test_finance_backup');download(JSON.stringify(data,null,2),'pawapp-live-finance-backup-'+localDate()+'.json','application/json');toast('تم تجهيز نسخة LIVE الاحتياطية');}catch(e){alert(message(e))}};
 window.renderDashboard=renderDashboard;window.renderProviders=renderProviders;window.renderCases=renderCases;window.renderAutomaticFollowups=renderFollowups;window.loadData=refresh;window.renderAll=function(){render();};
-window.openProviderCRM=function(id){selectedProvider=id;if(el('pawSettlementFrom'))el('pawSettlementFrom').value='';if(el('pawSettlementTo'))el('pawSettlementTo').value='';legacyShowPage('providerdetail');renderProvider();};window.providerCases=window.openProviderCRM;
-window.showPage=async function(id){if(id==='admin'&&!window.pawIsAdmin()){toast('Admin only');return;}await legacyShowPage(id);if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();};
+window.pawFinanceRefresh=refresh;
+window.openProviderCRM=async function(id){
+ selectedProvider=id;
+ if(el('pawSettlementFrom'))el('pawSettlementFrom').value='';
+ if(el('pawSettlementTo'))el('pawSettlementTo').value='';
+ legacyShowPage('providerdetail');
+ // Avoid stale partner balances after staff payments recorded in appointment dashboard.
+ try{await refresh();}catch(e){alert('تعذر تحديث حسابات الشركة: '+String(e?.message||e));return;}
+ renderProvider();
+};window.providerCases=window.openProviderCRM;
+window.showPage=async function(id){if(id==='admin'&&!window.pawIsAdmin()){toast('Admin only');return;}await legacyShowPage(id);
+ if(['dashboard','providers','followups','cases','providerdetail'].includes(id)){
+   try{await refresh();}catch(e){console.warn('Finance snapshot refresh failed',e);toast('تعذر تحديث الحسابات — جربي تحديث الصفحة');}
+ }
+ if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();
+};
 setup();await refresh();if(typeof fillProviders==='function')fillProviders();if(typeof fillStaff==='function')fillStaff();window.PAW_FINANCE_READY=true;window.PAW_FINANCE_VERSION='finance-v3';
 };

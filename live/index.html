@@ -850,9 +850,9 @@ window.pawMonthlySettlementOverview=async function(){
      'الأرصدة محسوبة من الدفعات والتحويلات المسجلة في الكونسيرج، وليست تأكيدًا مستقلًا من البنك. اختيار المصدر لا يسجل تسوية ولا يثبت تحويلًا فعليًا.';out.appendChild(note);
  }catch(e){summary.textContent='تعذر تحميل المستحقات: '+String(e?.message||e)}
 };
-window.pawOpenMonthlyProvider=function(providerId,month,source){
+window.pawOpenMonthlyProvider=async function(providerId,month,source){
   if(!providerId||typeof window.openProviderCRM!=='function')return alert('تفاصيل الشركة لم تُحمّل بعد. جرّبي تحديث الصفحة.');
-  window.openProviderCRM(providerId);
+  await window.openProviderCRM(providerId);
   const select=document.getElementById('pawProviderSettlementSource');
   if(select)select.value=source==='pet_information_form'?'pet_information_form':source==='other'?'other':'all';
   const start=document.getElementById('pawSettlementFrom'),end=document.getElementById('pawSettlementTo');

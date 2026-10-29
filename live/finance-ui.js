@@ -332,7 +332,17 @@ function intakeInput(id){return el('pawIntake'+id);}
 function intakeVal(id){return String(intakeInput(id)?.value??'').trim();}
 function intakeMissing(c){
  const service=(snapshot?.services||[]).find(s=>String(s.provider_id)===String(c.provider_id)&&String(s.id)===String(c.service_id)&&s.name===c.service_name);
- return [!c.employee_id?'الموظف المسؤول':null,!c.provider_id?'الشركة / الفريلانسر':null,!service?'الخدمة الفعلية':null,Number(c.total_amount||0)<=0?'السعر والعمولة':null].filter(Boolean);
+ const isPetInfo=c.source==='pet_information_form';
+ // Appointment staff work under the existing shared Firebase login. A CRM
+ // employee assignment is not required to close Pet Information intake.
+ // Do not confuse customer payment closure with partner settlement.
+ return [
+   !isPetInfo&&!c.employee_id?'الموظف المسؤول':null,
+   !c.provider_id?'الشركة / الفريلانسر':null,
+   !service?'الخدمة الفعلية':null,
+   Number(c.total_amount||0)<=0?'السعر والعمولة':null,
+   isPetInfo&&Number(c.total_amount||0)>0&&(!c.client_paid||c.client_paid_to!=='pawapp')?'تأكيد وصول الدفع إلى PawApp من لوحة المواعيد':null
+ ].filter(Boolean);
 }
 function ensureIntakeModal(){
  if(el('pawQuickIntakeModal'))return;

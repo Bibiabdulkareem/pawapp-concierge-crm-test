@@ -146,20 +146,26 @@ let status=el('financeStatus');if(!status){status=document.createElement('div');
 const recent=el('dashboardRecentCards');if(recent)recent.innerHTML=snapshot.cases.slice().reverse().slice(0,3).map(c=>{const lines=linesFor(c.id),sum=F.summarize(lines),pending=lines.some(actionable);return '<div class="card provider"><h3>'+html(c.client_name)+'</h3><p>'+caseCode(c.id)+'</p><div class="hint">'+html(c.service_name||c.requested_service||'')+'</div><div class="miniGrid"><div class="mini"><span>الإجمالي شامل النقل</span><b>'+cash(sum.total)+'</b></div><div class="mini"><span>حصة PawApp</span><b>'+cash(sum.paw)+'</b></div></div><div class="hint">'+(pending?lines.filter(actionable).map(l=>html((l.component==='transport'?'النقل: ':'الخدمة: ')+detail(l))).join('<br>'):'لا يوجد إجراء مالي متبقٍ')+'</div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button></div></div>';}).join('');
 }
 function renderProviders(){if(!model)return;const q=v('providerSearch').toLowerCase();el('providerList').innerHTML=model.providers.filter(p=>p.name.toLowerCase().includes(q)).map(p=>{const s=p.summary;return '<div class="card provider"><h3>'+html(p.name)+'</h3><div class="miniGrid"><div class="mini"><span>العمليات</span><b>'+s.caseCount+'</b></div><div class="mini"><span>العملاء</span><b>'+s.customerCount+'</b></div><div class="mini"><span>الخدمات مع النقل</span><b>'+s.lineCount+'</b></div></div><div class="miniGrid"><div class="mini"><span>لنا عندهم</span><b>'+cash(s.ours)+'</b></div><div class="mini"><span>لهم عندنا</span><b>'+cash(s.theirs)+'</b></div><div class="mini"><span>حصة الشركة</span><b>'+cash(s.provider)+'</b></div></div>'+(p.lines.some(l=>l.issues.length&&!(l.date>='2026-07-01'&&l.date<'2026-10-01'))?'<div class="hint">'+p.lines.filter(l=>l.issues.length&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')).length+' بند يحتاج مراجعة أو تأكيد.</div>':'')+'<div class="actions"><button class="btn primary" onclick="openProviderCRM(\''+p.id+'\')">التفاصيل والتقرير</button>'+(mayWrite()?'<button class="btn soft" onclick="openServiceManager(\''+p.id+'\')">الخدمات</button>':'')+'</div></div>';}).join('')||'<div class="card">لا توجد شركات</div>';}
+function pawSettlementSource(){return v('pawProviderSettlementSource')||'all'}
+function pawSourceMatchesLine(l){
+ const source=(snapshot?.cases||[]).find(c=>String(c.id)===String(l.caseId))?.source;
+ const filter=pawSettlementSource();
+ return filter==='all'||(filter==='pet_information_form'?source==='pet_information_form':source!=='pet_information_form');
+}
 function renderProviderSettlementPeriod(){
  const host=el('pawProviderSettlementPeriod');if(!host||!model||!selectedProvider)return;
  const p=model.providers.find(x=>String(x.id)===String(selectedProvider));if(!p)return;
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
  if(!from||!to){host.innerHTML='<p class="hint">اختاري تاريخ البداية والنهاية لعرض تسويات هذه الشركة. ما تم اختيار أي شهر تلقائياً.</p>';return;}
  if(from>to){host.innerHTML='<p class="hint">تاريخ البداية لازم يكون قبل تاريخ النهاية.</p>';return;}
- const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
+ const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to)&&pawSourceMatchesLine(l));
  const sum=F.summarize(lines);
  const cases=(snapshot?.cases||[]).filter(c=>lines.some(l=>l.caseId===String(c.id)));
  const historical=from>='2026-07-01'&&to<'2026-10-01';
  const pending=historical?[]:lines.filter(l=>l.ours>0n||l.theirs>0n);
  const unresolved=historical?[]:lines.filter(l=>l.issues.length);
  const settled=historical?lines:lines.filter(l=>l.isPaid&&l.ours===0n&&l.theirs===0n&&!l.issues.length);
- const approved=periodSettlements.filter(x=>String(x.provider_id)===String(selectedProvider)&&(!from||x.period_to>=from)&&(!to||x.period_from<=to));
+ const approved=pawSettlementSource()==='all'?periodSettlements.filter(x=>String(x.provider_id)===String(selectedProvider)&&(!from||x.period_to>=from)&&(!to||x.period_from<=to)):[];
  const settlementCards=['pawapp_to_provider','provider_to_pawapp'].map(dir=>{
    const title=dir==='pawapp_to_provider'?'مستحق للشركة على PawApp':'مستحق لـ PawApp على الشركة';
    const rows=approved.filter(x=>x.direction===dir);
@@ -168,15 +174,15 @@ function renderProviderSettlementPeriod(){
    const relevant=lines.filter(l=>l.isPaid&&l.route===(dir==='pawapp_to_provider'?'pawapp':'provider'));
    const unknown=relevant.some(l=>l.issues.length);
    const label=historical?'إقفال تاريخي — ليس اعتماد تحويل':rows.length&&due===0n?'تسوية معتمدة وموثقة':due>0n?'مستحقات مفتوحة — لم تتم التسوية':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'سداد مسجل — التسوية غير معتمدة':'لا توجد عمليات في الفترة';
-   const canApprove=['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length&&!historical;
-   const canReconcile=!historical&&['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&relevant.length>0&&unresolved.length===0&&relevant.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
+   const canApprove=['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length&&!historical&&pawSettlementSource()==='all';
+   const canReconcile=pawSettlementSource()==='all'&&!historical&&['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&relevant.length>0&&unresolved.length===0&&relevant.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
    return '<div class="mini"><span>'+title+'</span><b>'+label+'</b><div class="hint">المعتمد: '+amount.toFixed(3)+' د.ك • المتبقي: '+cash(due)+'</div>'+
      (canApprove?'<button class="btn primary" onclick="pawConfirmPeriodSettlement(\''+dir+'\')">تمت التسوية — تأكيد الدفع/التحصيل</button>':'')+
      (canReconcile?'<button class="btn" onclick="pawConfirmZeroSettlement(\''+dir+'\')">اعتماد تسوية سابقة موثقة</button>':'')+
      (unknown?'<div class="hint">يلزم مراجعة البنود قبل الاعتماد</div>':'')+'</div>';
  }).join('');
  const status=historical?'إقفال تاريخي — لا يثبت اعتماد تحويل':unresolved.length?'تحتاج مراجعة':pending.length?'مستحقات مفتوحة — بانتظار التسوية':approved.length?'توجد تسوية معتمدة ولا مستحقات معلقة':'لا توجد مستحقات معلقة — اعتماد التسوية منفصل عن السداد';
- host.innerHTML='<div class="hint">إجمالي الفترة وحصص الطرفين تظهر دائماً، حتى لو المتبقي صفر. حالة الإقفال لا تثبت التحويل وحدها.</div>'+
+ host.innerHTML='<div class="hint">'+(pawSettlementSource()==='all'?'كل مصادر الشركة':'المصدر المختار فقط؛ لتسوية كل عملية استخدمي زر المستحق في تفاصيلها، واعتماد الفترة الشامل معطّل حتى لا تختلط المصادر')+'</div><div class="hint">إجمالي الفترة وحصص الطرفين تظهر دائماً، حتى لو المتبقي صفر. حالة الإقفال لا تثبت التحويل وحدها.</div>'+
  '<div class="miniGrid"><div class="mini"><span>عمليات الفترة</span><b>'+sum.caseCount+'</b></div>'+
  '<div class="mini"><span>إجمالي العمليات</span><b>'+cash(sum.total)+'</b></div>'+
  '<div class="mini"><span>حصة PawApp</span><b>'+cash(sum.paw)+'</b></div>'+
@@ -192,6 +198,7 @@ function renderProviderSettlementPeriod(){
 window.pawProviderSettlementPeriodChanged=renderProviderSettlementPeriod;
 let periodSettlementBusy=false;
 window.pawConfirmPeriodSettlement=async function(direction){
+ if(pawSettlementSource()!=='all')return alert('التسوية المجمعة لا تفصل المصادر؛ اعتمدي تسوية كل عملية من تفاصيلها حتى لا تختلط طلبات Pet Information بباقي أكتوبر.');
  if(periodSettlementBusy)return;
  if(!['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role))return alert('صلاحية الإدارة أو العمليات أو المحاسبة فقط');
  if(!['pawapp_to_provider','provider_to_pawapp'].includes(direction))return alert('اتجاه التسوية غير صحيح');
@@ -244,6 +251,7 @@ window.pawConfirmPeriodSettlement=async function(direction){
 };
 
 window.pawConfirmZeroSettlement=async function(direction){
+ if(pawSettlementSource()!=='all')return alert('اعتماد إقفال الفترة عام وليس حسب المصدر. استخدمي مراجعة كل عملية أولاً.');
  if(!['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role))return alert('للإدارة والعمليات والمحاسبة فقط');
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
  if(!from||!to||from>to)return alert('اختاري الفترة');
@@ -260,16 +268,17 @@ window.pawConfirmZeroSettlement=async function(direction){
  }catch(e){alert('لم تُعتمد التسوية: '+e.message);}
 };
 function renderProvider(){if(!selectedProvider||!model)return;
-const savedFrom=v('pawSettlementFrom'),savedTo=v('pawSettlementTo');const p=model.providers.find(x=>String(x.id)===String(selectedProvider));if(!p)return;const s=p.summary;set('providerDetailName',p.name);set('providerDetailType','الخدمة الأساسية والنقل — كل مبلغ محسوب مرة واحدة');set('pdClients',s.customerCount);set('pdOps',s.caseCount);const pendingCases=new Set(p.lines.filter(actionable).map(l=>l.caseId));set('pdPending',pendingCases.size);set('pdComplete',s.caseCount-pendingCases.size);set('pdSales',cash(s.total));set('pdPaw',cash(s.paw));set('pdOurs',cash(s.ours));set('pdTheirs',cash(s.theirs));
+const savedFrom=v('pawSettlementFrom'),savedTo=v('pawSettlementTo'),savedSource=v('pawProviderSettlementSource')||'all';const p=model.providers.find(x=>String(x.id)===String(selectedProvider));if(!p)return;const s=p.summary;set('providerDetailName',p.name);set('providerDetailType','الخدمة الأساسية والنقل — كل مبلغ محسوب مرة واحدة');set('pdClients',s.customerCount);set('pdOps',s.caseCount);const pendingCases=new Set(p.lines.filter(actionable).map(l=>l.caseId));set('pdPending',pendingCases.size);set('pdComplete',s.caseCount-pendingCases.size);set('pdSales',cash(s.total));set('pdPaw',cash(s.paw));set('pdOurs',cash(s.ours));set('pdTheirs',cash(s.theirs));
 let extra=el('financeProviderCards');if(!extra){extra=document.createElement('div');extra.id='financeProviderCards';extra.className='cards';extra.style.cssText='grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px';el('pdSales').closest('.cards').after(extra);}extra.innerHTML=metric('حصة الشركة','finProviderShare',cash(s.provider))+metric('حُوّل للشركة','finProviderPaid',cash(s.providerPaid))+metric('المحصّل من العمولة','finProviderCollected',cash(s.pawCollected))+metric('بنود تحتاج مراجعة','finProviderIssues',p.lines.filter(l=>l.issues.length&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')).length);
 let period=el('pawProviderSettlementSection');
 if(!period){period=document.createElement('section');period.id='pawProviderSettlementSection';period.className='card';period.style.margin='12px 0';el('pdServices').before(period);}
-period.innerHTML='<h3>تسويات الشركة حسب الفترة — LIVE</h3><div class="grid2"><div class="field"><label>من تاريخ</label><input id="pawSettlementFrom" type="date" onchange="pawProviderSettlementPeriodChanged()"></div><div class="field"><label>إلى تاريخ</label><input id="pawSettlementTo" type="date" onchange="pawProviderSettlementPeriodChanged()"></div></div><div id="pawProviderSettlementPeriod"></div>';
-if(savedFrom)el('pawSettlementFrom').value=savedFrom;if(savedTo)el('pawSettlementTo').value=savedTo;
+period.innerHTML='<h3>تسويات الشركة حسب الفترة — LIVE</h3><div class="field" style="margin:10px 0"><label>المصدر</label><select id="pawProviderSettlementSource" onchange="renderProviderSettlementPeriod();renderProviderSourceCases()"><option value="all">جميع عمليات الشركة</option><option value="pet_information_form">Pet Information فقط</option><option value="other">باقي عمليات الكونسيرج فقط</option></select></div><div class="grid2"><div class="field"><label>من تاريخ</label><input id="pawSettlementFrom" type="date" onchange="pawProviderSettlementPeriodChanged()"></div><div class="field"><label>إلى تاريخ</label><input id="pawSettlementTo" type="date" onchange="pawProviderSettlementPeriodChanged()"></div></div><div id="pawProviderSettlementPeriod"></div>';
+if(savedFrom)el('pawSettlementFrom').value=savedFrom;if(savedTo)el('pawSettlementTo').value=savedTo;if(el('pawProviderSettlementSource'))el('pawProviderSettlementSource').value=savedSource;
 renderProviderSettlementPeriod();
 const counts=new Map();p.lines.forEach(l=>counts.set(l.service,(counts.get(l.service)||0)+1));el('pdServices').innerHTML=[...counts].map(([name,n])=>'<div class="kpi-line"><span>'+html(name)+'</span><b>'+n+'</b></div>').join('');
-el('pdClientList').innerHTML=p.lines.map(l=>'<div class="card provider"><h3>'+html(l.client)+'</h3><div class="hint">'+caseCode(l.caseId)+' • '+html(l.service)+'</div><div class="miniGrid"><div class="mini"><span>السعر</span><b>'+cash(l.total)+'</b></div><div class="mini"><span>PawApp</span><b>'+cash(l.paw)+'</b></div><div class="mini"><span>الشركة</span><b>'+cash(l.provider)+'</b></div></div><p>'+html(detail(l))+'</p><div class="actions">'+(actionable(l)?actionButton(l):'')+'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">العملية</button></div></div>').join('')||'<div class="card">لا توجد عمليات</div>';el('pdExportBtn').onclick=()=>window.exportProviderFullReport(p.id);
+el('pdClientList').innerHTML=p.lines.filter(pawSourceMatchesLine).map(l=>'<div class="card provider"><h3>'+html(l.client)+'</h3><div class="hint">'+caseCode(l.caseId)+' • '+html(l.service)+'</div><div class="miniGrid"><div class="mini"><span>السعر</span><b>'+cash(l.total)+'</b></div><div class="mini"><span>PawApp</span><b>'+cash(l.paw)+'</b></div><div class="mini"><span>الشركة</span><b>'+cash(l.provider)+'</b></div></div><p>'+html(detail(l))+'</p><div class="actions">'+(actionable(l)?actionButton(l):'')+'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">العملية</button></div></div>').join('')||'<div class="card">لا توجد عمليات</div>';el('pdExportBtn').onclick=()=>window.exportProviderFullReport(p.id);
 }
+window.renderProviderSourceCases=function(){if(selectedProvider)renderProvider()};
 function renderFollowups(){if(!model)return;
  const pendingBookings=(snapshot?.cases||[]).filter(c=>['booking_form_test','booking_form','pet_information_form'].includes(c.source)&&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'&&intakeMissing(c).length>0);
  const followupBox=el('followupFinanceList');
@@ -502,7 +511,7 @@ window.openSettlement=id=>window.pawFinanceOpen(id,'main');window.openClientPaym
 window.exportProviderFullReport=function(id){
  const p=model.providers.find(x=>String(x.id)===String(id));if(!p)return;
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
- const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
+ const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to)&&pawSourceMatchesLine(l));
   const report=F.csv(lines,p.name);
  const bom=report.startsWith('\ufeff')?'\ufeff':'';
  const plain=bom?report.slice(1):report;
@@ -528,7 +537,7 @@ window.pawPrintProviderReport=function(){
  const w=window.open('','_blank');
  if(!w)return alert('اسمحي بفتح نافذة التقرير للطباعة');
  const safe=x=>html(x);
- const reportLines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
+ const reportLines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to)&&pawSourceMatchesLine(l));
  const historical=from>='2026-07-01'&&to<'2026-10-01';
  const reportRows=reportLines.map(l=>{
   const status=historical?'إقفال تاريخي':l.issues.length?'تحتاج مراجعة':l.ours>0n?'الشركة مطالبة لـ PawApp':l.theirs>0n?'PawApp مطالبة للشركة':l.isPaid?'سداد مسجل — الاعتماد منفصل':'العميل لم يسدد';

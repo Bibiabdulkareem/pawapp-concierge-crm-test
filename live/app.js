@@ -2202,8 +2202,10 @@ window.sourceLabel = function(src){
         const isForm=['booking_form','booking_form_test','pet_information_form'].includes(c.source);
         const matchingProvider=db.providers.find(p=>String(p.id)===String(c.providerId||c.provider_id));
         const actualService=matchingProvider?.services?.includes(c.service||c.service_name);
+        const petInfo=c.source==='pet_information_form';
         const pendingForm=isForm&&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'&&
-          (!c.employee_id||!matchingProvider||!actualService||Number(c.total_amount||0)<=0);
+          ((!petInfo&&!c.employee_id)||!matchingProvider||!actualService||Number(c.total_amount||0)<=0||
+            (petInfo&&(!c.client_paid||c.client_paid_to!=='pawapp')));
         if(pendingForm){
           const appointments=appointmentFollowupItems(c);
           if(appointments.length)appointmentRows.push({c:c,items:appointments});

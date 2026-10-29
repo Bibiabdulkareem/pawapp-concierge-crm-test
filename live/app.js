@@ -2203,6 +2203,10 @@ window.sourceLabel = function(src){
         const matchingProvider=db.providers.find(p=>String(p.id)===String(c.providerId||c.provider_id));
         const actualService=matchingProvider?.services?.includes(c.service||c.service_name);
         const petInfo=c.source==='pet_information_form';
+        const petClientCollected=petInfo&&c.client_paid===true&&c.client_paid_to==='pawapp'&&Number(c.total_amount||0)>0;
+        // A paid Pet Information case is no longer intake or customer follow-up.
+        // Incomplete service/provider information must be reviewed in settlements.
+        if(petClientCollected)return;
         const pendingForm=isForm&&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'&&
           ((!petInfo&&!c.employee_id)||!matchingProvider||!actualService||Number(c.total_amount||0)<=0||
             (petInfo&&(!c.client_paid||c.client_paid_to!=='pawapp')));

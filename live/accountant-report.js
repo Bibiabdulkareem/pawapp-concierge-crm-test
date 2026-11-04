@@ -70,7 +70,7 @@ function compute(snapshot,periodSettlements,month){
    const codes=entries.map(l=>rowId(l.caseId)).join(' / ');
    for(const l of entries){
      const providerId=l.providerId, g=groups.get(providerId);
-     if(g){g.blocked=true;g.issues.add('احتمال تكرار — راجعي الفاتورتين');}
+     if(g){g.blocked=true;g.hasDuplicate=true;g.issues.add('احتمال تكرار — راجعي الفاتورتين');}
      reviews.push({caseId:l.caseId,client:l.client,date:l.date,
        provider:pmap.get(providerId)||'غير محدد',source:labelSource(l.raw),
        issue:'حالتان بنفس صاحب الحيوان والدكتور والتاريخ والمبلغ ('+codes+'). تأكدي أن كل حالة خدمة مختلفة قبل اعتماد تسوية إضافية.',
@@ -82,7 +82,7 @@ function compute(snapshot,periodSettlements,month){
    g.approved=approved.filter(x=>String(x.provider_id)===g.id);
    g.flaggedNoReceipt=g.lines.filter(l=>l.component==='main'&&l.isPaid&&l.total>0n&&number(l.raw?.main_paid_recorded)===0).length;
    g.pending= g.summary.ours>0n||g.summary.theirs>0n;
-   g.noClose=Boolean(g.hasCancelled)||g.lines.some(l=>l.isPaid&&l.issues.length); // Unpaid follow-ups do not block settling already-paid cases.
+   g.noClose=Boolean(g.hasCancelled||g.hasDuplicate)||g.lines.some(l=>l.isPaid&&l.issues.length); // Unpaid follow-ups do not block settling already-paid cases.
    g.zeroCloseBlocked=g.blocked||g.lines.some(l=>l.total<=0n||l.issues.length||!l.isPaid||l.component!=='main');
  }
  const totals=F.summarize(lines);

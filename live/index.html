@@ -384,25 +384,27 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="reports" class="page">
-<div class="title"><div><h1>التقارير</h1><p>تقارير يومية، أسبوعية، شهرية أو فترة مخصصة</p></div></div>
-<div class="card" style="box-shadow:none">
-  <div class="grid2">
-    <div class="field"><label>الفترة</label><select id="reportPreset" onchange="reportPresetChanged()"><option value="today">اليوم</option><option value="week">آخر 7 أيام</option><option value="month" selected>هذا الشهر</option><option value="custom">فترة مخصصة</option></select></div>
-    <div class="field"><label>الشركة / الفريلانسر</label><select id="reportProvider" onchange="renderReports()"><option value="all">الكل</option></select></div>
-    <div class="field"><label>من تاريخ</label><input id="reportFrom" type="date" onchange="renderReports()"></div>
-    <div class="field"><label>إلى تاريخ</label><input id="reportTo" type="date" onchange="renderReports()"></div>
+  <div class="title"><div><h1>التقارير — حسابات المحاسب</h1><p>اختاري الشهر فقط: تقرير جميع الشركات والفريلانسر، Concierge وPet Information معاً</p></div></div>
+  <div class="card" style="box-shadow:none">
+    <div class="grid2" style="align-items:end">
+      <div class="field"><label for="pawAccountMonth">الشهر المحاسبي</label><input type="month" id="pawAccountMonth" min="2026-10" value="2026-10" onchange="pawAccountantRender()"></div>
+      <div class="field"><label>التقرير الكامل</label><div class="actions"><button class="btn primary" type="button" onclick="pawAccountantRender()">عرض تقرير الشهر</button><button class="btn soft" id="pawAccountExport" type="button" onclick="pawAccountantExportExcel()" disabled>تصدير Excel — جميع الشركات</button></div></div>
+    </div>
+    <p id="pawAccountStatus" class="hint">يحسب التقرير من سجلات المالية الحالية؛ مستحقات كل طرف تبقى مفتوحة إلى أن تُسجّل التسوية ويعتمدها المحاسب.</p>
   </div>
-</div>
-<div class="cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
-  <div class="card stat"><span>العملاء</span><b id="reportClients" class="blue">0</b></div>
-  <div class="card stat"><span>الشركات / الفريلانسر النشطة</span><b id="reportProviders">0</b></div>
-  <div class="card stat"><span>العمليات</span><b id="reportCases">0</b></div>
-  <div class="card stat"><span>إجمالي العمليات</span><b id="reportSales">0.000 د.ك</b></div>
-  <div class="card stat"><span>حصة PawApp</span><b id="reportPaw" class="green">0.000 د.ك</b></div>
-  <div class="card stat"><span>مستحق الشركات</span><b id="reportProviderDue">0.000 د.ك</b></div>
-</div>
-<div class="section"><h2>ملخص الفترة</h2><button class="btn soft" type="button" onclick="exportGeneralReport()">تصدير CSV</button></div>
-<div id="reportSummary" class="providerGrid"></div>
+  <div id="pawAccountCards" class="cards" style="margin-top:12px;grid-template-columns:repeat(auto-fit,minmax(145px,1fr))"></div>
+  <div class="card" style="margin:14px 0"><h2>ملخص الشهر — كل الشركات والفريلانسر</h2>
+    <p class="hint">«لنا عليهم» تعني مبلغ يجب أن تستلمه باو أب. «لهم علينا» تعني مبلغ يجب أن تدفعه باو أب. الاعتماد لا يُسجّل قبل إثبات الدفع/التحصيل. للأدمن والمحاسب فقط.</p>
+    <p id="pawAccountStats" class="hint"></p>
+    <div style="overflow-x:auto;width:100%"><table style="width:100%;min-width:1120px">
+      <thead><tr><th>الشركة / الفريلانسر</th><th>العمليات</th><th>إجمالي الخدمات د.ك</th><th>حصة PawApp</th><th>حصة الشركة</th><th>المحوّل للشركة</th><th>العمولة المحصّلة من الشركة</th><th>لنا عليهم</th><th>لهم علينا</th><th>حالة التسوية</th><th>إجراءات المحاسب</th></tr></thead>
+      <tbody id="pawAccountCompanies"></tbody>
+    </table></div>
+  </div>
+  <div class="card" style="margin:14px 0"><h2>عمليات تحتاج مراجعة قبل اعتماد الشهر</h2>
+    <p class="hint">الطلبات بدون سعر أو تاريخ غير مكتمل لا تُحوّل تلقائياً إلى إيرادات أو تسويات. حالات الإلغاء والتجربة منفصلة عن المبيعات.</p>
+    <div id="pawAccountReview"></div>
+  </div>
 </section>
 
 <section id="staff" class="page">
@@ -520,7 +522,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <button class="nav" data-p="crm" onclick="showPage('crm')"><b>♡</b>العملاء</button>
 <button class="nav" data-p="followups" onclick="showPage('followups')" style="position:relative"><b>⏰</b>المتابعة<span id="followupNavBadge" style="display:none;position:absolute;top:2px;left:50%;transform:translateX(-50%);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#c62828;color:#fff;font-size:10px;line-height:18px;font-weight:800">0</span></button>
 <button class="nav" data-p="providers" onclick="showPage('providers')"><b>♙</b>الشركات / الفريلانسر</button>
-<button class="nav" data-p="reports" onclick="showPage('reports')"><b>▦</b>التقارير</button>
+<button class="nav" data-p="reports" onclick="showPage('reports');pawAccountantRender()"><b>▦</b>التقارير</button>
 <button class="nav" data-p="staff" onclick="showPage('staff')"><b>♟</b>الموظفون</button>
 <button class="nav" data-p="admin" onclick="showPage('admin')"><b>⚙</b>الإدارة</button>
 <button class="nav" data-p="newcase" onclick="openNewCase()"><b>＋</b>عميل جديد</button>
@@ -873,5 +875,16 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-p="providers"]'
 <button class="btn primary" type="button" onclick="pawChangeMyPassword()">حفظ الباسورد الجديد</button>
 <div id="myPasswordMessage" class="hint"></div>
 </div></div>
+<div id="pawAccountingSettleModal" class="modalBg"><div class="modal">
+  <div class="modalHead"><h3 id="pawAccountingSettleTitle">اعتماد تسوية الشهر</h3><button class="close" type="button" onclick="pawAccountantCloseSettlement()">×</button></div>
+  <p id="pawAccountingSettleHelp" class="hint"></p>
+  <div class="grid2">
+    <div class="field"><label for="pawAccountingSettleMethod">طريقة الدفع أو التحصيل</label><select id="pawAccountingSettleMethod"><option value="">اختاري</option><option value="bank_transfer">تحويل بنكي</option><option value="knet">KNET</option><option value="cash">كاش</option><option value="other">أخرى</option></select></div>
+    <div class="field"><label for="pawAccountingSettleDate">تاريخ السداد الفعلي</label><input id="pawAccountingSettleDate" type="date"></div>
+    <div class="field"><label for="pawAccountingSettleRef">مرجع التحويل أو إثبات التسوية</label><input id="pawAccountingSettleRef" placeholder="رقم مرجع فعلي" autocomplete="off"></div>
+  </div>
+  <div class="actions" style="margin-top:12px"><button id="pawAccountingSettleSave" class="btn primary" type="button" onclick="pawAccountantConfirmSettlement()">تأكيد التسوية</button><button class="btn soft" type="button" onclick="pawAccountantCloseSettlement()">إلغاء</button></div>
+</div></div>
+<script src="accountant-report.js?v=20261104-v1"></script>
 </body>
 </html>

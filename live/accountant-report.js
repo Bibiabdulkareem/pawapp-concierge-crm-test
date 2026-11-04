@@ -55,6 +55,28 @@ function compute(snapshot,periodSettlements,month){
  ));
  for(const c of undated)reviews.push({caseId:String(c.id),client:c.client_name,date:'—',provider:pmap.get(String(c.provider_id))||'غير محدد',source:labelSource(c),issue:'تاريخ الخدمة ناقص — غير داخل في إجمالي الشهر',amount:String(c.total_amount??0)});
  const approved=(periodSettlements||[]).filter(x=>x.period_from<=to&&x.period_to>=from);
+ // Review possible double entries from the same pet-owner/form before a provider is paid twice.
+ const byOwner=new Map();
+ for(const l of lines){
+   if(l.component!=='main'||l.raw?.source!=='pet_information_form')continue;
+   const c=l.raw||{},civil=String(c.intake_details?.civil_id||'').trim();
+   if(!civil||!c.provider_id||!c.service_date||l.total<=0n)continue;
+   const key=[civil,c.provider_id,c.service_date,F.format(l.total)].join('|');
+   if(!byOwner.has(key))byOwner.set(key,[]);
+   byOwner.get(key).push(l);
+ }
+ for(const entries of byOwner.values()){
+   if(entries.length<2)continue;
+   const codes=entries.map(l=>rowId(l.caseId)).join(' / ');
+   for(const l of entries){
+     const providerId=l.providerId, g=groups.get(providerId);
+     if(g){g.blocked=true;g.issues.add('احتمال تكرار — راجعي الفاتورتين');}
+     reviews.push({caseId:l.caseId,client:l.client,date:l.date,
+       provider:pmap.get(providerId)||'غير محدد',source:labelSource(l.raw),
+       issue:'حالتان بنفس صاحب الحيوان والدكتور والتاريخ والمبلغ ('+codes+'). تأكدي أن كل حالة خدمة مختلفة قبل اعتماد تسوية إضافية.',
+       amount:F.format(l.total)});
+   }
+ }
  for(const g of groups.values()){
    g.summary=F.summarize(g.lines);
    g.approved=approved.filter(x=>String(x.provider_id)===g.id);

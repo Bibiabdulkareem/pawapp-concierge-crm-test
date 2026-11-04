@@ -47,7 +47,7 @@ function compute(snapshot,periodSettlements,month){
    const type=l.caseId==='418'?'عملية تجريبية مستبعدة من الحسابات':'عملية ملغاة / مسترجعة مستبعدة من الإجمالي';
    reviews.push({caseId:l.caseId,client:l.client,date:l.date,provider:pmap.get(l.providerId)||'',source:labelSource(l.raw),issue:type,amount:F.format(l.raw?.total_amount??0)});
    const g=groups.get(l.providerId);
-   if(g)g.blocked=true; // The server refuses month-wide settlement when a cancelled case is present.
+   if(g){g.blocked=true;g.hasCancelled=true;} // The server refuses month-wide settlement when a cancelled case is present.
  }
  const undated=(snapshot.cases||[]).filter(c=>!c.service_date&&(
    (month==='2026-10' && (String(c.notes||'').includes('DRMICHAEL_SHEET_2026_10')||String(c.intake_details?.importSource||'').includes('Oct2026'))) ||
@@ -60,7 +60,8 @@ function compute(snapshot,periodSettlements,month){
    g.approved=approved.filter(x=>String(x.provider_id)===g.id);
    g.flaggedNoReceipt=g.lines.filter(l=>l.component==='main'&&l.isPaid&&l.total>0n&&number(l.raw?.main_paid_recorded)===0).length;
    g.pending= g.summary.ours>0n||g.summary.theirs>0n;
-   g.noClose=g.blocked||g.lines.some(l=>l.total<=0n||l.issues.length||!l.isPaid);
+   g.noClose=Boolean(g.hasCancelled)||g.lines.some(l=>l.isPaid&&l.issues.length); // Unpaid follow-ups do not block settling already-paid cases.
+   g.zeroCloseBlocked=g.blocked||g.lines.some(l=>l.total<=0n||l.issues.length||!l.isPaid||l.component!=='main');
  }
  const totals=F.summarize(lines);
  return {snapshot,month,from,to,lines,groups:[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'ar')),reviews,undated,excluded,totals,periodSettlements:approved};
@@ -89,7 +90,7 @@ function groupStatus(g,dir){
 function action(g,dir){
  const due=dir==='pawapp_to_provider'?g.summary.theirs:g.summary.ours;
  const approved=g.approved.some(x=>x.direction===dir);
- if(!canApprove()||g.id==='missing'||g.noClose||approved)return '';
+ if(!canApprove()||g.id==='missing'||(due>0n?g.noClose:g.zeroCloseBlocked)||approved)return '';
  const route=dir==='pawapp_to_provider'?'pawapp':'provider';
  const relevant=g.lines.some(l=>l.isPaid&&l.route===route&&l.total>0n);
  if(!relevant)return '';
@@ -194,7 +195,7 @@ window.pawAccountantExportExcel=function(){
 function openApproval(id,direction){
  const s=latest;if(!s||!canApprove())return alert('الاعتماد للمحاسب أو الإدارة فقط');
  const g=s.groups.find(x=>x.id===id);
- if(!g||g.noClose||g.approved.some(x=>x.direction===direction))return alert('هذه الجهة تحتاج مراجعة أو تسويتها معتمدة مسبقاً.');
+ if(!g||(g.summary[direction==='pawapp_to_provider'?'theirs':'ours']>0n?g.noClose:g.zeroCloseBlocked)||g.approved.some(x=>x.direction===direction))return alert('هذه الجهة تحتاج مراجعة أو تسويتها معتمدة مسبقاً.');
  const amount=direction==='pawapp_to_provider'?g.summary.theirs:g.summary.ours;
  const route=direction==='pawapp_to_provider'?'pawapp':'provider';
  if(!g.lines.some(l=>l.isPaid&&l.route===route&&l.total>0n))return alert('لا توجد عملية مستحقة بهذا الاتجاه');
@@ -222,7 +223,7 @@ window.pawAccountantConfirmSettlement=async function(){
  try{
    const fresh=await load(),now=compute(fresh.snapshot,fresh.periodSettlements,p.month);
    const g=now.groups.find(x=>x.id===p.id);
-   if(!g||g.noClose||g.approved.some(x=>x.direction===p.direction))throw Error('تغيّرت حالة الجهة أو توجد تسوية معتمدة. حدّثي التقرير.');
+   if(!g||(p.amount>0n?g.noClose:g.zeroCloseBlocked)||g.approved.some(x=>x.direction===p.direction))throw Error('تغيّرت حالة الجهة أو توجد تسوية معتمدة. حدّثي التقرير.');
    const current=p.direction==='pawapp_to_provider'?g.summary.theirs:g.summary.ours;
    if(current!==p.amount)throw Error('تغير المبلغ منذ فتح النافذة. حدّثي التقرير أولاً.');
    let result;

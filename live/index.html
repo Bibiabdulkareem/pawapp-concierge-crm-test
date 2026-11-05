@@ -879,13 +879,13 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-p="providers"]'
   <div class="modalHead"><h3 id="pawAccountingSettleTitle">اعتماد تسوية الشهر</h3><button class="close" type="button" onclick="pawAccountantCloseSettlement()">×</button></div>
   <p id="pawAccountingSettleHelp" class="hint"></p>
   <div class="grid2">
-    <div class="field"><label for="pawAccountingSettleMethod">طريقة الدفع أو التحصيل</label><select id="pawAccountingSettleMethod"><option value="">اختاري</option><option value="bank_transfer">تحويل بنكي</option><option value="knet">KNET</option><option value="cash">كاش</option><option value="other">أخرى</option></select></div>
-    <div class="field"><label for="pawAccountingSettleDate">تاريخ السداد الفعلي</label><input id="pawAccountingSettleDate" type="date"></div>
-    <div class="field"><label for="pawAccountingSettleRef">مرجع التحويل أو إثبات التسوية</label><input id="pawAccountingSettleRef" placeholder="رقم مرجع فعلي" autocomplete="off"></div>
+    <div class="field"><label for="pawAccountingSettleMethod">طريقة الدفع أو التسوية</label><select id="pawAccountingSettleMethod"><option value="">اختاري</option><option value="bank_transfer">تحويل بنكي</option><option value="knet">KNET</option><option value="cash">كاش</option><option value="prior_settlement_confirmed">تسوية سابقة — تم الدفع</option><option value="other">أخرى</option></select></div>
+    <div class="field"><label for="pawAccountingSettleDate">تاريخ السداد الفعلي أو توثيق تسوية سابقة</label><input id="pawAccountingSettleDate" type="date"></div>
+    <div class="field"><label for="pawAccountingSettleRef">رقم المرجع / التحويل (اختياري)</label><input id="pawAccountingSettleRef" placeholder="اتركيه فارغاً إذا ما عندج رقم" autocomplete="off"></div>
   </div>
   <div class="actions" style="margin-top:12px"><button id="pawAccountingSettleSave" class="btn primary" type="button" onclick="pawAccountantConfirmSettlement()">تأكيد التسوية</button><button class="btn soft" type="button" onclick="pawAccountantCloseSettlement()">إلغاء</button></div>
 </div></div>
 <script src="accountant-report.js?v=20261104-v1"></script>
-<script src="accountant-report-v2.js?v=20261105-heba-corrected"></script>
+<script src="accountant-report-v2.js?v=20261105-optional-reference"></script>
 </body>
 </html>

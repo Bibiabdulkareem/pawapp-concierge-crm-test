@@ -229,7 +229,7 @@ window.pawConfirmPeriodSettlement=async function(direction){
   const relevant=rows.filter(l=>l.isPaid&&l.route===(direction==='pawapp_to_provider'?'pawapp':'provider'));
   const missingService=relevant.some(l=>l.component==='main'&&!(snapshot?.services||[]).some(s=>String(s.provider_id)===l.providerId&&String(s.id)===String(l.raw.service_id||'')));
   if(missingService)return alert('توجد دفعة مؤكدة تحتاج ربط الخدمة الفعلية قبل اعتماد التسوية. افتحي تفاصيل الحالة.');
-  const due='pawapp_to_provider'?F.summarize(rows).theirs:F.summarize(rows).ours;
+  const due=direction==='pawapp_to_provider'?F.summarize(rows).theirs:F.summarize(rows).ours;
   if(due<=0n)return alert('هذه التسوية مسجلة أو لا توجد مستحقات مفتوحة. لن يتم تسجيل دفع مكرر.');
   if(relevant.some(l=>l.issues.length))return alert('توجد بيانات مالية تحتاج مراجعة قبل التسوية.');
   const existing=periodSettlements.some(x=>String(x.provider_id)===String(provider)&&x.direction===direction&&x.period_from<=to&&x.period_to>=from);
@@ -250,7 +250,7 @@ window.pawConfirmPeriodSettlement=async function(direction){
     && [parsed.getFullYear(),String(parsed.getMonth()+1).padStart(2,'0'),String(parsed.getDate()).padStart(2,'0')].join('-')===paidAt;
   if(!validDate)return alert('تاريخ التحويل غير صحيح. اكتبيه بصيغة YYYY-MM-DD.');
   if(paidAt>localDate())return alert('لا يمكن اعتماد تحويل بتاريخ مستقبلي.');
-  if(!confirm('هل تم تحويل '+cash(due)+' فعلياً؟\nالطريقة: '+method+'\nالمرجع: '+reference+'\nالتاريخ: '+paidAt+'\nلا تعتمدي التسوية بدون إثبات التحويل.'))return;
+  if(!confirm('هل تؤكدين أن التسوية تمت فعلياً بقيمة '+cash(due)+'؟\nالطريقة: '+method+'\nالتوثيق: '+reference+'\nالتاريخ: '+paidAt+'\nبدون مرجع خارجي سيظهر تأكيد داخلي باسم مستخدم النظام.'))return;
   const result=await window.PAWAPP_AUTH.client.rpc('test_confirm_provider_period_settlement',{
     p_provider:provider,p_from:from,p_to:to,p_direction:direction,
     p_method:method,p_reference:reference,p_paid_at:paidAt,p_expected:Number(F.format(due))

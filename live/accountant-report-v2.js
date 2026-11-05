@@ -15,7 +15,7 @@ function role(){return window.PAWAPP_AUTH?.access?.role||document.body.dataset.p
 function accountant(){return ["admin","accountant"].includes(role());}
 function include(l,m){
  const c=l.raw||{},id=String(l.caseId);
- if(l.cancelled||id==="418"||id==="435"||l.total<=0n||!l.isPaid||!["pawapp","provider"].includes(l.route))return false;
+ if(l.cancelled||id==="418"||l.total<=0n||!l.isPaid||!["pawapp","provider"].includes(l.route))return false;
  if(c.service_date && String(c.service_date).slice(0,7)===m)return true;
  return m==="2026-10" && isSheetOctober(c);
 }
@@ -39,10 +39,6 @@ function tally(snap,settlements,month){
  for(const g of groups.values()){
    g.summary=F().summarize(g.lines);
    g.approved=approved.filter(x=>String(x.provider_id)===g.id);
-   if(g.lines.some(l=>l.caseId==="436")){g.review=true;g.duplicateInDb=true;}
- }
- if(month==="2026-10"){
-   reviews.push(["PAW-0435","هبه النهام","Dr.Michael","تكرار مستبعد من المحاسبة لصالح PAW-0436؛ السجل الأصلي لم يُلغَ في قاعدة البيانات بعد، لذلك لا تعتمدي تحويل د. ميشيل من هذا التقرير حتى يوحّد السجل"]);
  }
  const ordered=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,"ar"));
  return {month,paid,groups:ordered,totals:F().summarize(paid),reviews,approved,cats,snap};
@@ -124,7 +120,7 @@ window.pawAccountantExportExcel=function(){
  if(!s||s.month!==E("pawAccountMonth").value)return alert("اعرضي الشهر أولاً");
  if(!window.XLSX)return alert("مكتبة تصدير Excel غير متاحة");
  const nums=g=>[g.summary.caseCount,...["total","paw","provider","paid","providerPaid","commissionReceived","ours","theirs"].map(k=>number(money(g.summary[k])))];
- const head=["الجهة","عدد العمليات المدفوعة","إجمالي الخدمات (د.ك)","حصة باو أب (د.ك)","حصة مقدم الخدمة (د.ك)","تحصيل العملاء المسجل (د.ك)","المحوّل لمقدم الخدمة (د.ك)","عمولة محصلة من الجهة (د.ك)","للشركة على باو أب (د.ك)","لباو أب على الشركة (د.ك)","حالة الاعتماد"];
+ const head=["الجهة","عدد العمليات المدفوعة","إجمالي الخدمات (د.ك)","حصة باو أب (د.ك)","حصة مقدم الخدمة (د.ك)","تحصيل العملاء المسجل (د.ك)","المحوّل لمقدم الخدمة (د.ك)","عمولة محصلة من الجهة (د.ك)","لباو أب على الشركة (د.ك)","للشركة على باو أب (د.ك)","حالة الاعتماد"];
  const summary=[["تقرير محاسب PawApp",s.month],["عمليات مسددة فقط. الحالات المكررة والتجريبية والملغاة غير محتسبة. السجلات بلا تاريخ خدمة مُدرجة حسب فترة الشيت المعلنة."],head,...s.groups.map(g=>[g.name,...nums(g),g.review?"مراجعة":g.summary.ours+g.summary.theirs>0n?"مفتوح":g.approved.length?"معتمد":"لا يوجد متبقٍ"]),["الإجمالي",...nums({summary:s.totals}),""]];
  const details=[["العملية","شهر المحاسبة","تاريخ الخدمة الفعلي","مصدر العملية","مقدم الخدمة","العميل","رقم الهاتف","الخدمة","المكون","الإجمالي د.ك","حصة باو أب د.ك","حصة الجهة د.ك","سداد العميل المسجل د.ك","استلم من العميل","المدفوع لمقدم الخدمة د.ك","عمولة محصلة د.ك","لنا على الجهة د.ك","للجهة علينا د.ك","ملاحظة"],
  ...s.paid.map(l=>{

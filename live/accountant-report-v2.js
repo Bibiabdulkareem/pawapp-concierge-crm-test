@@ -139,17 +139,17 @@ function openApproval(g,direction,amount){
  if(!accountant()||g.review||amount<=0n||!report)return;
  approval={provider:g.id,direction,amount,month:report.month,from:report.month+"-01",to:monthEnd(report.month)};
  E("pawAccountingSettleTitle").textContent=(direction==="pawapp_to_provider"?"تحويل باو أب إلى ":"تحصيل باو أب من ")+g.name+" — "+fmt(amount);
- E("pawAccountingSettleHelp").textContent="لا تعتمدي إلا بعد حصول الدفع أو التحصيل فعلياً، وتسجيل تاريخ العملية الحقيقي ومرجع الإثبات.";
+ E("pawAccountingSettleHelp").textContent="اعتمدي التسوية فقط بعد التأكد أن المبلغ دُفع أو حُصّل فعلاً. رقم المرجع اختياري؛ إذا ما عندج رقم، تُسجّل التسوية كتأكيد داخلي من حساب المحاسب، وليس كإيصال بنكي.";
  E("pawAccountingSettleRef").value="";E("pawAccountingSettleDate").value="";E("pawAccountingSettleMethod").value="";
  E("pawAccountingSettleModal").classList.add("show");
 }
 window.pawAccountantCloseSettlement=function(){if(approving)return;approval=null;E("pawAccountingSettleModal").classList.remove("show");};
 window.pawAccountantConfirmSettlement=async function(){
  if(!approval||approving||!accountant())return;
- const p=approval,method=E("pawAccountingSettleMethod").value,reference=E("pawAccountingSettleRef").value.trim(),date=E("pawAccountingSettleDate").value;
+ const p=approval,method=E("pawAccountingSettleMethod").value,reference=E("pawAccountingSettleRef").value.trim()||"بدون مرجع خارجي - تسوية مؤكدة داخل النظام",date=E("pawAccountingSettleDate").value;
  const today=new Date(Date.now()+3*3600000).toISOString().slice(0,10);
- if(!method||!reference||!date||date>today)return alert("سجلي طريقة الدفع ومرجع الإثبات وتاريخه الفعلي.");
- if(!confirm("هل تم الدفع/التحصيل فعلياً بقيمة "+fmt(p.amount)+"؟"))return;
+ if(!method||!date||date>today)return alert("سجلي طريقة التسوية وتاريخ الدفع أو توثيق التسوية السابقة.");
+ if(!confirm("هل تؤكدين أن المبلغ "+fmt(p.amount)+" دُفع أو حُصّل فعلاً؟\n"+(reference.startsWith("بدون مرجع خارجي")?"بدون رقم تحويل خارجي؛ سيتم حفظ تأكيد المحاسب داخلياً.":"مرجع: "+reference)))return;
  approving=true;E("pawAccountingSettleSave").disabled=true;
  try{
   const [data,periods]=await fresh(),now=tally(data,periods,p.month),g=now.groups.find(g=>g.id===p.provider);

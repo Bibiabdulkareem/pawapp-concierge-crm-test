@@ -488,7 +488,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
   <div class="card stat"><span>مواعيد تحتاج متابعة</span><b id="fuAppointments" class="blue">0</b></div>
   <div class="card stat"><span>بيانات مهمة ناقصة</span><b id="fuMissing">0</b></div>
-  <div class="card stat"><span>طلبات نماذج غير مكتملة</span><b id="fuIntake">0</b></div>
+  <button class="card stat" type="button" onclick="pawOpenIntakeQueue()" aria-label="فتح قائمة طلبات النماذج غير المكتملة" style="width:100%;text-align:right;cursor:pointer;font:inherit;color:inherit;display:block;border:1px solid var(--line);background:#fff"><span>طلبات نماذج غير مكتملة</span><b id="fuIntake">0</b><small class="hint">اضغطي لعرض العملاء واستكمال بياناتهم</small></button>
 </div>
 
 <div class="section"><h2>2. المواعيد والتذكيرات المؤكدة</h2></div>

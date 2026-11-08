@@ -154,8 +154,10 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
           <td>${yesNo(c.vaccinated)}</td>
           <td>${yesNo(c.microchipped)}</td>
           <td>${esc(pr.name)}</td>
-          <td>${esc(c.service||c.requested_service||'—')}
-          ${staffServices.length?'<div class="hint">الخدمات حسب قائمة الموظفة: '+esc(staffServices.join(' + '))+' (بدون إضافة سعر نقل)</div>':''}
+          <td>${staffServices.length?
+              '<div style="font-weight:700;line-height:1.5;white-space:normal;min-width:215px;color:#163d77">حسب قائمة الموظفة: '+esc(staffServices.join(' + '))+'</div>'+
+              '<div class="hint">نوع العملية المسجل: '+esc(c.service||c.requested_service||'—')+' • بدون إضافة رسوم نقل</div>'
+              :esc(c.service||c.requested_service||'—')}
           ${staffDate&&String(c.service_date||'')!==staffDate?'<div class="hint">موعد القائمة: '+esc(staffDate)+'؛ راجعي تاريخ التنفيذ</div>':''}
           ${staffDuplicate?'<div class="hint" style="color:#a15d00">سجل مشابه: PAW-'+String(staffMeta.staff_repeat_peer_case_id||'').padStart(4,'0')+' — يحتاج تدقيق، لا تحذفي</div>':''}
           ${transportDashboardHtml(c)}</td>

@@ -572,6 +572,7 @@ window.sourceLabel = function(src){
       const c=db.cases.find(x=>String(x.id)===String(id)); if(!c)return;
       const tri=v=>v===true?'yes':v===false?'no':'';
       document.getElementById('editCaseId').value=id;
+      document.getElementById('eClientName').value=c.client_name||'';
       document.getElementById('ePhone').value=c.client_phone||'';
       if(window.pawPetPrefillCase)window.pawPetPrefillCase(id).catch(console.warn);
       document.getElementById('eLocation').value=c.location||'';
@@ -609,6 +610,25 @@ window.sourceLabel = function(src){
       document.getElementById('completeCaseModal').classList.add('show');
     };
 
+    // Dedicated safe name correction, never modifies receipts, prices or settlements.
+    window.saveCaseCustomerNameOnly=async function(){
+      const id=Number(document.getElementById('editCaseId')?.value);
+      const name=String(document.getElementById('eClientName')?.value||'').trim();
+      if(!Number.isSafeInteger(id)||id<=0)return alert('اختاري العملية أول');
+      if(!name)return alert('اكتبي اسم العميل');
+      if(!['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))return alert('التعديل للأدمن والموظفة المخوّلة فقط');
+      try{
+        const {data,error}=await window.PAWAPP_AUTH.client.from('test_cases')
+          .update({client_name:name}).eq('id',id).select('id,client_name');
+        if(error)throw error;
+        if(!data||data.length!==1)throw new Error('لم يتم الحفظ؛ تأكدي من صلاحيات الموظفة');
+        await loadData();
+        if(typeof window.renderCRM==='function')renderCRM();
+        if(typeof window.renderCases==='function')renderCases();
+        toast('تم حفظ اسم العميل فقط، بدون تغيير الحسابات');
+      }catch(e){console.error(e);alert('تعذر تعديل الاسم: '+(e.message||'خطأ غير معروف'))}
+    };
+
     window.saveCaseDetails = async function(){
       const id=document.getElementById('editCaseId').value;
       const row=db.cases.find(x=>String(x.id)===String(id)); if(!row)return;
@@ -627,7 +647,8 @@ window.sourceLabel = function(src){
           method:'PATCH',
           headers:{Prefer:'return=minimal'},
           body:JSON.stringify({
-            client_phone:document.getElementById('ePhone').value.trim(),
+            client_name:document.getElementById('eClientName').value.trim()||row.client_name,
+          client_phone:document.getElementById('ePhone').value.trim(),
             location:document.getElementById('eLocation').value.trim()||null,
             pet_type:document.getElementById('ePetType').value||null,
             breed:document.getElementById('eBreed').value.trim()||null,
@@ -1136,6 +1157,8 @@ window.sourceLabel = function(src){
       showPage('cases');
       const search=document.getElementById('caseSearch');
       if(search){search.value='PAW-'+String(id).padStart(4,'0');renderCases();}
+      // Open the edit modal directly. Name can be changed and saved independently.
+      if(typeof window.openCaseDetails==='function')window.openCaseDetails(id);
     };
 
     window.crmOpenHistory = function(key){
@@ -1583,6 +1606,7 @@ window.sourceLabel = function(src){
       const existingPaid=clientPaidAmt(row);
       try{
         await api('cases?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+          client_name:document.getElementById('eClientName').value.trim()||row.client_name,
           client_phone:document.getElementById('ePhone').value.trim(),
           employee_id:document.getElementById('eEmployee')?.value||null,
           location:document.getElementById('eLocation').value.trim()||null,

@@ -2736,7 +2736,12 @@ window.sourceLabel = function(src){
           .select('id,client_name,client_phone,provider_id,service_name,service_date,appointment_at,pet_type,breed,intake_details,workflow_status,total_amount')
           .like('client_phone','%'+phone).order('id',{ascending:false}).limit(500);
         if(error)throw error;
-        const all=(data||[]).filter(c=>smartPhoneDigits(c.client_phone)===phone&&c.workflow_status!=='cancelled');
+        const liveAndLoaded=[...(data||[]),...db.cases];
+        const seenCaseIds=new Set();
+        const all=liveAndLoaded.filter(c=>{
+          if(smartPhoneDigits(c.client_phone)!==phone||c.workflow_status==='cancelled'||seenCaseIds.has(String(c.id)))return false;
+          seenCaseIds.add(String(c.id));return true;
+        }).sort((x,y)=>Number(y.id)-Number(x.id));
         const last=all[0];
         if(last && nameKey!==smartNameKey(last.client_name)){
           const useExisting=confirm('رقم التلفون مسجل باسم: '+last.client_name+

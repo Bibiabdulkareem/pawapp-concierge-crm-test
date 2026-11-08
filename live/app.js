@@ -53,6 +53,19 @@
   const script = document.createElement('script');
   script.src = 'legacy-app.js?v=pawapp-live-isolated-20261027';
   script.onload = function(){
+    // Direct customer search by name, phone, or linked operation.
+    const normalizeClientSearch=value=>String(value??'').normalize('NFKC').toLowerCase()
+      .replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه')
+      .replace(/[^\p{L}\p{N}]/gu,'');
+    const customerSearchMatches=(query,values)=>{
+      const key=normalizeClientSearch(query);
+      if(!key)return true;
+      const digits=String(query??'').replace(/\D/g,'');
+      return values.some(value=>{
+        const raw=String(value??'');
+        return normalizeClientSearch(raw).includes(key) || (digits.length>=4 && raw.replace(/\D/g,'').includes(digits));
+      });
+    };
     window.deleteCaseFromOperations=async function(caseId){
       if(!(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))){alert('الحذف متاح للـ Admin و Operations فقط');return;}
       const row=db.cases.find(x=>String(x.id)===String(caseId));if(!row)return;
@@ -113,7 +126,7 @@
 
 function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);if(d>='2026-07-01'&&d<'2026-10-01')return 'تمت التسوية';if(!c.client_paid||!c.client_paid_to)return 'تحتاج مراجعة';return 'Pending';}
     window.renderCases = function(){
-      const q=(document.getElementById('caseSearch').value||'').toLowerCase();
+      const q=(document.getElementById('caseSearch')?.value||'').trim();
       const sf=document.getElementById('caseStatusFilter')?.value||'all';
       const pf=document.getElementById('caseProviderFilter')?.value||'all';
       let h='';
@@ -136,13 +149,15 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
           if(v2PayProvider(c)>0.0001){companyStatus='مستحق للشركة';companyStatusClass='pending';}
           else{companyStatus='تم تحويل مستحق الشركة';companyStatusClass='paid';}
         }else if(clientPaid&&!c.client_paid_to){companyStatus='حددي دفع لمن';companyStatusClass='unpaid';}
-        if(q&&!hay.includes(q))return;
-        if(pf!=='all'&&c.providerId!==pf)return;
-        if(sf==='client_unpaid'&&clientPaid)return;
-        if(sf==='client_paid'&&!clientPaid)return;
+        if(c.workflow_status==='cancelled' && normalizeClientSearch(q)!==normalizeClientSearch('PAW-'+String(c.id).padStart(4,'0')))return;
+        if(q&&!customerSearchMatches(q,[hay,c.client_name,c.client_phone,staffName,staffPhone]))return;
+        // Direct lookup should not silently inherit a previously selected filter.
+        if(!q && pf!=='all'&&c.providerId!==pf)return;
+        if(!q && sf==='client_unpaid'&&clientPaid)return;
+        if(!q && sf==='client_paid'&&!clientPaid)return;
         const providerOutstanding=clientPaid&&c.client_paid_to==='pawapp'&&v2PayProvider(c)>0.0001;
-        if(sf==='vendor_unpaid'&&!providerOutstanding)return;
-        if(sf==='vendor_paid'&&providerOutstanding)return;
+        if(!q && sf==='vendor_unpaid'&&!providerOutstanding)return;
+        if(!q && sf==='vendor_paid'&&providerOutstanding)return;
         const yesNo=v=>v===true?'نعم':v===false?'لا':'—';
         const missing=!c.providerId||!c.service||Number(c.total_amount||0)<=0||!c.pet_type||!c.location;
         const dueTxt=!clientPaid&&c.client_due_date?c.client_due_date:'—';
@@ -932,9 +947,9 @@ window.sourceLabel = function(src){
     }
     window.renderCRM = function(){
       window.pawPetCases=db.cases;
-      const q=(document.getElementById('crmSearch')?.value||'').trim().toLowerCase();
+      const q=(document.getElementById('crmSearch')?.value||'').trim();
       const groups=new Map();
-      db.cases.slice().reverse().forEach(x=>{
+      db.cases.slice().reverse().filter(x=>x.workflow_status!=='cancelled').forEach(x=>{
         const phone=String(x.client_phone||'');
         const key=canonicalCustomerKey(x);
         if(!groups.has(key)) groups.set(key,{name:x.client_name||'بدون اسم',phone:x.client_phone||'',location:x.location||'',cases:[],pets:new Map()});
@@ -951,7 +966,7 @@ window.sourceLabel = function(src){
             x.intake_details?.staff_listed_phone,x.intake_details?.staff_listed_area,
             ...(Array.isArray(x.intake_details?.staff_requested_services)?x.intake_details.staff_requested_services:[])
           ].filter(Boolean).join(' '))].join(' ').toLowerCase();
-        return !q||hay.includes(q);
+        return customerSearchMatches(q,[hay,g.name,g.phone,g.location,...g.cases.flatMap(x=>[x.client_name,x.client_phone,x.intake_details?.staff_listed_name,x.intake_details?.staff_listed_phone])]);
       });
       const customerCount=document.getElementById('crmCustomerCount');
       const petCount=document.getElementById('crmPetCount');
@@ -976,6 +991,11 @@ window.sourceLabel = function(src){
         const pets=[...g.pets.values()];
         const petHtml=pets.map(p=>'<span class="status" style="margin:3px 3px 0 0">'+esc([p.pet_type,p.breed].filter(Boolean).join(' - '))+'</span>').join('');
         const last=g.cases[0];
+        const caseList=g.cases.map(c=>'<div style="border-top:1px solid #e4e8f0;padding:10px 0;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">'+
+          '<div><b>PAW-'+String(c.id).padStart(4,'0')+'</b> • '+esc(c.service||c.requested_service||'الخدمة غير محددة')+
+          '<div class="hint">'+esc(c.service_date||'بدون تاريخ')+' • '+esc(byProvider(c.providerId).name||'بدون عيادة')+' • '+
+          Number(c.total_amount||0).toFixed(3)+' د.ك • '+(c.client_paid?'دافع':'غير مدفوع')+'</div></div>'+
+          '<button class="btn soft" type="button" onclick="crmJumpToCase('+Number(c.id)+')">فتح العملية</button></div>').join('');
         return '<div class="card" style="box-shadow:none">'+
           '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">'+
             '<div><b style="font-size:16px">'+esc(g.name)+'</b><div class="hint">'+esc(g.phone||'بدون رقم')+(g.location?' • '+esc(g.location):'')+'</div></div>'+
@@ -986,6 +1006,7 @@ window.sourceLabel = function(src){
           (Array.isArray(last?.intake_details?.staff_requested_services)&&last.intake_details.staff_requested_services.length?
             '<div class="hint">حسب قائمة الموظفة: '+esc(last.intake_details.staff_requested_services.join(' + '))+' (غير مسعّرة بشكل منفصل)</div>':'')+
           (last?.intake_details?.staff_same_phone_repeat_review===true?'<div class="hint" style="color:#a15d00">يوجد سجل مشابه يحتاج مراجعة، بدون تعديل القيود المالية.</div>':'')+
+          '<div style="margin-top:10px"><b>عمليات العميل:</b>'+caseList+'</div>'+
           '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
             '<button class="btn primary" type="button" onclick="crmEditCustomer(\''+String(last?.id||'')+'\')">تعديلات</button>'+
             '<button class="btn soft" type="button" onclick="crmOpenHistory(\''+encodeURIComponent(g.phone||g.name)+'\')">سجل العميل</button>'+
@@ -1107,6 +1128,14 @@ window.sourceLabel = function(src){
       document.getElementById('cHasPetId').value=tri(x.has_pet_id);
       const box=document.getElementById('existingCustomerResults');
       if(box) box.innerHTML='<div class="status paid">تم تحميل ملف العميل والحيوان</div>';
+    };
+
+    window.crmJumpToCase=function(id){
+      const status=document.getElementById('caseStatusFilter');if(status)status.value='all';
+      const provider=document.getElementById('caseProviderFilter');if(provider)provider.value='all';
+      showPage('cases');
+      const search=document.getElementById('caseSearch');
+      if(search){search.value='PAW-'+String(id).padStart(4,'0');renderCases();}
     };
 
     window.crmOpenHistory = function(key){
@@ -2007,7 +2036,7 @@ window.sourceLabel = function(src){
     }
 
     function financialFollowupItems(c){
-      if(isArchivedHistoricalCase(c)) return [];
+      if(isArchivedHistoricalCase(c)||c.workflow_status==='cancelled') return [];
       const items=[];
       const paid=v2ClientPaid(c);
       if(!paid && clientRem(c)>0.0001){
@@ -2217,6 +2246,7 @@ window.sourceLabel = function(src){
 
       const financeRows=[],appointmentRows=[],missingRows=[];
       db.cases.slice().reverse().forEach(function(c){
+        if(c.workflow_status==='cancelled')return;
         // Unpriced customer-form requests are handled once in the focused intake queue,
         // not repeated as both a finance debt and a missing-file task.
         const isForm=['booking_form','booking_form_test','pet_information_form'].includes(c.source);

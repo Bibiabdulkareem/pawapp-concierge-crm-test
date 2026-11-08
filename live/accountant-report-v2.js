@@ -43,6 +43,13 @@ function tally(snap,settlements,month){
  const ordered=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,"ar"));
  return {month,paid,groups:ordered,totals:F().summarize(paid),reviews,approved,cats,snap};
 }
+function settlementLabel(g){
+ const outstanding=g.summary.ours+g.summary.theirs;
+ if(outstanding>0n)return "تسوية مفتوحة";
+ if(g.approved.length)return "إقفال الشهر معتمد";
+ if(g.lines.some(l=>l.isPaid))return "تم سداد حصص الجهة — اعتماد إقفال الشهر غير مسجل";
+ return "لا توجد مستحقات";
+}
 function card(name,value){return '<div class="card stat" style="min-width:0"><span>'+name+'</span><b style="font-size:clamp(14px,2vw,20px)">'+value+'</b></div>';}
 function renderView(s){
  const sum=s.totals;
@@ -59,7 +66,7 @@ function renderView(s){
   for(const v of [g.name,g.summary.caseCount,money(g.summary.total),money(g.summary.paw),money(g.summary.provider),money(g.summary.providerPaid),money(g.summary.commissionReceived),money(g.summary.ours),money(g.summary.theirs)]){
    const td=document.createElement("td");td.textContent=String(v);tr.appendChild(td);
   }
-  let td=document.createElement("td");td.textContent=g.review?"تحتاج مراجعة":g.summary.ours||g.summary.theirs?"مستحقات مفتوحة":g.approved.length?"الشهر معتمد":"لا يوجد متبقٍ / الإقفال مستقل";tr.appendChild(td);
+  let td=document.createElement("td");td.textContent=settlementLabel(g)+(g.review?" • مراجعة بيانات الخدمة":"");tr.appendChild(td);
   td=document.createElement("td");
   const due=g.summary.ours+g.summary.theirs;
   if(accountant()&&!g.review&&g.id!=="missing"&&due>0n&&!g.approved.length){

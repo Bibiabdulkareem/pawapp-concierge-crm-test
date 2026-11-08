@@ -294,20 +294,80 @@ const counts=new Map();p.lines.forEach(l=>counts.set(l.service,(counts.get(l.ser
 el('pdClientList').innerHTML=p.lines.filter(pawSourceMatchesLine).map(l=>'<div class="card provider"><h3>'+html(l.client)+'</h3><div class="hint">'+caseCode(l.caseId)+' • '+html(l.service)+'</div><div class="miniGrid"><div class="mini"><span>السعر</span><b>'+cash(l.total)+'</b></div><div class="mini"><span>PawApp</span><b>'+cash(l.paw)+'</b></div><div class="mini"><span>الشركة</span><b>'+cash(l.provider)+'</b></div></div><p>'+html(detail(l))+'</p><div class="actions">'+(actionable(l)?actionButton(l):'')+'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">العملية</button></div></div>').join('')||'<div class="card">لا توجد عمليات</div>';el('pdExportBtn').onclick=()=>window.exportProviderFullReport(p.id);
 }
 window.renderProviderSourceCases=function(){if(selectedProvider)renderProvider()};
-function renderFollowups(){if(!model)return;
- const pendingBookings=(snapshot?.cases||[]).filter(c=>['booking_form_test','booking_form','pet_information_form'].includes(c.source)&&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'&&intakeMissing(c).length>0);
- const followupBox=el('followupFinanceList');
- if(followupBox){
-  let area=el('pawBookingIntakeReview');
-  if(!area){area=document.createElement('section');area.id='pawBookingIntakeReview';followupBox.before(area);}
-  const petPending=pendingBookings.filter(c=>c.source==='pet_information_form').length;
-  area.innerHTML=pendingBookings.length?'<h3>طلبات النماذج — '+pendingBookings.length+' طلب بانتظار الاستكمال</h3><p class="hint">منها '+petPending+' طلب Pet Information. هذا العدد منفصل عن عدد المستحقات المالية؛ الطلب المدفوع يخرج من متابعة الاستكمال وتبقى تسويته عند الشركة.</p>'+pendingBookings.map(c=>{
+function renderFollowups(){
+ if(!model)return;
+ // The legacy intake renderer owns the collapsed bottom section. Do not inject
+ // booking intake cards before the urgent financial queue.
+ const staleIntake=el('pawBookingIntakeReview');
+ if(staleIntake)staleIntake.remove();
+ const pendingBookings=(snapshot?.cases||[]).filter(c=>
+   ['booking_form_test','booking_form','pet_information_form'].includes(c.source)
+   &&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'
+   &&intakeMissing(c).length>0);
+ // Price/receipt exists: treat missing service/provider data as an important
+ // operational correction. Unpriced form submissions belong ONLY in the
+ // collapsed, bottom "طلبات النماذج" section.
+ const importantBookings=pendingBookings.filter(c=>
+   Number(c.total_amount||0)>0 || c.client_paid===true);
+ if(legacyFollowups)legacyFollowups();
+ renderSeptemberReviews();
+
+ const financialReviewIssues=new Set([
+   'payment_route_missing','direct_provider_and_payout','duplicate_commission_route',
+   'client_overpaid','provider_overpaid','commission_overpaid','paid_flag_mismatch',
+   'price_split_mismatch','invalid_price','unpriced_service','transport_payment_unknown'
+ ]);
+ const lines=model.lines.filter(l=>
+   !pendingBookings.some(c=>String(c.id)===l.caseId)
+   &&actionable(l)&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')
+   &&(l.action==='client_paid'||(l.date>='2026-10-01'
+     &&l.issues.some(issue=>financialReviewIssues.has(issue))))
+ );
+ const criticalCards=importantBookings.map(c=>{
    const missing=intakeMissing(c);
-   return '<div class="card"><b>'+html(c.client_name||'عميل')+' — '+caseCode(c.id)+'</b><div class="hint">المصدر: '+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source)+' • الخدمة المطلوبة: '+html(c.requested_service||c.service_name||'استكمال بيانات')+'</div>'+(Array.isArray(c.intake_details?.requested_services)&&c.intake_details.requested_services.length?'<div class="hint">تفاصيل الخدمات: '+html(c.intake_details.requested_services.join('، '))+'</div>':'')+'<div class="hint">المطلوب: '+html(missing.join('، '))+'</div><button class="btn primary" onclick="pawBookingReview('+Number(c.id)+')">استكمال الطلب وحساب العمولة</button></div>';
-  }).join(''):'';
+   return '<div class="card provider" style="border:1px solid #e8b960">'+
+     '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+       '<h3 style="margin:0">'+html(c.client_name||'عميل')+'</h3>'+
+       '<span class="status unpaid">بيانات مالية تحتاج تصحيح</span></div>'+
+     '<div class="hint">'+caseCode(c.id)+' • '+html(c.client_phone||'')+
+       ' • '+html(c.requested_service||c.service_name||'الخدمة غير محددة')+'</div>'+
+     '<div class="hint">السعر المسجل: '+cash(Number(c.total_amount||0))+
+       ' • المطلوب: '+html(missing.join('، '))+'</div>'+
+     '<div class="actions"><button class="btn primary" type="button" onclick="pawBookingReview('+Number(c.id)+')">استكمال بيانات العملية</button></div></div>';
+ }).join('');
+ const actionCards=lines.map(l=>
+   '<div class="card provider">'+
+     '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+       '<h3 style="margin:0">'+html(l.client)+'</h3>'+
+       '<span class="status unpaid">'+(l.issues.length?'تأكيد / مراجعة':'مستحقات')+'</span></div>'+
+     '<div class="hint">'+caseCode(l.caseId)+' • '+html(providerName(l.providerId))+
+       ' • '+(l.component==='transport'?'النقل':'الخدمة')+'</div>'+
+     '<h3>'+html(actionLabel(l))+'</h3>'+
+     '<div class="hint">'+html(detail(l))+'</div>'+
+     '<div class="actions">'+(
+       l.issues.includes('unpriced_service')
+         ?'<button class="btn primary" onclick="pawBookingReview(\''+l.caseId+'\')">استكمال السعر في العملية</button>'
+         :(String(l.caseId)==='384'&&l.action==='client_paid'
+           ?'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">مراجعة الاسترجاع 47 د.ك — لا تسجلي تحصيل</button>'
+           :actionButton(l))
+     )+'</div></div>'
+ ).join('');
+ const box=el('followupFinanceList');
+ if(box)box.innerHTML=(criticalCards+actionCards)||
+   '<div class="card"><b class="green">تمام ✓</b><div class="hint">لا توجد إجراءات مالية مطلوبة حالياً. مستحقات الشركات تظهر في لوحة التسويات.</div></div>';
+ const importantIds=new Set([...importantBookings.map(c=>String(c.id)),...lines.map(l=>l.caseId)]);
+ set('fuFinance',importantIds.size);
+ // Badge counts only work requiring immediate attention; form-only intake is separate.
+ const pending=new Set(importantIds);
+ for(const id of ['followupAppointmentList','followupMissingList']){
+   el(id)?.querySelectorAll('[onclick]').forEach(b=>{
+     const m=b.getAttribute('onclick')?.match(/\('([^']+)'/);
+     if(m)pending.add(m[1]);
+   });
  }
- if(legacyFollowups)legacyFollowups();renderSeptemberReviews();const financialReviewIssues=new Set(['payment_route_missing','direct_provider_and_payout','duplicate_commission_route','client_overpaid','provider_overpaid','commission_overpaid','paid_flag_mismatch','price_split_mismatch','invalid_price','unpriced_service','transport_payment_unknown']);const lines=model.lines.filter(l=>!pendingBookings.some(c=>String(c.id)===l.caseId)&&actionable(l)&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')&&(l.action==='client_paid'||(l.date>='2026-10-01'&&l.issues.some(issue=>financialReviewIssues.has(issue)))));const box=el('followupFinanceList');if(box)box.innerHTML=lines.map(l=>'<div class="card provider"><div style="display:flex;justify-content:space-between;gap:10px"><h3>'+html(l.client)+'</h3><span class="status unpaid">'+(l.issues.length?'تأكيد / مراجعة':'مستحقات')+'</span></div><div class="hint">'+caseCode(l.caseId)+' • '+html(providerName(l.providerId))+' • '+(l.component==='transport'?'النقل':'الخدمة')+'</div><h3>'+html(actionLabel(l))+'</h3><div class="hint">'+html(detail(l))+'</div><div class="actions">'+(l.issues.includes('unpriced_service')?'<button class="btn primary" onclick="pawBookingReview(\''+l.caseId+'\')">استكمال السعر في العملية</button>':(String(l.caseId)==='384'&&l.action==='client_paid'?'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">مراجعة الاسترجاع 47 د.ك — لا تسجلي تحصيل</button>':actionButton(l)))+'</div></div>').join('')||'<div class="card"><b class="green">تمام ✓</b><div class="hint">لا توجد دفعات عملاء تحتاج متابعة. مستحقات الشركات وعمولات PawApp تظهر في التسويات فقط.</div></div>';
-set('fuFinance',new Set(lines.map(l=>l.caseId)).size);const pending=new Set([...lines.map(l=>l.caseId),...pendingBookings.map(c=>String(c.id))]);for(const id of ['followupAppointmentList','followupMissingList'])el(id)?.querySelectorAll('[onclick]').forEach(b=>{const m=b.getAttribute('onclick')?.match(/\('([^']+)'/);if(m)pending.add(m[1])});set('followupNavBadge',pending.size);if(el('followupNavBadge'))el('followupNavBadge').style.display=pending.size?'inline-block':'none';set('kNeedsFollowup',pending.size);
+ set('followupNavBadge',pending.size);
+ if(el('followupNavBadge'))el('followupNavBadge').style.display=pending.size?'inline-block':'none';
+ set('kNeedsFollowup',pending.size);
 }
 function isArchivedHistoricalCaseForTable(c){return String(c.workflow_status)==='closed'&&c.client_paid===true&&/\[BULK_IMPORT:2026:(?:7|8|9):ROW:\d+\]/.test(String(c.notes||''));}
 function renderCases(){

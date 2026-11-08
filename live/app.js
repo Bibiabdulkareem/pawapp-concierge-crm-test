@@ -2757,25 +2757,41 @@ window.sourceLabel = function(src){
           const linkRes=await sb.from('test_pet_case_links').select('case_id,pet_id').in('case_id',ids);
           if(linkRes.error)throw linkRes.error;
           links=linkRes.data||[];
+          const petIds=[...new Set(links.map(x=>String(x.pet_id)).filter(Boolean))];
+          let registeredPetNames=new Map();
+          if(petIds.length){
+            const petRes=await sb.from('test_pet_registry').select('id,pet_name').in('id',petIds);
+            if(petRes.error)throw petRes.error;
+            registeredPetNames=new Map((petRes.data||[]).map(x=>[String(x.id),smartNameKey(x.pet_name)]));
+          }
           const enriched=possible.map(c=>{
             const linked=links.find(x=>Number(x.case_id)===Number(c.id));
             const oldPetId=linked?String(linked.pet_id):'';
-            const oldPetName=smartNameKey(c.intake_details?.pet_name||c.intake_details?.petName||'');
+            const oldPetName=registeredPetNames.get(oldPetId)||
+              smartNameKey(c.intake_details?.pet_name||c.intake_details?.petName||'');
             let differentPet=false;
             if(selectedPet&&oldPetId&&selectedPet!==oldPetId)differentPet=true;
             if(petName&&oldPetName&&petName!==oldPetName)differentPet=true;
-            // If a pet was explicitly selected and a different pet was linked, it is a different case.
             const datediff=Math.abs(new Date(serviceDate+'T12:00:00')-new Date(String(c.service_date||'')+'T12:00:00'))/86400000;
             return {c,datediff,differentPet,oldPetId,oldPetName};
           }).filter(x=>Number.isFinite(x.datediff)&&x.datediff<=7&&!x.differentPet);
           const exact=enriched.filter(x=>x.datediff===0);
           if(exact.length){
-            const exactId='PAW-'+String(exact[0].c.id).padStart(4,'0');
-            // Distinct animals can have the same service on the same day.
-            // Require a distinct explicit animal identity, not just a second phone entry.
-            alert('تم العثور على عملية موجودة لنفس العميل والحيوان/النوع والخدمة والعيادة في نفس اليوم: '+exactId+
-              '\n\nما حفظنا عملية ثانية حتى ما نكرر المبلغ.\nإذا الخدمة لحيوان آخر، اختاري الحيوان الآخر من القائمة أو اكتبي اسم الحيوان الجديد بشكل مميز، ثم أعيدي الحفظ.');
-            return;
+            const exactRow=exact[0];
+            const exactId='PAW-'+String(exactRow.c.id).padStart(4,'0');
+            // If old pet identity is unknown, a distinct named pet can be added only
+            // after explicit review. If an old pet is known, same pet/same service/date is blocked.
+            if(petName&&!selectedPet&&!exactRow.oldPetName&&!exactRow.oldPetId){
+              const otherPet=confirm('تنبيه تكرار: فيه عملية '+exactId+
+                ' بنفس العميل والعيادة والخدمة واليوم، لكن اسم الحيوان القديم غير موثق.'+
+                '\n\nإنتي كاتبة الحيوان الجديد: '+petName+
+                '\nموافق فقط إذا هذا حيوان مختلف فعلاً وله خدمة مستقلة. إلغاء لمنع التكرار.');
+              if(!otherPet)return;
+            }else{
+              alert('تم العثور على عملية موجودة لنفس العميل والحيوان/النوع والخدمة والعيادة في نفس اليوم: '+exactId+
+                '\n\nما حفظنا عملية ثانية حتى ما نكرر المبلغ.\nإذا الخدمة لحيوان آخر، اختاري الحيوان المختلف من القائمة أو اكتبي اسم حيوان جديد محدد، ثم أعيدي الحفظ.');
+              return;
+            }
           }
           if(enriched.length){
             const nearby=enriched[0].c;

@@ -2307,27 +2307,34 @@ window.sourceLabel = function(src){
       const financeBox=document.getElementById('followupFinanceList');
       const appointmentBox=document.getElementById('followupAppointmentList');
       const missingBox=document.getElementById('followupMissingList');
-      if(!financeBox||!appointmentBox||!missingBox) return;
+      const intakeBox=document.getElementById('followupIntakeList');
+      if(!financeBox||!appointmentBox||!missingBox||!intakeBox) return;
 
-      const financeRows=[],appointmentRows=[],missingRows=[];
+      const financeRows=[],appointmentRows=[],missingRows=[],intakeRows=[];
       db.cases.slice().reverse().forEach(function(c){
         if(c.workflow_status==='cancelled')return;
-        // Unpriced customer-form requests are handled once in the focused intake queue,
-        // not repeated as both a finance debt and a missing-file task.
+        // An unpriced, unpaid, unconfirmed form is an intake request, NOT a debt or settlement.
+        // Show it only in the low-priority bottom queue; never mark service/due as completed.
         const isForm=['booking_form','booking_form_test','pet_information_form'].includes(c.source);
-        const matchingProvider=db.providers.find(p=>String(p.id)===String(c.providerId||c.provider_id));
-        const actualService=matchingProvider?.services?.includes(c.service||c.service_name);
+        const unpriced=Number(c.total_amount||0)<=0;
+        const unconfirmed=['new_request','client_contacted'].includes(c.workflow_status||'new_request')
+          && !c.appointment_at;
+        const isUnpricedIntake=isForm&&unpriced&&c.client_paid!==true&&unconfirmed;
+        if(isUnpricedIntake){
+          intakeRows.push({c:c});
+          return;
+        }
+        // A paid Pet Information case is handled in the settlement ledger rather
+        // than being duplicated in the follow-up intake queue.
         const petInfo=c.source==='pet_information_form';
         const petClientCollected=petInfo&&c.client_paid===true&&c.client_paid_to==='pawapp'&&Number(c.total_amount||0)>0;
-        // A paid Pet Information case is no longer intake or customer follow-up.
-        // Incomplete service/provider information must be reviewed in settlements.
         if(petClientCollected)return;
-        const pendingForm=isForm&&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'&&
-          ((!petInfo&&!c.employee_id)||!matchingProvider||!actualService||Number(c.total_amount||0)<=0||
-            (petInfo&&(!c.client_paid||c.client_paid_to!=='pawapp')));
-        if(pendingForm){
+        // A request without a price but with a confirmed appointment gets only its
+        // appointment reminder, never a false customer-payment request.
+        if(isForm&&unpriced){
           const appointments=appointmentFollowupItems(c);
           if(appointments.length)appointmentRows.push({c:c,items:appointments});
+          else intakeRows.push({c:c});
           return;
         }
         const financial=financialFollowupItems(c);
@@ -2346,6 +2353,9 @@ window.sourceLabel = function(src){
       set('fuFinance',financeRows.length);
       set('fuAppointments',appointmentRows.length);
       set('fuMissing',missingRows.length);
+      set('fuIntake',intakeRows.length);
+      set('fuIntakeSummary',intakeRows.length);
+      // Only actionable items show in the urgent navigation badge.
       const navIds=new Set();
       financeRows.concat(appointmentRows,missingRows).forEach(function(x){navIds.add(String(x.c.id))});
       const navBadge=document.getElementById('followupNavBadge');
@@ -2388,6 +2398,13 @@ window.sourceLabel = function(src){
           '<div style="margin-top:10px">'+x.items.map(function(r){return '<div class="kpi-line"><span>'+esc(r)+'</span></div>'}).join('')+'</div>'+
           '<div class="actions"><button class="btn primary" onclick="openMissingTask(\''+c.id+'\')">استكمال المطلوب</button><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button></div></div>';
       }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في بيانات أساسية ناقصة.</div></div>';
+
+      intakeBox.innerHTML=intakeRows.length?intakeRows.map(function(x){
+        const c=x.c;
+        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial">نموذج فقط — غير مسعّر</span>')+
+          '<div class="hint" style="margin-top:8px">طلب غير مكتمل: لا يوجد سعر معتمد ولا دفعة مسجلة. هذا ليس مستحقاً مالياً.</div>'+
+          '<div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح الطلب واستكماله</button></div></div>';
+      }).join(''):'<div class="card"><div class="hint">ما في طلبات نماذج غير مكتملة حالياً.</div></div>';
     };
 
 

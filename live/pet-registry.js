@@ -13,6 +13,8 @@ async function load(){
   const [a,b]=await Promise.all([client().from('test_pet_registry').select('*').order('created_at',{ascending:false}),client().from('test_pet_case_links').select('case_id,pet_id')]);
   if(a.error)throw a.error;if(b.error)throw b.error;
   pets=a.data||[];links=b.data||[];loaded=true;draw();
+  // Populate existing-pet choices even if the employee entered the phone while the registry was loading.
+  if($('cPhone'))$('cPhone').dispatchEvent(new Event('input',{bubbles:true}));
  }catch(e){if($('pawPetRegistryStatus'))$('pawPetRegistryStatus').textContent='تعذر تحميل السجل: '+e.message;}
  finally{loading=false;}
 }

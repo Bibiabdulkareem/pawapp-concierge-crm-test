@@ -47,7 +47,7 @@ function settlementLabel(g){
  const outstanding=g.summary.ours+g.summary.theirs;
  if(outstanding>0n)return "تسوية مفتوحة";
  if(g.approved.length)return "إقفال الشهر معتمد";
- if(g.lines.some(l=>l.isPaid))return "تم سداد حصص الجهة — اعتماد إقفال الشهر غير مسجل";
+ if(g.lines.some(l=>l.isPaid))return "مقفلة — تم دفع حصص الجهة بالكامل";
  return "لا توجد مستحقات";
 }
 function card(name,value){return '<div class="card stat" style="min-width:0"><span>'+name+'</span><b style="font-size:clamp(14px,2vw,20px)">'+value+'</b></div>';}

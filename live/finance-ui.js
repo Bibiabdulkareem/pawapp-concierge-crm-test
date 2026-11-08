@@ -179,7 +179,7 @@ function renderProviderSettlementPeriod(){
    const due=historical?0n:dir==='pawapp_to_provider'?sum.theirs:sum.ours;
    const relevant=lines.filter(l=>l.isPaid&&l.route===(dir==='pawapp_to_provider'?'pawapp':'provider'));
    const unknown=relevant.some(l=>l.issues.length)||unlinkedServices.some(l=>relevant.includes(l));
-   const label=historical?'إقفال تاريخي — ليس اعتماد تحويل':rows.length&&due===0n?'تسوية معتمدة وموثقة':due>0n?'مستحقات مفتوحة — لم تتم التسوية':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'سداد مسجل — التسوية غير معتمدة':'لا توجد عمليات في الفترة';
+   const label=historical?'إقفال تاريخي — ليس اعتماد تحويل':rows.length&&due===0n?'تسوية معتمدة وموثقة':due>0n?'مستحقات مفتوحة — لم تتم التسوية':relevant.length?'مقفلة مالياً — تم تسجيل سداد الحصص بالكامل':lines.length&&unresolved.length?'تحتاج مراجعة البيانات':'لا يوجد مبلغ مستحق بهذا الاتجاه';
    const canApprove=['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length&&!historical&&pawSettlementSource()==='all';
    const canReconcile=pawSettlementSource()==='all'&&!historical&&['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&relevant.length>0&&unresolved.length===0&&relevant.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
    return '<div class="mini"><span>'+title+'</span><b>'+label+'</b><div class="hint">المعتمد: '+amount.toFixed(3)+' د.ك • المتبقي: '+cash(due)+'</div>'+
@@ -187,7 +187,7 @@ function renderProviderSettlementPeriod(){
      (canReconcile?'<button class="btn" onclick="pawConfirmZeroSettlement(\''+dir+'\')">اعتماد تسوية سابقة موثقة</button>':'')+
      (unknown?'<div class="hint">يلزم مراجعة البنود قبل الاعتماد</div>':'')+'</div>';
  }).join('');
- const status=historical?'إقفال تاريخي — لا يثبت اعتماد تحويل':unresolved.length?'تحتاج مراجعة':pending.length?'مستحقات مفتوحة — بانتظار التسوية':approved.length?'توجد تسوية معتمدة ولا مستحقات معلقة':'لا توجد مستحقات معلقة — اعتماد التسوية منفصل عن السداد';
+ const status=historical?'إقفال تاريخي — لا يثبت اعتماد تحويل':pending.length?'مستحقات مفتوحة — بانتظار التسوية':approved.length?'توجد تسوية معتمدة ولا مستحقات معلقة':lines.some(l=>l.isPaid)?'مقفلة مالياً — جميع حصص مقدمي الخدمة مسددة بالسجل':unresolved.length?'تحتاج مراجعة البيانات':'لا توجد مستحقات معلقة';
  host.innerHTML='<div class="hint">'+(pawSettlementSource()==='all'?'كل مصادر الشركة':'المصدر المختار فقط؛ لتسوية كل عملية استخدمي زر المستحق في تفاصيلها، واعتماد الفترة الشامل معطّل حتى لا تختلط المصادر')+'</div><div class="hint">إجمالي الفترة وحصص الطرفين تظهر دائماً، حتى لو المتبقي صفر. حالة الإقفال لا تثبت التحويل وحدها.</div>'+
  '<div class="miniGrid"><div class="mini"><span>عمليات الفترة</span><b>'+sum.caseCount+'</b></div>'+
  '<div class="mini"><span>إجمالي العمليات</span><b>'+cash(sum.total)+'</b></div>'+

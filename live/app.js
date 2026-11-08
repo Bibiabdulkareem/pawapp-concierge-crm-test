@@ -337,6 +337,18 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
       const src=document.getElementById('cSource'); if(src) src.value='manual_test';
       const qs=document.getElementById('existingCustomerSearch'); if(qs) qs.value='';
       const qr=document.getElementById('existingCustomerResults'); if(qr) qr.innerHTML='';
+      const phone=document.getElementById('cPhone'),name=document.getElementById('cClient');
+      if(phone&&!phone.dataset.smartCustomerBound){
+        phone.dataset.smartCustomerBound='1';
+        phone.addEventListener('input',()=>window.smartNewCustomerHint());
+        name?.addEventListener('input',()=>window.smartNewCustomerHint());
+      }
+      const prev=document.getElementById('existingCustomerSearch');
+      if(prev&&!prev.dataset.smartCustomerBound){
+        prev.dataset.smartCustomerBound='1';
+        prev.addEventListener('input',()=>window.searchExistingCustomer());
+      }
+      window.smartNewCustomerHint();
     };
 
     function normalizePetType(v){
@@ -349,39 +361,68 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
       return map[s]||v||'';
     }
 
-    window.searchExistingCustomer = function(){
-      const q=(document.getElementById('existingCustomerSearch').value||'').trim().toLowerCase();
-      const out=document.getElementById('existingCustomerResults');
-      if(!q){out.innerHTML='<div class="hint">اكتبي رقم التلفون أو اسم العميل.</div>';return}
-      const seen=new Set();
-      const matches=[];
-      db.cases.slice().reverse().forEach(x=>{
-        const key=(x.client_phone||'')+'|'+(x.client_name||'')+'|'+(x.pet_type||'')+'|'+(x.breed||'');
-        const hay=[x.client_phone,x.client_name,'PAW-'+String(x.id).padStart(4,'0')].join(' ').toLowerCase();
-        if(hay.includes(q)&&!seen.has(key)){seen.add(key);matches.push(x)}
-      });
-      out.innerHTML=matches.length?matches.slice(0,8).map(x=>{
-        const pet=[x.pet_type||'غير محدد',x.breed||''].filter(Boolean).join(' - ');
-        return '<button type="button" class="card" style="width:100%;text-align:right;box-shadow:none;margin-bottom:7px;cursor:pointer" onclick="selectExistingCustomer(\''+x.id+'\')"><b>'+esc(x.client_name)+'</b><div class="hint">'+esc(x.client_phone||'بدون رقم')+' • '+esc(pet)+'</div></button>';
-      }).join(''):'<div class="hint">ما لقيت عميل سابق. كملي كعميل جديد.</div>';
+    const smartPhoneDigits=value=>{
+      let d=String(value||'').replace(/[^0-9]/g,'');
+      if(d.startsWith('00965')&&d.length===13)d=d.slice(5);
+      if(d.startsWith('965')&&d.length===11)d=d.slice(3);
+      return d;
     };
-
-    window.selectExistingCustomer = function(id){
-      const x=db.cases.find(v=>String(v.id)===String(id)); if(!x)return;
-      const tri=v=>v===true?'yes':v===false?'no':'';
-      document.getElementById('cClient').value=x.client_name||'';
-      document.getElementById('cPhone').value=x.client_phone||'';
-      document.getElementById('cLocation').value=x.location||'';
-      document.getElementById('cPetType').value=normalizePetType(x.pet_type);
-      document.getElementById('cBreed').value=x.breed||'';
-      document.getElementById('cPetAge').value=x.pet_age||'';
-      document.getElementById('cPetFriendly').value=tri(x.pet_friendly);
-      document.getElementById('cVaccinated').value=tri(x.vaccinated);
-      document.getElementById('cMicrochipped').value=tri(x.microchipped);
-      document.getElementById('cHasPetId').value=tri(x.has_pet_id);
-      document.getElementById('cReason').value='';
-      document.getElementById('existingCustomerResults').innerHTML='<div class="status paid">تم تحميل بيانات العميل والحيوان</div>';
-      const src=document.getElementById('cSource'); if(src) src.value='manual_test';
+    const smartNameKey=value=>String(value||'').normalize('NFKC').trim().toLowerCase()
+      .replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي')
+      .replace(/\s+/g,' ');
+    function smartExistingFor(phone,name){
+      const phoneKey=smartPhoneDigits(phone),nameKey=smartNameKey(name);
+      if(phoneKey.length>=8)return db.cases.filter(c=>c.workflow_status!=='cancelled'&&smartPhoneDigits(c.client_phone)===phoneKey).sort((a,b)=>Number(b.id)-Number(a.id));
+      if(nameKey.length>=3)return db.cases.filter(c=>c.workflow_status!=='cancelled'&&
+        [c.client_name,c.intake_details?.staff_listed_name].some(n=>smartNameKey(n)===nameKey)).sort((a,b)=>Number(b.id)-Number(a.id));
+      return [];
+    }
+    window.smartNewCustomerHint=function(){
+      const box=document.getElementById('smartExistingCustomerHint');
+      if(!box)return;
+      const phone=document.getElementById('cPhone')?.value||'';
+      const name=document.getElementById('cClient')?.value||'';
+      const matches=smartExistingFor(phone,name);
+      if(!matches.length){box.style.display='none';box.innerHTML='';return;}
+      const main=matches[0],distinctTypes=[...new Set(matches.map(c=>normalizePetType(c.pet_type)).filter(Boolean))];
+      const exactPhone=smartPhoneDigits(phone).length>=8;
+      box.style.display='block';
+      box.innerHTML='<div style="padding:10px;border:1px solid #b4d3e9;border-radius:10px;background:#f2f8ff">'+
+        '<b>العميل موجود مسبقاً: '+esc(main.client_name)+'</b>'+
+        '<div class="hint">'+esc(main.client_phone||'')+' • '+matches.length+' عملية سابقة'+(distinctTypes.length?' • أنواع الحيوانات: '+esc(distinctTypes.join('، ')):'')+'</div>'+
+        '<button class="btn soft" type="button" style="margin-top:7px" onclick="selectExistingCustomer('+Number(main.id)+')">استخدمي بيانات العميل فقط</button>'+
+        '<div class="hint" style="margin-top:5px">'+(exactPhone?'اختاري الحيوان الموجود من القائمة أو أضيفي حيواناً مختلفاً.':'تأكدي من رقم التلفون قبل ربط العميل.')+
+        ' لا يتم نسخ الخدمة أو السعر أو المدفوعات.</div></div>';
+    };
+    window.searchExistingCustomer=function(){
+      const q=String(document.getElementById('existingCustomerSearch')?.value||'').trim();
+      const out=document.getElementById('existingCustomerResults');if(!out)return;
+      if(!q){out.innerHTML='<div class="hint">اكتبي رقم التلفون أو اسم العميل.</div>';return;}
+      const found=db.cases.slice().reverse().filter(x=>x.workflow_status!=='cancelled'&&
+        customerSearchMatches(q,[x.client_name,x.client_phone,x.intake_details?.staff_listed_name,x.intake_details?.staff_listed_phone]));
+      const seen=new Set(),matches=[];
+      for(const c of found){
+        const key=smartPhoneDigits(c.client_phone)||'name:'+smartNameKey(c.client_name);
+        if(!seen.has(key)){matches.push(c);seen.add(key);}
+      }
+      out.innerHTML=matches.length?matches.slice(0,10).map(x=>
+        '<button type="button" class="card" style="width:100%;text-align:right;box-shadow:none;margin-bottom:7px;cursor:pointer" onclick="selectExistingCustomer('+Number(x.id)+')">'+
+        '<b>'+esc(x.client_name)+'</b><div class="hint">'+esc(x.client_phone||'بدون رقم')+
+        ' • تعبئة العميل فقط، ثم اختاري الحيوان والخدمة المطلوبة</div></button>'
+      ).join(''):'<div class="hint">ما لقينا عميل سابق، تقدرين تسجلينه كعميل جديد.</div>';
+    };
+    window.selectExistingCustomer=function(id){
+      const x=db.cases.find(v=>Number(v.id)===Number(id));if(!x)return;
+      const name=document.getElementById('cClient'),phone=document.getElementById('cPhone');
+      if(name)name.value=x.client_name||'';
+      if(phone){
+        phone.value=x.client_phone||'';
+        phone.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+      const location=document.getElementById('cLocation');if(location&&!location.value)location.value=x.location||'';
+      const box=document.getElementById('existingCustomerResults');
+      if(box)box.innerHTML='<div class="status paid">تم اختيار ملف العميل. اختاري نفس الحيوان أو حيواناً جديداً، ثم الخدمة والسعر.</div>';
+      window.smartNewCustomerHint();
     };
 
     window.saveCase = async function(){
@@ -2662,6 +2703,97 @@ window.sourceLabel = function(src){
       if(id==='admin') window.renderAdminAccess();
     };
 
+
+
+
+    // Guard only new manual bookings: reuse customers, but never reuse prices or payments.
+    // All comparisons are made against fresh LIVE rows immediately before saving.
+    const smartOriginalNewCaseSave=window.saveCase;
+    let smartCaseSaving=false;
+    window.saveCase=async function(){
+      if(smartCaseSaving)return;
+      const clientName=document.getElementById('cClient')?.value.trim()||'';
+      const rawPhone=document.getElementById('cPhone')?.value||'';
+      const phone=smartPhoneDigits(rawPhone);
+      const nameKey=smartNameKey(clientName);
+      if(!clientName){alert('اسم العميل مطلوب');return;}
+      if(phone.length<8){alert('اكتبي رقم تلفون صحيح للعميل (8 أرقام على الأقل) حتى نقدر نكشف التكرار');return;}
+      const provider=document.getElementById('cProvider')?.value||'';
+      const service=document.getElementById('cService')?.value||'';
+      const petType=normalizePetType(document.getElementById('cPetType')?.value||'');
+      const breed=smartNameKey(document.getElementById('cBreed')?.value||'');
+      const petName=smartNameKey(document.getElementById('pawPetBookingName')?.value||'');
+      const selectedPet=document.getElementById('pawPetBookingSelect')?.value||'';
+      const serviceDate=document.getElementById('cDate')?.value||new Date().toISOString().slice(0,10);
+      if(!provider||!service||!petType)return await smartOriginalNewCaseSave();
+      smartCaseSaving=true;
+      const button=document.getElementById('smartSaveCaseBtn');
+      if(button)button.disabled=true;
+      try{
+        const sb=window.PAWAPP_AUTH?.client;
+        if(!sb)throw Error('سجلي الدخول أولاً');
+        const {data,error}=await sb.from('test_cases')
+          .select('id,client_name,client_phone,provider_id,service_name,service_date,appointment_at,pet_type,breed,intake_details,workflow_status,total_amount')
+          .like('client_phone','%'+phone).order('id',{ascending:false}).limit(500);
+        if(error)throw error;
+        const all=(data||[]).filter(c=>smartPhoneDigits(c.client_phone)===phone&&c.workflow_status!=='cancelled');
+        const last=all[0];
+        if(last && nameKey!==smartNameKey(last.client_name)){
+          const useExisting=confirm('رقم التلفون مسجل باسم: '+last.client_name+
+            '\nوالاسم المكتوب الآن: '+clientName+
+            '\n\nموافق: نعتمد الاسم المسجل لنفس العميل.\nإلغاء: نحتفظ بالاسم الجديد (قد يكون شخصاً آخر يستخدم نفس الرقم).');
+          if(useExisting)document.getElementById('cClient').value=last.client_name;
+        }
+        const sameService=all.filter(c=>String(c.provider_id||'')===String(provider)&&
+          smartNameKey(c.service_name)===smartNameKey(service));
+        const possible=sameService.filter(c=>{
+          const oldType=normalizePetType(c.pet_type||'');
+          if(oldType && petType && oldType!==petType)return false;
+          return true;
+        });
+        if(possible.length){
+          const ids=possible.map(c=>Number(c.id));
+          let links=[];
+          const linkRes=await sb.from('test_pet_case_links').select('case_id,pet_id').in('case_id',ids);
+          if(linkRes.error)throw linkRes.error;
+          links=linkRes.data||[];
+          const enriched=possible.map(c=>{
+            const linked=links.find(x=>Number(x.case_id)===Number(c.id));
+            const oldPetId=linked?String(linked.pet_id):'';
+            const oldPetName=smartNameKey(c.intake_details?.pet_name||c.intake_details?.petName||'');
+            let differentPet=false;
+            if(selectedPet&&oldPetId&&selectedPet!==oldPetId)differentPet=true;
+            if(petName&&oldPetName&&petName!==oldPetName)differentPet=true;
+            // If a pet was explicitly selected and a different pet was linked, it is a different case.
+            const datediff=Math.abs(new Date(serviceDate+'T12:00:00')-new Date(String(c.service_date||'')+'T12:00:00'))/86400000;
+            return {c,datediff,differentPet,oldPetId,oldPetName};
+          }).filter(x=>Number.isFinite(x.datediff)&&x.datediff<=7&&!x.differentPet);
+          const exact=enriched.filter(x=>x.datediff===0);
+          if(exact.length){
+            const exactId='PAW-'+String(exact[0].c.id).padStart(4,'0');
+            // Distinct animals can have the same service on the same day.
+            // Require a distinct explicit animal identity, not just a second phone entry.
+            alert('تم العثور على عملية موجودة لنفس العميل والحيوان/النوع والخدمة والعيادة في نفس اليوم: '+exactId+
+              '\n\nما حفظنا عملية ثانية حتى ما نكرر المبلغ.\nإذا الخدمة لحيوان آخر، اختاري الحيوان الآخر من القائمة أو اكتبي اسم الحيوان الجديد بشكل مميز، ثم أعيدي الحفظ.');
+            return;
+          }
+          if(enriched.length){
+            const nearby=enriched[0].c;
+            const accept=confirm('تنبيه: فيه عملية مشابهة لهذا العميل بنفس الخدمة والعيادة خلال أسبوع: PAW-'+
+              String(nearby.id).padStart(4,'0')+' بتاريخ '+String(nearby.service_date||'')+
+              '.\n\nإذا هذي زيارة/خدمة جديدة فعلاً، اضغطي موافق لتسجيلها مستقلة.\nإذا نفس الخدمة السابقة، اضغطي إلغاء وراجعي العملية الحالية.');
+            if(!accept)return;
+          }
+        }
+        return await smartOriginalNewCaseSave();
+      }catch(error){
+        console.error('Smart duplicate check failed; no case was inserted',error);
+        alert('تعذر التأكد من العمليات السابقة؛ لم يتم حفظ العملية. جرّبي تحديث الصفحة: '+(error.message||'خطأ اتصال'));
+      }finally{
+        smartCaseSaving=false;
+        if(button)button.disabled=false;
+      }
+    };
 
 
 (async()=>{

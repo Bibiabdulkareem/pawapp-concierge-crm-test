@@ -163,6 +163,8 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 #authUserBar .btn{padding:8px 10px}
 .test-selected-row{outline:2px solid #0c3b78;background:#eaf2ff!important}
 
+/* Native selects stay the only controls on phones and tablets. */
+.paw-desktop-select-trigger,.paw-desktop-select-panel{display:none}
 /* Desktop-only layout: keep the existing phone controls and full mobile table untouched. */
 @media (min-width:900px){
   html,body,.app{max-width:100%;min-width:0}

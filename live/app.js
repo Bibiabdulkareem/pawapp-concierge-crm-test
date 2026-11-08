@@ -119,7 +119,13 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
       let h='';
       db.cases.slice().reverse().forEach(c=>{
         const pr=byProvider(c.providerId);
-        const hay=['PAW-'+String(c.id).padStart(4,'0'),c.client_name,c.client_phone,c.staff,pr.name,c.service,c.pet_type,c.breed,sourceLabel(c.source),workflowLabel(c.workflow_status)].join(' ').toLowerCase();
+        const staffMeta=c.intake_details||{};
+        const staffServices=Array.isArray(staffMeta.staff_requested_services)?staffMeta.staff_requested_services:[];
+        const staffDate=String(staffMeta.staff_schedule_date||'');
+        const staffName=String(staffMeta.staff_listed_name||'');
+        const staffPhone=String(staffMeta.staff_listed_phone||'');
+        const staffDuplicate=staffMeta.staff_same_phone_repeat_review===true;
+        const hay=['PAW-'+String(c.id).padStart(4,'0'),c.client_name,c.client_phone,c.staff,pr.name,c.service,c.pet_type,c.breed,sourceLabel(c.source),workflowLabel(c.workflow_status),staffName,staffPhone,staffDate,staffMeta.staff_listed_area||'',...staffServices].join(' ').toLowerCase();
         const clientPaid=clientRem(c)<=0.0001 && Number(c.total_amount||0)>0;
         const vendorPaid=rem(c)<=0.0001 && Number(c.provider_amount||0)>0;
         let companyStatus='بانتظار دفع العميل',companyStatusClass='pending';
@@ -142,13 +148,17 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
         const dueTxt=!clientPaid&&c.client_due_date?c.client_due_date:'—';
         h+=`<tr>
           <td>PAW-${String(c.id).padStart(4,'0')}</td>
-          <td>${esc(c.client_name)}</td>
+          <td>${esc(c.client_name)}${staffName&&staffName.toLowerCase()!==String(c.client_name||'').trim().toLowerCase()?'<div class="hint">اسم القائمة: '+esc(staffName)+'</div>':''}</td>
           <td>${esc(c.pet_type||'—')}</td>
           <td>${esc(c.breed||'—')}</td>
           <td>${yesNo(c.vaccinated)}</td>
           <td>${yesNo(c.microchipped)}</td>
           <td>${esc(pr.name)}</td>
-          <td>${esc(c.service||c.requested_service||'—')}${transportDashboardHtml(c)}</td>
+          <td>${esc(c.service||c.requested_service||'—')}
+          ${staffServices.length?'<div class="hint">الخدمات حسب قائمة الموظفة: '+esc(staffServices.join(' + '))+' (بدون إضافة سعر نقل)</div>':''}
+          ${staffDate&&String(c.service_date||'')!==staffDate?'<div class="hint">موعد القائمة: '+esc(staffDate)+'؛ راجعي تاريخ التنفيذ</div>':''}
+          ${staffDuplicate?'<div class="hint" style="color:#a15d00">سجل مشابه: PAW-'+String(staffMeta.staff_repeat_peer_case_id||'').padStart(4,'0')+' — يحتاج تدقيق، لا تحذفي</div>':''}
+          ${transportDashboardHtml(c)}</td>
           <td>${money(c.amount)}</td>
           <td>${money(paw(c))}</td>
           <td>${money(due(c))}</td>
@@ -933,7 +943,12 @@ window.sourceLabel = function(src){
       });
       const all=[...groups.values()];
       const filtered=all.filter(g=>{
-        const hay=[g.name,g.phone,g.location,...g.cases.map(x=>'PAW-'+String(x.id).padStart(4,'0'))].join(' ').toLowerCase();
+        const hay=[g.name,g.phone,g.location,...g.cases.map(x=>[
+            'PAW-'+String(x.id).padStart(4,'0'),
+            x.client_name,x.client_phone,x.intake_details?.staff_listed_name,
+            x.intake_details?.staff_listed_phone,x.intake_details?.staff_listed_area,
+            ...(Array.isArray(x.intake_details?.staff_requested_services)?x.intake_details.staff_requested_services:[])
+          ].filter(Boolean).join(' '))].join(' ').toLowerCase();
         return !q||hay.includes(q);
       });
       const customerCount=document.getElementById('crmCustomerCount');
@@ -966,6 +981,9 @@ window.sourceLabel = function(src){
           '</div>'+
           '<div style="margin-top:8px">'+(petHtml||'<span class="hint">لا توجد بيانات حيوان كاملة</span>')+'</div>'+
           '<div class="hint" style="margin-top:8px">آخر خدمة: '+esc((last&& (last.service||last.requested_service))||'غير محدد')+'</div>'+
+          (Array.isArray(last?.intake_details?.staff_requested_services)&&last.intake_details.staff_requested_services.length?
+            '<div class="hint">حسب قائمة الموظفة: '+esc(last.intake_details.staff_requested_services.join(' + '))+' (غير مسعّرة بشكل منفصل)</div>':'')+
+          (last?.intake_details?.staff_same_phone_repeat_review===true?'<div class="hint" style="color:#a15d00">يوجد سجل مشابه يحتاج مراجعة، بدون تعديل القيود المالية.</div>':'')+
           '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
             '<button class="btn primary" type="button" onclick="crmEditCustomer(\''+String(last?.id||'')+'\')">تعديلات</button>'+
             '<button class="btn soft" type="button" onclick="crmOpenHistory(\''+encodeURIComponent(g.phone||g.name)+'\')">سجل العميل</button>'+

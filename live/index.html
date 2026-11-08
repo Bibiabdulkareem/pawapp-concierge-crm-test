@@ -480,17 +480,16 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   <div><h1>المتابعة</h1><p>الأولوية للمالية والمواعيد المؤكدة، ثم استكمال البيانات. طلبات النماذج بدون سعر موجودة بأسفل الصفحة.</p></div>
 </div>
 
+<div class="section" style="margin-top:10px"><h2>1. أولوية أولى — الإجراءات المالية المطلوبة الآن <span class="status unpaid" style="font-size:14px">عدد الحالات: <span id="fuFinance">0</span></span></h2></div>
+<p class="hint" style="margin:4px 0 12px">الحالات اللي تحتاج مراجعة أو تحصيل تظهر هنا مباشرة، ومع كل حالة زر الإجراء. لا تحتاجين تدخلين على صفحة ثانية للعثور عليها.</p>
+<div id="followupFinanceList" class="providerGrid"></div>
+<div style="margin:12px 0 18px"><button class="btn soft" type="button" onclick="showPage('providers')">تسويات الشركات الشهرية (عرض منفصل)</button></div>
+
 <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
-  <div class="card stat"><span>إجراءات مالية مهمة</span><b id="fuFinance" class="red">0</b></div>
   <div class="card stat"><span>مواعيد تحتاج متابعة</span><b id="fuAppointments" class="blue">0</b></div>
   <div class="card stat"><span>بيانات مهمة ناقصة</span><b id="fuMissing">0</b></div>
   <div class="card stat"><span>طلبات نماذج غير مكتملة</span><b id="fuIntake">0</b></div>
 </div>
-
-<div class="section"><h2>1. أولوية أولى — التحصيلات والإجراءات المالية</h2></div>
-<p class="hint" style="margin:4px 0 12px">هذه عمليات لها إجراء مالي فعلي. لتدقيق مستحقات وتسويات الشركات افتحي لوحة الشركات.</p>
-<div style="margin-bottom:12px"><button class="btn soft" type="button" onclick="showPage('providers')">فتح تسويات الشركات / الفريلانسر</button></div>
-<div id="followupFinanceList" class="providerGrid"></div>
 
 <div class="section"><h2>2. المواعيد والتذكيرات المؤكدة</h2></div>
 <div id="followupAppointmentList" class="providerGrid"></div>

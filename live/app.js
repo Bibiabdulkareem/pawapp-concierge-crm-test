@@ -2303,6 +2303,68 @@ window.sourceLabel = function(src){
       }
     };
 
+    // The intake count opens a searchable, read-only navigator.
+    let pawIntakeQueueRows=[];
+    window.pawCloseIntakeQueue=function(){
+      document.getElementById('pawIntakeQueueModal')?.classList.remove('show');
+    };
+    window.pawFilterIntakeQueue=function(){
+      const list=document.getElementById('pawIntakeQueueItems');
+      if(!list)return;
+      const query=document.getElementById('pawIntakeQueueSearch')?.value.trim()||'';
+      const matches=pawIntakeQueueRows.filter(c=>customerSearchMatches(query,[
+        c.client_name,c.client_phone,
+        c.intake_details?.staff_listed_name,c.intake_details?.staff_listed_phone,
+        'PAW-'+String(c.id).padStart(4,'0'),
+        c.requested_service,c.service_name
+      ]));
+      const found=document.getElementById('pawIntakeQueueFound');
+      if(found)found.textContent=query?'النتائج: '+matches.length+' من '+pawIntakeQueueRows.length+' طلب':'عدد الطلبات: '+pawIntakeQueueRows.length;
+      list.innerHTML=matches.length?matches.map(c=>{
+        const code='PAW-'+String(c.id).padStart(4,'0');
+        return '<div class="card" style="box-shadow:none;margin:0 0 9px;padding:13px">'+
+          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+          '<div><b style="font-size:15px">'+esc(c.client_name||'بدون اسم')+'</b><div class="hint">'+esc(c.client_phone||'بدون رقم')+' • '+code+'</div>'+
+          '<div class="hint">الطلب: '+esc(c.requested_service||c.service_name||'لم تحدد الخدمة')+'</div></div>'+
+          '<span class="status partial">بانتظار استكمال البيانات</span></div>'+
+          '<button type="button" class="btn primary" style="margin-top:9px;width:100%" onclick="pawOpenIntakeCase('+Number(c.id)+')">استكمال بيانات وسعر الطلب</button></div>';
+      }).join(''):'<div class="card"><div class="hint">ما لقينا عميل مطابق. جربي اسمه أو رقم تلفونه.</div></div>';
+    };
+    window.pawOpenIntakeQueue=function(){
+      let modal=document.getElementById('pawIntakeQueueModal');
+      if(!modal){
+        modal=document.createElement('div');
+        modal.id='pawIntakeQueueModal';
+        modal.className='modalBg';
+        modal.setAttribute('role','dialog');
+        modal.setAttribute('aria-modal','true');
+        modal.setAttribute('aria-label','طلبات النماذج غير المكتملة');
+        modal.innerHTML='<div class="modal" style="max-height:90vh;min-height:45vh;padding-bottom:max(20px,env(safe-area-inset-bottom))">'+
+          '<div class="modalHead"><h3>طلبات النماذج غير المكتملة</h3>'+
+          '<button class="close" type="button" aria-label="إغلاق" onclick="pawCloseIntakeQueue()">×</button></div>'+
+          '<div class="hint" style="margin-bottom:10px">هذي طلبات تسجيل بدون سعر؛ مو مدفوعات أو تسويات. اختاري العميل لإكمال بياناته فقط.</div>'+
+          '<input id="pawIntakeQueueSearch" class="search" inputmode="search" autocomplete="off" placeholder="ابحثي باسم العميل أو رقم التلفون أو العملية" oninput="pawFilterIntakeQueue()">'+
+          '<div id="pawIntakeQueueFound" class="hint" style="margin:9px 0"></div>'+
+          '<div id="pawIntakeQueueItems" style="max-height:57vh;overflow-y:auto;overscroll-behavior:contain"></div>'+
+          '</div>';
+        document.body.appendChild(modal);
+      }
+      const input=document.getElementById('pawIntakeQueueSearch');
+      if(input)input.value='';
+      modal.classList.add('show');
+      window.pawFilterIntakeQueue();
+    };
+    window.pawOpenIntakeCase=function(id){
+      const c=pawIntakeQueueRows.find(x=>Number(x.id)===Number(id));
+      if(!c)return alert('الطلب لم يعد ضمن النماذج غير المكتملة. حدّثي الصفحة.');
+      window.pawCloseIntakeQueue();
+      if(typeof window.pawBookingReview==='function'){
+        window.pawBookingReview(Number(id));
+      }else{
+        window.openCaseDetails(Number(id));
+      }
+    };
+
     window.renderAutomaticFollowups=function(){
       const financeBox=document.getElementById('followupFinanceList');
       const appointmentBox=document.getElementById('followupAppointmentList');
@@ -2350,6 +2412,8 @@ window.sourceLabel = function(src){
       });
 
       const set=function(id,v){const e=document.getElementById(id);if(e)e.textContent=String(v)};
+      pawIntakeQueueRows=intakeRows.map(x=>x.c);
+      if(document.getElementById('pawIntakeQueueModal')?.classList.contains('show'))window.pawFilterIntakeQueue();
       set('fuFinance',financeRows.length);
       set('fuAppointments',appointmentRows.length);
       set('fuMissing',missingRows.length);

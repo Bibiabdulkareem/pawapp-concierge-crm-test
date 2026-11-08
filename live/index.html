@@ -162,6 +162,87 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 #authUserBar{display:none;align-items:center;gap:8px;font-size:11px}
 #authUserBar .btn{padding:8px 10px}
 .test-selected-row{outline:2px solid #0c3b78;background:#eaf2ff!important}
+
+/* Desktop-only layout: keep the existing phone controls and full mobile table untouched. */
+@media (min-width:900px){
+  html,body,.app{max-width:100%;min-width:0}
+  .top{min-height:70px;z-index:61}
+  .main{width:100%;max-width:none;min-width:0;padding:90px clamp(18px,2.1vw,36px) 42px}
+  .page.active{min-width:0}
+  .bottom{position:fixed;top:70px;bottom:auto;left:0;right:0;width:100%;height:60px;
+    display:grid;grid-template-columns:repeat(9,minmax(0,1fr));align-items:stretch;
+    padding:4px clamp(12px,2vw,28px);z-index:58;border-top:0;border-bottom:1px solid var(--line);
+    box-shadow:0 5px 15px #1639570b}
+  .bottom .nav{min-width:0;display:flex;flex-direction:row;align-items:center;justify-content:center;
+    gap:6px;font-size:11px;padding:7px 3px;white-space:normal;line-height:1.2}
+  .bottom .nav b{font-size:17px;flex:none}
+  .fab{bottom:25px;left:25px}
+  #dashboard>.cards{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  .main .field{min-width:0}
+  .main .field input,.main .field select,.main .field textarea{min-width:0;max-width:100%}
+  .main .field.full>select{width:100%;max-width:520px}
+  #cases .case-filters{display:grid;grid-template-columns:minmax(190px,1.1fr) minmax(190px,.9fr) minmax(400px,2fr);
+    align-items:end;gap:12px;border:1px solid var(--line);border-radius:16px;background:#fff;
+    padding:16px;margin:0 0 14px;box-shadow:0 3px 13px #17355408;min-width:0}
+  #cases .case-filters>.field,#cases .case-filters>.grid2{margin-top:0!important;min-width:0}
+  #cases .case-filters>.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  #cases .case-filters>.search{align-self:end;min-width:0;width:100%;height:46px;margin:0}
+  #cases .case-filters .field select{width:100%;height:46px;max-width:100%;min-width:0;text-overflow:ellipsis}
+  #cases .table{width:100%;max-width:100%;overflow-x:auto;overflow-y:visible}
+  #cases .table table{width:100%;min-width:0!important;table-layout:fixed}
+  #cases .table th,#cases .table td{white-space:normal;overflow-wrap:anywhere;word-break:normal;
+    vertical-align:middle;padding:10px 6px;line-height:1.4;font-size:11px}
+  #cases .table th{font-weight:750;font-size:10.5px}
+  #cases .table .btn{white-space:normal;max-width:100%;font-size:11px;padding:8px 7px;line-height:1.35}
+  #cases .table :is(th,td):nth-child(3),
+  #cases .table :is(th,td):nth-child(4),
+  #cases .table :is(th,td):nth-child(5),
+  #cases .table :is(th,td):nth-child(6),
+  #cases .table :is(th,td):nth-child(13),
+  #cases .table :is(th,td):nth-child(17),
+  #cases .table :is(th,td):nth-child(18){display:none}
+  #cases .table th:nth-child(1){width:6%}
+  #cases .table th:nth-child(2){width:12%}
+  #cases .table th:nth-child(7){width:12%}
+  #cases .table th:nth-child(8){width:15%}
+  #cases .table th:nth-child(9){width:7%}
+  #cases .table th:nth-child(10){width:7%}
+  #cases .table th:nth-child(11){width:8%}
+  #cases .table th:nth-child(12){width:9%}
+  #cases .table th:nth-child(14){width:10%}
+  #cases .table th:nth-child(15){width:7%}
+  #cases .table th:nth-child(16){width:7%}
+  #cases .paw-desktop-select{position:relative;width:100%;min-width:0}
+  #cases .paw-desktop-select>select{position:absolute!important;width:1px!important;height:1px!important;
+    padding:0!important;opacity:0;clip-path:inset(50%);pointer-events:none}
+  #cases .paw-desktop-select-trigger{width:100%;height:46px;border:1px solid #d9e2ec;border-radius:11px;
+    background:#fff;color:var(--text);font:inherit;text-align:right;direction:rtl;
+    padding:10px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}
+  #cases .paw-desktop-select-trigger span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+  #cases .paw-desktop-select-trigger:after{content:"⌄";font-size:17px;color:var(--blue);flex:none}
+  #cases .paw-desktop-select-trigger:focus-visible{outline:3px solid #91acd0;outline-offset:2px}
+  #cases .paw-desktop-select-panel{display:none;position:absolute;right:0;top:calc(100% + 6px);
+    width:max(100%,260px);max-width:min(380px,calc(100vw - 48px));background:#fff;
+    border:1px solid #d9e2ec;border-radius:12px;box-shadow:0 15px 35px #10233d25;
+    z-index:95;overflow:hidden;padding:6px}
+  #cases .paw-desktop-select.open .paw-desktop-select-panel{display:block}
+  #cases .paw-desktop-select-search{display:block;width:100%;height:40px;border:1px solid #d9e2ec;
+    border-radius:8px;padding:8px 10px;margin-bottom:6px;background:#fff;color:var(--text)}
+  #cases .paw-desktop-options{max-height:220px;overflow-y:auto;overscroll-behavior:contain}
+  #cases .paw-desktop-option{display:block;width:100%;border:0;border-radius:7px;background:transparent;
+    color:var(--text);text-align:right;direction:rtl;padding:9px 10px;cursor:pointer;
+    white-space:normal;overflow-wrap:anywhere;font:inherit;font-size:12px}
+  #cases .paw-desktop-option:hover,#cases .paw-desktop-option:focus-visible,
+  #cases .paw-desktop-option[aria-selected="true"]{background:#eaf0f7;color:var(--blue)}
+  #cases .paw-desktop-empty{font-size:12px;color:var(--muted);padding:12px}
+}
+@media (min-width:900px) and (max-width:1150px){
+  #cases .case-filters{grid-template-columns:minmax(180px,1fr) minmax(180px,1fr)}
+  #cases .case-filters>.grid2{grid-column:1/-1}
+  #cases .table table{min-width:1040px!important}
+  #dashboard>.cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .bottom .nav{font-size:10px;gap:3px}
+}
 </style>
 </head>
 <body>
@@ -516,11 +597,13 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div id="testBulkCases" class="card" style="margin:10px 0;padding:12px;border:1px solid #e3e9f0;display:none" data-test-bulk-ui="cases"><b>تحديد العمليات</b><p style="font-size:12px;color:#6f8094;margin:6px 0">الحذف المتعدد قيد الربط بقاعدة LIVE. لا يمكن الحذف قبل تفعيل النسخة الاحتياطية والتحقق من الصلاحيات.</p><label style="display:flex;gap:7px;align-items:center"><input type="checkbox" id="testSelectAllCases" onchange="document.querySelectorAll('#caseRows tr').forEach(function(tr){tr.classList.toggle('test-selected-row',document.getElementById('testSelectAllCases').checked)})"> تحديد الكل (الصفوف الظاهرة)</label><button class="btn" style="margin-top:8px;background:#eee;color:#777" disabled>حذف المحدد — بانتظار تفعيل الحذف الآمن</button></div>
 
 <div class="title"><div><h1>العمليات والعملاء</h1><p>كل الحالات المسجلة وحالة التسوية</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
-<input id="caseSearch" class="search" placeholder="بحث باسم العميل، الشركة، الموظف أو Case ID..." oninput="renderCases()">
-<div class="field" style="margin-top:10px"><label>مصدر الطلب</label><select id="caseSourceFilter" onchange="renderCases()"><option value="all">جميع المصادر</option><option value="booking">Concierge Booking — حجز خدمة</option><option value="pet_information_form">Pet Information — استكمال بيانات حيوان أليف</option><option value="other">مصادر أخرى</option></select></div>
+<div class="case-filters">
+<input id="caseSearch" class="search" placeholder="بحث باسم العميل، الشركة، الموظف أو Case ID..." aria-label="بحث بالاسم أو رقم العملية أو الموظف" oninput="renderCases()">
+<div class="field" style="margin-top:10px"><label for="caseSourceFilter">مصدر الطلب</label><select id="caseSourceFilter" onchange="renderCases()"><option value="all">جميع المصادر</option><option value="booking">Concierge Booking — حجز خدمة</option><option value="pet_information_form">Pet Information — استكمال بيانات حيوان أليف</option><option value="other">مصادر أخرى</option></select></div>
 <div class="grid2" style="margin-top:10px">
-<div class="field"><label>فلتر الحالة</label><select id="caseStatusFilter" onchange="renderCases()"><option value="all">كل الحالات</option><option value="client_unpaid">العميل لم يسدد</option><option value="client_paid">العميل سدد</option><option value="vendor_unpaid">مستحق للشركة عند PawApp</option><option value="vendor_paid">لا يوجد مستحق للشركة عند PawApp</option></select></div>
-<div class="field"><label>فلتر الشركة / الفريلانسر</label><select id="caseProviderFilter" onchange="renderCases()"><option value="all">كل الشركات / الفريلانسر</option></select></div>
+<div class="field"><label for="caseStatusFilter">فلتر الحالة</label><select id="caseStatusFilter" onchange="renderCases()"><option value="all">كل الحالات</option><option value="client_unpaid">العميل لم يسدد</option><option value="client_paid">العميل سدد</option><option value="vendor_unpaid">مستحق للشركة عند PawApp</option><option value="vendor_paid">لا يوجد مستحق للشركة عند PawApp</option></select></div>
+<div class="field"><label for="caseProviderFilter">فلتر الشركة / الفريلانسر</label><select id="caseProviderFilter" onchange="renderCases()"><option value="all">كل الشركات / الفريلانسر</option></select></div>
+</div>
 </div>
 <div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th>العميل</th><th>الحيوان</th><th>السلالة</th><th>مطعّم</th><th>Microchip</th><th>الشركة / الفريلانسر</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق الشركة / الفريلانسر</th><th>حالة العميل</th><th>موعد السداد</th><th>حالة الشركة / الفريلانسر</th><th>الموظف / المصدر</th><th>بيانات الحالة</th><th>إجراء العميل</th><th>إجراء الشركة / الفريلانسر</th></tr></thead><tbody id="caseRows"></tbody></table></div>
 </section>
@@ -900,5 +983,59 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-p="providers"]'
 </div></div>
 <script src="accountant-report.js?v=20261104-v1"></script>
 <script src="accountant-report-v2.js?v=20261108-ledger-settlement"></script>
+<script>
+/* Small bounded select popovers on desktop only; the original native selects are kept for phones. */
+(function(){
+ const ids=['caseSourceFilter','caseStatusFilter','caseProviderFilter'];
+ const desktop=window.matchMedia('(min-width:900px)');
+ const combos=[];
+ function closeAll(except){
+   for(const c of combos){if(c.wrapper===except)continue;c.wrapper.classList.remove('open');c.trigger.setAttribute('aria-expanded','false');}
+ }
+ function setup(id){
+   const select=document.getElementById(id);if(!select||select.closest('.paw-desktop-select'))return;
+   const wrap=document.createElement('div');wrap.className='paw-desktop-select';
+   select.parentNode.insertBefore(wrap,select);wrap.appendChild(select);
+   const trigger=document.createElement('button');trigger.type='button';trigger.className='paw-desktop-select-trigger';
+   trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-expanded','false');
+   const chosen=document.createElement('span');trigger.appendChild(chosen);
+   const panel=document.createElement('div');panel.className='paw-desktop-select-panel';
+   const search=document.createElement('input');search.className='paw-desktop-select-search';search.type='search';
+   search.placeholder='ابحثي عن الشركة أو الطبيب';search.setAttribute('aria-label','بحث في الخيارات');
+   if(id==='caseProviderFilter')panel.appendChild(search);
+   const options=document.createElement('div');options.className='paw-desktop-options';
+   options.setAttribute('role','listbox');panel.appendChild(options);
+   wrap.append(trigger,panel);
+   const update=()=>{chosen.textContent=select.selectedOptions[0]?.textContent?.trim()||'اختاري';};
+   function renderOptions(){
+     options.replaceChildren();const q=search.value.trim().toLocaleLowerCase();let count=0;
+     for(const item of select.options){
+       if(q&&!item.textContent.toLocaleLowerCase().includes(q))continue;
+       const opt=document.createElement('button');opt.type='button';opt.className='paw-desktop-option';
+       opt.setAttribute('role','option');opt.setAttribute('aria-selected',String(item.value===select.value));
+       opt.textContent=item.textContent.trim();
+       opt.addEventListener('click',()=>{select.value=item.value;select.dispatchEvent(new Event('change',{bubbles:true}));update();closeAll();trigger.focus();});
+       options.appendChild(opt);count++;
+     }
+     if(!count){const empty=document.createElement('div');empty.className='paw-desktop-empty';empty.textContent='لا توجد نتائج';options.appendChild(empty);}
+   }
+   trigger.addEventListener('click',()=>{
+     if(!desktop.matches)return;
+     const opening=!wrap.classList.contains('open');closeAll();
+     if(opening){search.value='';renderOptions();wrap.classList.add('open');trigger.setAttribute('aria-expanded','true');if(id==='caseProviderFilter')search.focus();}
+   });
+   search.addEventListener('input',renderOptions);
+   search.addEventListener('keydown',e=>{if(e.key==='Enter'){const first=options.querySelector('.paw-desktop-option');if(first){e.preventDefault();first.click();}}});
+   select.addEventListener('change',update);
+   new MutationObserver(update).observe(select,{childList:true,subtree:true});
+   update();combos.push({wrapper:wrap,trigger});
+ }
+ function init(){ids.forEach(setup);}
+ document.addEventListener('pointerdown',e=>{if(!e.target.closest('.paw-desktop-select'))closeAll();});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll();});
+ desktop.addEventListener('change',()=>closeAll());
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
 </body>
 </html>

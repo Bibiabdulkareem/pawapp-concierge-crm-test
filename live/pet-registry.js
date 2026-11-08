@@ -89,6 +89,7 @@ window.pawPetConfirmCase=async function(caseId){
 };
 window.pawPetRegistryRefresh=load;
 window.pawPetLinkNewCase=async function(caseId){
+ if(!loaded)await load();
  const phone=digits($('cPhone')?.value),selected=$('pawPetBookingSelect')?.value||'',name=$('pawPetBookingName')?.value.trim()||'';
  if(!phone||(!selected&&!name))return;
  let petId=selected;
@@ -117,7 +118,19 @@ function booking(){
   sel.innerHTML='<option value="">حيوان جديد أو غير مسجل</option>'+pets.filter(p=>digits(p.customer_phone)===phone).map(p=>'<option value="'+esc(p.id)+'">'+esc(p.pet_name)+'</option>').join('');
   if([...sel.options].some(o=>o.value===prev))sel.value=prev;
  };
- input.addEventListener('input',update);$('pawPetBookingSelect').addEventListener('change',()=>{$('pawPetBookingName').disabled=!!$('pawPetBookingSelect').value;});update();
+ input.addEventListener('input',update);
+ $('pawPetBookingSelect').addEventListener('change',()=>{
+  const selected=$('pawPetBookingSelect').value;
+  $('pawPetBookingName').disabled=!!selected;
+  if(!selected)return;
+  const pet=pets.find(x=>x.id===selected);
+  if(!pet)return;
+  const type=$('cPetType'),breed=$('cBreed');
+  const kind=String(pet.pet_type||'').toLowerCase();
+  const normalized=({dog:'كلب',cat:'قط',bird:'طائر',rabbit:'أرنب',other:'أخرى'})[kind]||pet.pet_type;
+  if(type&&[...type.options].some(o=>o.value===normalized))type.value=normalized;
+  if(breed)breed.value=pet.breed||'';
+ });update();
 }
 
 document.addEventListener('DOMContentLoaded',()=>{

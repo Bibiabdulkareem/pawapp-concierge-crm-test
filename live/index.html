@@ -244,6 +244,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   <div class="grid2">
     <div class="field"><label>اسم العميل *</label><input id="cClient" placeholder="مثال: نورة أحمد"></div>
     <div class="field"><label>رقم العميل</label><input id="cPhone" inputmode="tel" placeholder="5xxxxxxx"></div>
+<div id="smartExistingCustomerHint" class="field full" style="display:none" aria-live="polite"></div>
     <div class="field"><label>المنطقة / الموقع</label><input id="cLocation" placeholder="مثال: حولي"></div>
     <div class="field"><label>نوع الحيوان *</label><select id="cPetType"><option value="">اختاري</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>
     <div class="field"><label>السلالة</label><input id="cBreed" placeholder="مثال: Pomeranian"></div>
@@ -341,7 +342,8 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div id="installmentsWrap" style="display:none"></div>
 <div id="installmentScheduleWrap" style="display:none"><div id="installmentRows"></div></div>
 
-<button class="btn primary" style="width:100%;margin-top:13px" onclick="saveCase()">حفظ العملية</button>
+<button id="smartSaveCaseBtn" class="btn primary" type="button" style="width:100%;margin-top:13px" onclick="saveCase()">حفظ العملية</button>
+<p class="hint" style="margin-top:5px;text-align:center">النظام يفحص اسم العميل ورقمه والخدمة والحيوان والتاريخ قبل الحفظ، وينبه عند تشابه العمليات. كل خدمة جديدة تُحسب مستقلة.</p>
 <p class="hint" style="text-align:center">كل عملية تأخذ Case ID تلقائيًا.</p>
 </section>
 

@@ -112,7 +112,7 @@ function linesFor(id){return model?.lines.filter(l=>l.caseId===String(id))||[]}
 function findLine(id,component){return linesFor(id).find(l=>l.component===component)}
 function providerName(id){return snapshot?.providers.find(p=>String(p.id)===String(id))?.name||'غير محدد'}
 function pawClinicOf(id){return window.PawProviderAffiliations?.clinicFor(id)||''}
-function pawClinicTag(id){const clinic=pawClinicOf(id);return clinic?'<span class="paw-clinic-label">تابع لعيادة '+html(clinic.replace(/^عيادة\\s*/,''))+'</span>':'';}
+function pawClinicTag(id){const clinic=pawClinicOf(id);return clinic?'<span class="paw-clinic-label">تابع لعيادة '+html(clinic.replace('عيادة ',''))+'</span>':'';}
 function actionLabel(l){if(l.unknown)return 'تأكيد سداد النقل';if(l.action==='client_paid')return l.isPaid?'تحديد جهة استلام الدفعة':'تحصيل من العميل';if(l.action==='provider_paid')return 'دفع مستحق الشركة';if(l.action==='commission_received')return 'تحصيل حصة PawApp';return 'مراجعة التسجيل';}
 function detail(l){if(l.unknown)return 'سعر النقل '+cash(l.total)+' — لم تُحدد حالة سداده بعد';if(l.action==='client_paid')return l.isPaid?'العميل دافع؛ المطلوب فقط تحديد جهة الاستلام':'متبقي على العميل '+cash(l.unpaid);if(l.action==='provider_paid')return 'للشركة عندنا '+cash(l.theirs);if(l.action==='commission_received')return 'لنا عند الشركة '+cash(l.ours);return review(l)||'مكتمل ماليًا';}
 function actionButton(l){if(!mayActOnLine(l))return '';return '<button class="btn primary" type="button" onclick="pawFinanceOpen(\''+l.caseId+'\',\''+l.component+'\')">'+html(actionLabel(l))+'</button>';}

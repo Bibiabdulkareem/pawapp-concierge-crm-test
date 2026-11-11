@@ -71,7 +71,7 @@ function renderView(s){
   const nameCell=tr.firstElementChild;
   const clinic=clinicOf(g.id);
   if(nameCell&&clinic){
-    const tag=document.createElement("span");tag.className="paw-clinic-label";tag.textContent="تابع لعيادة "+clinic.replace(/^عيادة\\s*/,"");
+    const tag=document.createElement("span");tag.className="paw-clinic-label";tag.textContent="تابع لعيادة "+clinic.replace('عيادة ','');
     nameCell.appendChild(tag);
   }
   let td=document.createElement("td");td.textContent=settlementLabel(g)+(g.review?" • مراجعة بيانات الخدمة":"");tr.appendChild(td);

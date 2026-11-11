@@ -85,7 +85,23 @@ function renderView(s){
  card("لنا على الجهات",fmt(sum.ours)),card("للجهات علينا",fmt(sum.theirs))].join("");
  E("pawAccountStats").textContent="هذا تقرير محاسبي للعمليات المدفوعة فقط. الطلبات بلا سعر أو بلا دفع، ومنها عبدالله عند سندباد، موجودة بالمتابعات لكنها غير محتسبة. لا يجوز اعتبار السجلات غير المتحققة تحصيلاً بنكياً.";
  const tbody=E("pawAccountCompanies");tbody.replaceChildren();
- for(const g of s.groups){
+ const parent=affiliation();
+ const byId=new Map(s.groups.map(g=>[g.id,g]));
+ // Financial amounts appear only on the individual doctor rows. The clinic
+ // parent is a descriptive heading, never a second charge or payable.
+ if(parent){
+   const clinicLines=clinicReportLines(s);
+   const clinicSum=F().summarize(clinicLines);
+   const section=document.createElement("tr");
+   const sectionCell=document.createElement("td");sectionCell.colSpan=11;
+   sectionCell.style.cssText="background:#e8f0fb;color:#0c3b78;padding:13px 12px;font-weight:800;white-space:normal";
+   sectionCell.textContent="عيادة مينا عبدالله — 3 دكاترة تابعين لها | إجمالي حصة الدكاترة "+fmt(clinicSum.provider)+" | المدفوع "+fmt(clinicSum.providerPaid)+" | المتبقي "+fmt(clinicSum.theirs)+" — التجميع للعرض فقط، ولا يُضاف مرة أخرى للإجمالي.";
+   section.appendChild(sectionCell);tbody.appendChild(section);
+ }
+ const zero=F().summarize([]);
+ const clinicRows=parent?parent.doctors.map(d=>byId.get(d.id)||{id:d.id,name:d.name,lines:[],summary:zero,approved:[],review:false}):[];
+ const rest=s.groups.filter(g=>!clinicOf(g.id));
+ for(const g of [...clinicRows,...rest]){
   const tr=document.createElement("tr");
   for(const v of [g.name,g.summary.caseCount,money(g.summary.total),money(g.summary.paw),money(g.summary.provider),money(g.summary.providerPaid),money(g.summary.commissionReceived),money(g.summary.ours),money(g.summary.theirs)]){
    const td=document.createElement("td");td.textContent=String(v);tr.appendChild(td);
@@ -158,7 +174,15 @@ window.pawAccountantExportExcel=function(){
  if(!window.XLSX)return alert("مكتبة تصدير Excel غير متاحة");
  const nums=g=>[g.summary.caseCount,...["total","paw","provider","paid","providerPaid","commissionReceived","ours","theirs"].map(k=>number(money(g.summary[k])))];
  const head=["الجهة","العيادة التابعة لها","عدد العمليات المدفوعة","إجمالي الخدمات (د.ك)","حصة باو أب (د.ك)","حصة مقدم الخدمة (د.ك)","تحصيل العملاء المسجل (د.ك)","المحوّل لمقدم الخدمة (د.ك)","عمولة محصلة من الجهة (د.ك)","لباو أب على الشركة (د.ك)","للشركة على باو أب (د.ك)","حالة الاعتماد"];
- const summary=[["تقرير محاسب PawApp",s.month],["عمليات مسددة فقط. الحالات المكررة والتجريبية والملغاة غير محتسبة. السجلات بلا تاريخ خدمة مُدرجة حسب فترة الشيت المعلنة."],head,...s.groups.map(g=>[g.name,clinicOf(g.id)||"—",...nums(g),settlementLabel(g)+(g.review?" • مراجعة بيانات الخدمة":"")]),["الإجمالي","",...nums({summary:s.totals}),""]];
+ const clinicRowMap=new Map(s.groups.map(g=>[g.id,g]));
+ const empty=F().summarize([]);
+ const clinicRows=clinicDoctors().map(d=>clinicRowMap.get(d.id)||{id:d.id,name:d.name,summary:empty,lines:[],approved:[],review:false});
+ const otherRows=s.groups.filter(g=>!clinicOf(g.id));
+ const summary=[["تقرير محاسب PawApp",s.month],["عمليات مسددة فقط. الحالات المكررة والتجريبية والملغاة غير محتسبة. السجلات بلا تاريخ خدمة مُدرجة حسب فترة الشيت المعلنة."],head,
+  ["عيادة مينا عبدالله — مجموعة الدكاترة","تجميع توضيحي فقط، ليس صف مبالغ إضافية"],
+  ...clinicRows.map(g=>[g.name,clinicOf(g.id)||"—",...nums(g),settlementLabel(g)+(g.review?" • مراجعة بيانات الخدمة":"")]),
+  ...otherRows.map(g=>[g.name,"—",...nums(g),settlementLabel(g)+(g.review?" • مراجعة بيانات الخدمة":"")]),
+  ["الإجمالي","",...nums({summary:s.totals}),""]];
  const details=[["العملية","شهر المحاسبة","تاريخ الخدمة الفعلي","مصدر العملية","مقدم الخدمة","العيادة التابعة لها","العميل","رقم الهاتف","الخدمة","المكون","الإجمالي د.ك","حصة باو أب د.ك","حصة الجهة د.ك","سداد العميل المسجل د.ك","استلم من العميل","المدفوع لمقدم الخدمة د.ك","عمولة محصلة د.ك","لنا على الجهة د.ك","للجهة علينا د.ك","ملاحظة"],
  ...s.paid.map(l=>{
    const c=l.raw||{};

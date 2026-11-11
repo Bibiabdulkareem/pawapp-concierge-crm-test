@@ -306,7 +306,7 @@ function incompleteFormIssues(c){
     ||String(c.workflow_status||'').toLowerCase()==='cancelled')return issues;
  const name=String(c.client_name||'').trim();
  const phone=String(c.client_phone||'').replace(/[^0-9]/g,'');
- if(!name||/^(unknown|غير معروف|بدون اسم|n\\/a|null)$/i.test(name))issues.push('اسم العميل');
+ if(!name||/^(unknown|غير معروف|بدون اسم|n[/]a|null)$/i.test(name))issues.push('اسم العميل');
  if(phone.length<8)issues.push('رقم الهاتف');
  if(!String(c.pet_type||'').trim())issues.push('نوع الحيوان');
  if(!c.provider_id)issues.push('العيادة / الطبيب');
@@ -347,7 +347,7 @@ function renderIncompleteFormArchiveList(){
      '<div class="hint" style="margin-top:6px"><b>الناقص:</b> '+html(issues.join('، '))+'</div>'+
      '<div class="actions" style="flex-wrap:wrap">'+
        '<button type="button" class="btn primary" onclick="pawOpenArchivedForm('+id+')">استكمال بيانات العميل</button>'+
-       '<button type="button" class="btn soft" onclick="openCaseDetails(\''+id+'\')">عرض العملية</button>'+
+       '<button type="button" class="btn soft" onclick="openCaseDetails('+id+')">عرض العملية</button>'+
      '</div></div>';
  }).join(''):'<div class="card"><div class="hint">'+(formArchiveRows.length?'ما في عميل مطابق للبحث.':'لا توجد نماذج ناقصة حالياً.')+'</div></div>';
 }

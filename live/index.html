@@ -915,7 +915,13 @@ window.pawMonthlySettlementOverview=async function(){
    for(const g of items){
       const row=document.createElement('tr');
       for(const t of [g.name,label,g.direction==='to_provider'?'باو أب تدفع للعيادة':'العيادة تدفع لباو أب',g.ids.size,F.format(g.amount)]){
-        const td=document.createElement('td');td.textContent=String(t);row.appendChild(td);
+        const td=document.createElement('td');td.textContent=String(t);
+        if(t===g.name&&window.PawProviderAffiliations?.clinicFor(g.providerId)){
+          const clinic=document.createElement('span');clinic.className='paw-clinic-label';
+          clinic.textContent=window.PawProviderAffiliations.clinicFor(g.providerId);
+          td.appendChild(clinic);
+        }
+        row.appendChild(td);
       }
       const cell=document.createElement('td'),btn=document.createElement('button');btn.type='button';btn.className='btn soft';btn.textContent='عرض تفاصيل '+g.name;
       btn.onclick=()=>window.pawOpenMonthlyProvider(g.providerId,month,source);
@@ -1010,7 +1016,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-p="providers"]'
   <div class="actions" style="margin-top:12px"><button id="pawAccountingSettleSave" class="btn primary" type="button" onclick="pawAccountantConfirmSettlement()">تأكيد التسوية</button><button class="btn soft" type="button" onclick="pawAccountantCloseSettlement()">إلغاء</button></div>
 </div></div>
 <script src="accountant-report.js?v=20261104-v1"></script>
-<script src="accountant-report-v2.js?v=20261108-ledger-settlement"></script>
+<script src="accountant-report-v2.js?v=20261111-mina-abdullah-affiliation"></script>
 <script>
 /* Small bounded select popovers on desktop only; the original native selects are kept for phones. */
 (function(){

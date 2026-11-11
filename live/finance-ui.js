@@ -296,6 +296,84 @@ const counts=new Map();p.lines.forEach(l=>counts.set(l.service,(counts.get(l.ser
 el('pdClientList').innerHTML=p.lines.filter(pawSourceMatchesLine).map(l=>'<div class="card provider"><h3>'+html(l.client)+'</h3><div class="hint">'+caseCode(l.caseId)+' • '+html(l.service)+'</div><div class="miniGrid"><div class="mini"><span>السعر</span><b>'+cash(l.total)+'</b></div><div class="mini"><span>PawApp</span><b>'+cash(l.paw)+'</b></div><div class="mini"><span>الشركة</span><b>'+cash(l.provider)+'</b></div></div><p>'+html(detail(l))+'</p><div class="actions">'+(actionable(l)?actionButton(l):'')+'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">العملية</button></div></div>').join('')||'<div class="card">لا توجد عمليات</div>';el('pdExportBtn').onclick=()=>window.exportProviderFullReport(p.id);
 }
 window.renderProviderSourceCases=function(){if(selectedProvider)renderProvider()};
+// Secondary intake archive: derived from the LIVE finance snapshot, NOT the
+// employee follow-up/debt queue. A form remains discoverable until its core
+// client, pet, provider, service, and pricing fields are actually complete.
+let formArchiveRows=[];
+function incompleteFormIssues(c){
+ const issues=[];
+ if(!['booking_form','booking_form_test','pet_information_form'].includes(c.source)
+    ||String(c.workflow_status||'').toLowerCase()==='cancelled')return issues;
+ const name=String(c.client_name||'').trim();
+ const phone=String(c.client_phone||'').replace(/[^0-9]/g,'');
+ if(!name||/^(unknown|غير معروف|بدون اسم|n\\/a|null)$/i.test(name))issues.push('اسم العميل');
+ if(phone.length<8)issues.push('رقم الهاتف');
+ if(!String(c.pet_type||'').trim())issues.push('نوع الحيوان');
+ if(!c.provider_id)issues.push('العيادة / الطبيب');
+ const serviceLinked=!!c.service_id&&(snapshot?.services||[]).some(x=>
+   String(x.id)===String(c.service_id)&&String(x.provider_id)===String(c.provider_id));
+ if(!serviceLinked)issues.push('الخدمة الفعلية');
+ if(!(Number(c.total_amount||0)>0))issues.push('السعر والعمولة');
+ return issues;
+}
+function renderIncompleteFormArchiveList(){
+ const host=el('followupIntakeList');
+ if(!host)return;
+ const term=String(el('followupIntakeSearch')?.value||'').trim().toLocaleLowerCase();
+ const digits=term.replace(/[^0-9]/g,'');
+ const matching=formArchiveRows.filter(({c})=>{
+   if(!term)return true;
+   const words=[
+     c.client_name,c.client_phone,c.pet_name,c.pet_type,c.requested_service,c.service_name,
+     c.intake_details?.staff_listed_name,c.intake_details?.staff_listed_phone,
+     'PAW-'+String(c.id).padStart(4,'0'),String(c.id)
+   ].filter(Boolean).join(' ').toLocaleLowerCase();
+   return words.includes(term)||(digits.length>=4&&String(c.client_phone||'').replace(/[^0-9]/g,'').includes(digits));
+ });
+ const found=el('followupIntakeFound');
+ if(found)found.textContent='المعروض: '+matching.length+' من '+formArchiveRows.length+' طلب';
+ host.innerHTML=matching.length?matching.map(({c,issues})=>{
+   const id=Number(c.id);
+   const request=String(c.requested_service||c.service_name||'الخدمة المطلوبة غير محددة');
+   const isPaid=c.client_paid===true;
+   const status=isPaid?'العميل مسدّد — استكمال بيانات فقط':'نموذج يحتاج استكمال';
+   return '<div class="card provider" style="min-width:0">'+
+     '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">'+
+       '<h3 style="margin:0">'+html(c.client_name||'عميل بدون اسم')+'</h3>'+
+       '<span class="status partial">'+status+'</span></div>'+
+     '<div class="hint">'+caseCode(c.id)+' • '+html(c.client_phone||'بدون رقم')+
+       ' • '+html(c.source==='pet_information_form'?'Pet Information':'Concierge Booking')+'</div>'+
+     '<div class="hint" style="margin-top:6px">'+html(request)+'</div>'+
+     '<div class="hint" style="margin-top:6px"><b>الناقص:</b> '+html(issues.join('، '))+'</div>'+
+     '<div class="actions" style="flex-wrap:wrap">'+
+       '<button type="button" class="btn primary" onclick="pawOpenArchivedForm('+id+')">استكمال بيانات العميل</button>'+
+       '<button type="button" class="btn soft" onclick="openCaseDetails(\''+id+'\')">عرض العملية</button>'+
+     '</div></div>';
+ }).join(''):'<div class="card"><div class="hint">'+(formArchiveRows.length?'ما في عميل مطابق للبحث.':'لا توجد نماذج ناقصة حالياً.')+'</div></div>';
+}
+window.pawSearchIncompleteFormArchive=renderIncompleteFormArchiveList;
+window.pawOpenIncompleteForms=function(){
+ const section=el('followupIntakeDetails');
+ if(!section)return;
+ section.open=true;
+ renderIncompleteFormArchiveList();
+ section.scrollIntoView({behavior:'smooth',block:'start'});
+};
+window.pawOpenArchivedForm=function(id){
+ const record=formArchiveRows.find(r=>String(r.c.id)===String(id));
+ if(!record)return alert('الحالة لم تعد ضمن قائمة الاستكمال. حدّثي الصفحة.');
+ if(typeof window.pawBookingReview==='function')window.pawBookingReview(id);
+ else window.openCaseDetails(id);
+};
+function renderIncompleteFormArchive(){
+ formArchiveRows=(snapshot?.cases||[]).map(c=>({c,issues:incompleteFormIssues(c)}))
+   .filter(x=>x.issues.length>0)
+   .sort((a,b)=>Number(b.c.id)-Number(a.c.id));
+ set('fuIntake',formArchiveRows.length);
+ set('fuIntakeSummary',formArchiveRows.length);
+ renderIncompleteFormArchiveList();
+}
+
 function renderFollowups(){
  if(!model)return;
  // The legacy intake renderer owns the collapsed bottom section. Do not inject
@@ -312,6 +390,7 @@ function renderFollowups(){
  const importantBookings=pendingBookings.filter(c=>
    Number(c.total_amount||0)>0 || c.client_paid===true);
  if(legacyFollowups)legacyFollowups();
+ renderIncompleteFormArchive();
  renderSeptemberReviews();
 
  const financialReviewIssues=new Set([

@@ -8,6 +8,11 @@ const fmt=n=>money(n)+" د.ك";
 const number=n=>Number(n||0);
 const code=id=>"PAW-"+String(id).padStart(4,"0");
 const sourceName=c=>c.source==="pet_information_form"?"Pet Information":"Concierge";
+const affiliation=()=>window.PawProviderAffiliations;
+const clinicOf=id=>affiliation()?.clinicFor(id)||"";
+const clinicDoctors=()=>affiliation()?.doctors||[];
+const clinicReportGroups=s=>s.groups.filter(g=>!!clinicOf(g.id));
+const clinicReportLines=s=>clinicReportGroups(s).flatMap(g=>g.lines);
 const monthEnd=m=>new Date(Date.UTC(Number(m.slice(0,4)),Number(m.slice(5,7)),0)).toISOString().slice(0,10);
 const isSheetOctober=c=>String(c.service_date||"")==="" && ["466","467","468","469"].includes(String(c.id)) && c.intake_details?.importSource==="DrMichael_staff_sheet_Oct2026";
 let report=null,sequence=0,approving=false,approval=null;
@@ -53,6 +58,25 @@ function settlementLabel(g){
 function card(name,value){return '<div class="card stat" style="min-width:0"><span>'+name+'</span><b style="font-size:clamp(14px,2vw,20px)">'+value+'</b></div>';}
 function renderView(s){
  const sum=s.totals;
+ const clinicBox=E("pawAccountClinicGroup");
+ if(clinicBox){
+   const clinic=affiliation(), clinicGroups=clinicReportGroups(s);
+   const clinicTotal=F().summarize(clinicReportLines(s));
+   const groupById=new Map(clinicGroups.map(g=>[g.id,g]));
+   if(!clinic){clinicBox.style.display="none";}
+   else{
+     const metric=(label,amount)=>'<div><span>'+label+'</span><b>'+fmt(amount)+'</b></div>';
+     const docRows=clinic.doctors.map(d=>{
+       const g=groupById.get(d.id),v=g?.summary;
+       return '<tr><td>'+d.name+'</td><td>'+(v?.caseCount||0)+'</td><td>'+fmt(v?.provider||0n)+'</td><td>'+fmt(v?.providerPaid||0n)+'</td><td>'+fmt(v?.theirs||0n)+'</td></tr>';
+     }).join("");
+     clinicBox.style.display="";
+     clinicBox.innerHTML='<h3>عيادة مينا عبدالله — الدكاترة التابعون لها</h3>'+
+       '<p class="hint">د. دنيال، د. مايكل، د. بهاء. هذه مبالغ مجمعة للتوضيح، داخلة أصلًا في إجمالي التقرير وليست مستحقات إضافية.</p>'+
+       '<div class="paw-clinic-summary">'+metric('حصة الدكاترة',clinicTotal.provider)+metric('المحوّل للدكاترة',clinicTotal.providerPaid)+metric('المتبقي للدكاترة',clinicTotal.theirs)+metric('حصة PawApp',clinicTotal.paw)+metric('لـ PawApp على الدكاترة',clinicTotal.ours)+'</div>'+
+       '<div style="overflow-x:auto"><table style="min-width:570px"><thead><tr><th>الدكتور</th><th>العمليات المدفوعة</th><th>حصته</th><th>المدفوع له</th><th>المتبقي له</th></tr></thead><tbody>'+docRows+'</tbody></table></div>';
+   }
+ }
  E("pawAccountStatus").textContent="شهر "+s.month+" | عمليات مسددة فقط، Concierge وPet Information معاً. العمليات الأربع بلا تاريخ مدرجة في أكتوبر وفق شيت د. ميشيل، مع بقاء تاريخ خدمتها غير معروف.";
  E("pawAccountCards").innerHTML=[
  card("العمليات المدفوعة",sum.caseCount),card("إجمالي الخدمات",fmt(sum.total)),
@@ -65,6 +89,12 @@ function renderView(s){
   const tr=document.createElement("tr");
   for(const v of [g.name,g.summary.caseCount,money(g.summary.total),money(g.summary.paw),money(g.summary.provider),money(g.summary.providerPaid),money(g.summary.commissionReceived),money(g.summary.ours),money(g.summary.theirs)]){
    const td=document.createElement("td");td.textContent=String(v);tr.appendChild(td);
+  }
+  const nameCell=tr.firstElementChild;
+  const clinic=clinicOf(g.id);
+  if(nameCell&&clinic){
+    const tag=document.createElement("span");tag.className="paw-clinic-label";tag.textContent=clinic;
+    nameCell.appendChild(tag);
   }
   let td=document.createElement("td");td.textContent=settlementLabel(g)+(g.review?" • مراجعة بيانات الخدمة":"");tr.appendChild(td);
   td=document.createElement("td");
@@ -127,17 +157,29 @@ window.pawAccountantExportExcel=function(){
  if(!s||s.month!==E("pawAccountMonth").value)return alert("اعرضي الشهر أولاً");
  if(!window.XLSX)return alert("مكتبة تصدير Excel غير متاحة");
  const nums=g=>[g.summary.caseCount,...["total","paw","provider","paid","providerPaid","commissionReceived","ours","theirs"].map(k=>number(money(g.summary[k])))];
- const head=["الجهة","عدد العمليات المدفوعة","إجمالي الخدمات (د.ك)","حصة باو أب (د.ك)","حصة مقدم الخدمة (د.ك)","تحصيل العملاء المسجل (د.ك)","المحوّل لمقدم الخدمة (د.ك)","عمولة محصلة من الجهة (د.ك)","لباو أب على الشركة (د.ك)","للشركة على باو أب (د.ك)","حالة الاعتماد"];
- const summary=[["تقرير محاسب PawApp",s.month],["عمليات مسددة فقط. الحالات المكررة والتجريبية والملغاة غير محتسبة. السجلات بلا تاريخ خدمة مُدرجة حسب فترة الشيت المعلنة."],head,...s.groups.map(g=>[g.name,...nums(g),g.review?"مراجعة":g.summary.ours+g.summary.theirs>0n?"مفتوح":g.approved.length?"معتمد":"لا يوجد متبقٍ"]),["الإجمالي",...nums({summary:s.totals}),""]];
- const details=[["العملية","شهر المحاسبة","تاريخ الخدمة الفعلي","مصدر العملية","مقدم الخدمة","العميل","رقم الهاتف","الخدمة","المكون","الإجمالي د.ك","حصة باو أب د.ك","حصة الجهة د.ك","سداد العميل المسجل د.ك","استلم من العميل","المدفوع لمقدم الخدمة د.ك","عمولة محصلة د.ك","لنا على الجهة د.ك","للجهة علينا د.ك","ملاحظة"],
+ const head=["الجهة","العيادة التابعة لها","عدد العمليات المدفوعة","إجمالي الخدمات (د.ك)","حصة باو أب (د.ك)","حصة مقدم الخدمة (د.ك)","تحصيل العملاء المسجل (د.ك)","المحوّل لمقدم الخدمة (د.ك)","عمولة محصلة من الجهة (د.ك)","لباو أب على الشركة (د.ك)","للشركة على باو أب (د.ك)","حالة الاعتماد"];
+ const summary=[["تقرير محاسب PawApp",s.month],["عمليات مسددة فقط. الحالات المكررة والتجريبية والملغاة غير محتسبة. السجلات بلا تاريخ خدمة مُدرجة حسب فترة الشيت المعلنة."],head,...s.groups.map(g=>[g.name,clinicOf(g.id)||"—",...nums(g),settlementLabel(g)+(g.review?" • مراجعة بيانات الخدمة":"")]),["الإجمالي","",...nums({summary:s.totals}),""]];
+ const details=[["العملية","شهر المحاسبة","تاريخ الخدمة الفعلي","مصدر العملية","مقدم الخدمة","العيادة التابعة لها","العميل","رقم الهاتف","الخدمة","المكون","الإجمالي د.ك","حصة باو أب د.ك","حصة الجهة د.ك","سداد العميل المسجل د.ك","استلم من العميل","المدفوع لمقدم الخدمة د.ك","عمولة محصلة د.ك","لنا على الجهة د.ك","للجهة علينا د.ك","ملاحظة"],
  ...s.paid.map(l=>{
    const c=l.raw||{};
-   return [code(l.caseId),s.month,c.service_date||"غير معروف — شهر المحاسبة من شيت د. ميشيل",sourceName(c),s.cats.get(l.providerId)||"غير محدد",l.client,l.phone,l.service,l.component,...["total","paw","provider","paid"].map(k=>number(money(l[k]))),l.route==="pawapp"?"باو أب":"الجهة",...["providerPaid","commissionReceived","ours","theirs"].map(k=>number(money(l[k]))),c.service_date?"":"التاريخ الفعلي غير معروف، ليس تاريخ 31 أكتوبر"]})
+   return [code(l.caseId),s.month,c.service_date||"غير معروف — شهر المحاسبة من شيت د. ميشيل",sourceName(c),s.cats.get(l.providerId)||"غير محدد",clinicOf(l.providerId)||"—",l.client,l.phone,l.service,l.component,...["total","paw","provider","paid"].map(k=>number(money(l[k]))),l.route==="pawapp"?"باو أب":"الجهة",...["providerPaid","commissionReceived","ours","theirs"].map(k=>number(money(l[k]))),c.service_date?"":"التاريخ الفعلي غير معروف، ليس تاريخ 31 أكتوبر"]})
  ];
  const checks=[["العملية","العميل","الجهة","ملاحظة"],...s.reviews];
- const approvals=[["الجهة","الاتجاه","من","إلى","المبلغ د.ك","المرجع","تاريخ الدفع","حالة الاعتماد"],...s.approved.map(x=>[s.cats.get(String(x.provider_id))||"غير محدد",x.direction,x.period_from,x.period_to,number(x.amount),x.reference,x.paid_at,x.status])];
+ const approvals=[["الجهة","العيادة التابعة لها","الاتجاه","من","إلى","المبلغ د.ك","المرجع","تاريخ الدفع","حالة الاعتماد"],...s.approved.map(x=>[s.cats.get(String(x.provider_id))||"غير محدد",clinicOf(x.provider_id)||"—",x.direction,x.period_from,x.period_to,number(x.amount),x.reference,x.paid_at,x.status])];
+ const clinicGroups=clinicReportGroups(s);
+ const clinicById=new Map(clinicGroups.map(g=>[g.id,g]));
+ const emptySummary=F().summarize([]);
+ const clinicSummary=F().summarize(clinicReportLines(s));
+ const clinicNums=g=>[g.caseCount,...["total","paw","provider","paid","providerPaid","commissionReceived","ours","theirs"].map(k=>number(money(g[k])))];
+ const clinicSheet=[
+  ["عيادة مينا عبدالله","ملخص الدكاترة التابعين لها",s.month],
+  ["الأرقام تجميع توضيحي من نفس عمليات الأطباء بالملخص الرئيسي. لا تضاف مرة ثانية للإجمالي العام."],
+  ["الدكتور","العيادة","العمليات المسددة","الإجمالي د.ك","حصة PawApp د.ك","حصة الدكتور د.ك","تحصيل العملاء د.ك","المدفوع للدكتور د.ك","العمولة المحصلة د.ك","لـ PawApp د.ك","للدكتور د.ك"],
+  ...clinicDoctors().map(d=>[d.name,affiliation()?.clinic||"عيادة مينا عبدالله",...clinicNums(clinicById.get(d.id)?.summary||emptySummary)]),
+  ["إجمالي العيادة (ضمن الإجمالي العام)","",...clinicNums(clinicSummary)]
+ ];
  const wb=XLSX.utils.book_new();
- for(const [name,rows] of [["ملخص الشركات",summary],["العمليات المدفوعة",details],["مراجعة المحاسب",checks],["التسويات المعتمدة",approvals]]){
+ for(const [name,rows] of [["ملخص الشركات",summary],["ملخص عيادة مينا عبدالله",clinicSheet],["العمليات المدفوعة",details],["مراجعة المحاسب",checks],["التسويات المعتمدة",approvals]]){
     const ws=excelSheet(rows);ws["!cols"]=Array.from({length:Math.max(...rows.map(r=>r.length))},()=>({wch:24}));XLSX.utils.book_append_sheet(wb,ws,name);
  }
  XLSX.writeFile(wb,"PawApp-Accounting-"+s.month+".xlsx",{compression:true});

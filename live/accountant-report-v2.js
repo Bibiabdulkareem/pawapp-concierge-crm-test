@@ -187,7 +187,7 @@ window.pawAccountantExportExcel=function(){
 function openApproval(g,direction,amount){
  if(!accountant()||g.review||amount<=0n||!report)return;
  approval={provider:g.id,direction,amount,month:report.month,from:report.month+"-01",to:monthEnd(report.month)};
- E("pawAccountingSettleTitle").textContent=(direction==="pawapp_to_provider"?"تحويل باو أب إلى ":"تحصيل باو أب من ")+g.name+" — "+fmt(amount);
+ E("pawAccountingSettleTitle").textContent=(direction==="pawapp_to_provider"?"تحويل باو أب إلى ":"تحصيل باو أب من ")+(clinicOf(g.id)?clinicOf(g.id)+" (عن "+g.name+")":g.name)+" — "+fmt(amount);
  E("pawAccountingSettleHelp").textContent="اعتمدي التسوية فقط بعد التأكد أن المبلغ دُفع أو حُصّل فعلاً. رقم المرجع اختياري؛ إذا ما عندج رقم، تُسجّل التسوية كتأكيد داخلي من حساب المحاسب، وليس كإيصال بنكي.";
  E("pawAccountingSettleRef").value="";E("pawAccountingSettleDate").value="";E("pawAccountingSettleMethod").value="";
  E("pawAccountingSettleModal").classList.add("show");

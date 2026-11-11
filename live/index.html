@@ -561,7 +561,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 
 <section id="followups" class="page">
 <div class="title">
-  <div><h1>المتابعة</h1><p>الأولوية للمالية والمواعيد المؤكدة، ثم استكمال البيانات. طلبات النماذج بدون سعر موجودة بأسفل الصفحة.</p></div>
+  <div><h1>المتابعة</h1><p>المالية والمواعيد أولاً. طلبات استكمال بيانات الحيوانات محفوظة في قسم مستقل أسفل الصفحة، بدون إضافتها لمهام الموظفة.</p></div>
 </div>
 
 <div class="section" style="margin-top:10px"><h2>1. أولوية أولى — الإجراءات المالية المطلوبة الآن <span class="status unpaid" style="font-size:14px">عدد الحالات: <span id="fuFinance">0</span></span></h2></div>
@@ -572,7 +572,7 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
   <div class="card stat"><span>مواعيد تحتاج متابعة</span><b id="fuAppointments" class="blue">0</b></div>
   <div class="card stat"><span>بيانات مهمة ناقصة</span><b id="fuMissing">0</b></div>
-  <button class="card stat" type="button" onclick="pawOpenIntakeQueue()" aria-label="فتح قائمة طلبات النماذج غير المكتملة" style="width:100%;text-align:right;cursor:pointer;font:inherit;color:inherit;display:block;border:1px solid var(--line);background:#fff"><span>طلبات نماذج غير مكتملة</span><b id="fuIntake">0</b><small class="hint">اضغطي لعرض العملاء واستكمال بياناتهم</small></button>
+  <button class="card stat" type="button" onclick="pawOpenIncompleteForms()" aria-label="الانتقال إلى قائمة استكمال بيانات الحيوانات" style="width:100%;text-align:right;cursor:pointer;font:inherit;color:inherit;display:block;border:1px solid var(--line);background:#fff"><span>استكمال بيانات الحيوانات</span><b id="fuIntake">0</b><small class="hint">قائمة محفوظة للمراجعة — بدون متابعة موظفة</small></button>
 </div>
 
 <div class="section"><h2>2. المواعيد والتذكيرات المؤكدة</h2></div>
@@ -581,11 +581,16 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="section"><h2>3. البيانات الضرورية المطلوب استكمالها</h2></div>
 <div id="followupMissingList" class="providerGrid"></div>
 
-<div class="section"><h2>4. طلبات نماذج فقط — بدون سعر أو خدمة منفّذة</h2></div>
-<p class="hint" style="margin-bottom:10px">هذي الطلبات تعبئة نموذج فقط. ما تعتبر مدفوعات أو مستحقات ولا تنحسب كتسويات قبل اعتماد الخدمة والسعر والدفع الفعلي.</p>
-<details id="followupIntakeDetails" class="card" style="margin-bottom:12px">
-  <summary style="cursor:pointer;font-weight:700">عرض الطلبات غير المكتملة (<span id="fuIntakeSummary">0</span>)</summary>
-  <div id="followupIntakeList" class="providerGrid" style="margin-top:12px"></div>
+<div class="section"><h2>4. استكمال بيانات الحيوانات — قائمة محفوظة للمراجعة</h2></div>
+<p class="hint" style="margin-bottom:10px">الطلبات الناقصة محفوظة هنا حتى لو انتقلت إلى العمليات. مو مهام متابعة للموظفة، ولا تنضاف لعدد المستحقات والمدفوعات. افتحي أي حالة وقت ما تحتاجين وتكمّلين بياناتها.</p>
+<details id="followupIntakeDetails" class="card" style="margin-bottom:12px;scroll-margin-top:20px">
+  <summary style="cursor:pointer;font-weight:700">عرض طلبات استكمال البيانات (<span id="fuIntakeSummary">0</span>)</summary>
+  <div style="margin-top:12px">
+    <label for="followupIntakeSearch" class="hint" style="display:block;margin-bottom:5px">ابحثي بالعميل أو رقم الهاتف أو رقم العملية</label>
+    <input id="followupIntakeSearch" class="search" type="search" autocomplete="off" placeholder="الاسم، الهاتف، أو PAW-0459" oninput="pawSearchIncompleteFormArchive()" />
+    <p id="followupIntakeFound" class="hint" aria-live="polite" style="margin:9px 0"></p>
+    <div id="followupIntakeList" class="providerGrid" style="margin-top:12px"></div>
+  </div>
 </details>
 
 <div style="display:none">

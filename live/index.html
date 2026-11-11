@@ -478,7 +478,6 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
     <p id="pawAccountStatus" class="hint">يحسب التقرير من سجلات المالية الحالية؛ مستحقات كل طرف تبقى مفتوحة إلى أن تُسجّل التسوية ويعتمدها المحاسب.</p>
   </div>
   <div id="pawAccountCards" class="cards" style="margin-top:12px;grid-template-columns:repeat(auto-fit,minmax(145px,1fr))"></div>
-  <div id="pawAccountClinicGroup" class="card" style="margin:12px 0;display:none"></div>
   <div class="card" style="margin:14px 0"><h2>ملخص الشهر — كل الشركات والفريلانسر</h2>
     <p class="hint">«لنا عليهم» تعني مبلغ يجب أن تستلمه باو أب. «لهم علينا» تعني مبلغ يجب أن تدفعه باو أب. الاعتماد لا يُسجّل قبل إثبات الدفع/التحصيل. للأدمن والمحاسب فقط.</p>
     <p id="pawAccountStats" class="hint"></p>
@@ -784,10 +783,6 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 .paw-clinic-label{display:inline-block;margin-inline-start:6px;vertical-align:middle;padding:3px 8px;border-radius:8px;background:#e9f1ff;color:#0c3b78;border:1px solid #cadcf3;font-weight:750;font-size:11px;line-height:1.45;white-space:normal}
-.paw-clinic-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px;margin:10px 0}
-.paw-clinic-summary>div{border:1px solid #dce4ed;border-radius:10px;padding:9px;background:#f7f9fc}
-.paw-clinic-summary span{display:block;font-size:11px;color:#687c91}
-.paw-clinic-summary b{display:block;margin-top:4px;font-size:14px}
 </style>
 <script>
 /* Provider UUIDs are stable: this is a reporting affiliation, not a change to payout ledger. */
@@ -920,13 +915,7 @@ window.pawMonthlySettlementOverview=async function(){
    for(const g of items){
       const row=document.createElement('tr');
       for(const t of [g.name,label,g.direction==='to_provider'?'باو أب تدفع للعيادة':'العيادة تدفع لباو أب',g.ids.size,F.format(g.amount)]){
-        const td=document.createElement('td');td.textContent=String(t);
-        if(t===g.name&&window.PawProviderAffiliations?.clinicFor(g.providerId)){
-          const clinic=document.createElement('span');clinic.className='paw-clinic-label';
-          clinic.textContent=window.PawProviderAffiliations.clinicFor(g.providerId);
-          td.appendChild(clinic);
-        }
-        row.appendChild(td);
+        const td=document.createElement('td');td.textContent=String(t);row.appendChild(td);
       }
       const cell=document.createElement('td'),btn=document.createElement('button');btn.type='button';btn.className='btn soft';btn.textContent='عرض تفاصيل '+g.name;
       btn.onclick=()=>window.pawOpenMonthlyProvider(g.providerId,month,source);
@@ -1021,7 +1010,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-p="providers"]'
   <div class="actions" style="margin-top:12px"><button id="pawAccountingSettleSave" class="btn primary" type="button" onclick="pawAccountantConfirmSettlement()">تأكيد التسوية</button><button class="btn soft" type="button" onclick="pawAccountantCloseSettlement()">إلغاء</button></div>
 </div></div>
 <script src="accountant-report.js?v=20261104-v1"></script>
-<script src="accountant-report-v2.js?v=20261111-mina-abdullah-affiliation"></script>
+<script src="accountant-report-v2.js?v=20261112-clinic-label-only"></script>
 <script>
 /* Small bounded select popovers on desktop only; the original native selects are kept for phones. */
 (function(){

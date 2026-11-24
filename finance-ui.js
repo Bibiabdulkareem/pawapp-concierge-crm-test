@@ -10,6 +10,7 @@ const F=window.PawFinanceCore,el=id=>document.getElementById(id),v=id=>el(id)?.v
 const cash=x=>F.format(x)+' د.ك',num=x=>Number(F.format(x)),caseCode=id=>'PAW-'+String(id).padStart(4,'0');
 const mayWrite=()=>['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role);
 const maySettle=()=>['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role);
+const NO_EXTERNAL_REFERENCE='بدون مرجع خارجي - تسوية مؤكدة داخل النظام';
 const mayActOnLine=l=>mayWrite()||(maySettle()&&['provider_paid','commission_received'].includes(l?.action));
 let snapshot=null,model=null,loading=null,selectedProvider=null,activeAction=null,saving=false,editorRevision=null;
 let periodSettlements=[];
@@ -110,6 +111,8 @@ const legacyFollowups=window.renderAutomaticFollowups,legacyCases=window.renderC
 function linesFor(id){return model?.lines.filter(l=>l.caseId===String(id))||[]}
 function findLine(id,component){return linesFor(id).find(l=>l.component===component)}
 function providerName(id){return snapshot?.providers.find(p=>String(p.id)===String(id))?.name||'غير محدد'}
+function pawClinicOf(id){return window.PawProviderAffiliations?.clinicFor(id)||''}
+function pawClinicTag(id){const clinic=pawClinicOf(id);return clinic?'<span class="paw-clinic-label">تابع لعيادة '+html(clinic.replace('عيادة ',''))+'</span>':'';}
 function actionLabel(l){if(l.unknown)return 'تأكيد سداد النقل';if(l.action==='client_paid')return l.isPaid?'تحديد جهة استلام الدفعة':'تحصيل من العميل';if(l.action==='provider_paid')return 'دفع مستحق الشركة';if(l.action==='commission_received')return 'تحصيل حصة PawApp';return 'مراجعة التسجيل';}
 function detail(l){if(l.unknown)return 'سعر النقل '+cash(l.total)+' — لم تُحدد حالة سداده بعد';if(l.action==='client_paid')return l.isPaid?'العميل دافع؛ المطلوب فقط تحديد جهة الاستلام':'متبقي على العميل '+cash(l.unpaid);if(l.action==='provider_paid')return 'للشركة عندنا '+cash(l.theirs);if(l.action==='commission_received')return 'لنا عند الشركة '+cash(l.ours);return review(l)||'مكتمل ماليًا';}
 function actionButton(l){if(!mayActOnLine(l))return '';return '<button class="btn primary" type="button" onclick="pawFinanceOpen(\''+l.caseId+'\',\''+l.component+'\')">'+html(actionLabel(l))+'</button>';}
@@ -145,38 +148,49 @@ if(issueBreakdown)issueBreakdown.innerHTML='<b>تفاصيل البنود الم�
 let status=el('financeStatus');if(!status){status=document.createElement('div');status.id='financeStatus';status.className='card';status.style.marginTop='10px';box.after(status);}status.innerHTML='<b>حسابات TEST — شامل الخدمة والنقل</b><div class="hint">'+(s.issueCount?html(s.issueCount+' بند يحتاج تأكيدًا أو مراجعة قبل إصدار التقرير. الأرقام لا تفترض أن النقل مدفوع.'): 'تمت مطابقة إجمالي الأسعار مع مجموع حصة PawApp وحصص الشركات.')+'</div>';
 const recent=el('dashboardRecentCards');if(recent)recent.innerHTML=snapshot.cases.slice().reverse().slice(0,3).map(c=>{const lines=linesFor(c.id),sum=F.summarize(lines),pending=lines.some(actionable);return '<div class="card provider"><h3>'+html(c.client_name)+'</h3><p>'+caseCode(c.id)+'</p><div class="hint">'+html(c.service_name||c.requested_service||'')+'</div><div class="miniGrid"><div class="mini"><span>الإجمالي شامل النقل</span><b>'+cash(sum.total)+'</b></div><div class="mini"><span>حصة PawApp</span><b>'+cash(sum.paw)+'</b></div></div><div class="hint">'+(pending?lines.filter(actionable).map(l=>html((l.component==='transport'?'النقل: ':'الخدمة: ')+detail(l))).join('<br>'):'لا يوجد إجراء مالي متبقٍ')+'</div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button></div></div>';}).join('');
 }
-function renderProviders(){if(!model)return;const q=v('providerSearch').toLowerCase();el('providerList').innerHTML=model.providers.filter(p=>p.name.toLowerCase().includes(q)).map(p=>{const s=p.summary;return '<div class="card provider"><h3>'+html(p.name)+'</h3><div class="miniGrid"><div class="mini"><span>العمليات</span><b>'+s.caseCount+'</b></div><div class="mini"><span>العملاء</span><b>'+s.customerCount+'</b></div><div class="mini"><span>الخدمات مع النقل</span><b>'+s.lineCount+'</b></div></div><div class="miniGrid"><div class="mini"><span>لنا عندهم</span><b>'+cash(s.ours)+'</b></div><div class="mini"><span>لهم عندنا</span><b>'+cash(s.theirs)+'</b></div><div class="mini"><span>حصة الشركة</span><b>'+cash(s.provider)+'</b></div></div>'+(p.lines.some(l=>l.issues.length&&!(l.date>='2026-07-01'&&l.date<'2026-10-01'))?'<div class="hint">'+p.lines.filter(l=>l.issues.length&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')).length+' بند يحتاج مراجعة أو تأكيد.</div>':'')+'<div class="actions"><button class="btn primary" onclick="openProviderCRM(\''+p.id+'\')">التفاصيل والتقرير</button>'+(mayWrite()?'<button class="btn soft" onclick="openServiceManager(\''+p.id+'\')">الخدمات</button>':'')+'</div></div>';}).join('')||'<div class="card">لا توجد شركات</div>';}
+function renderProviders(){if(!model)return;const q=v('providerSearch').toLowerCase();el('providerList').innerHTML=model.providers.filter(p=>p.name.toLowerCase().includes(q)).map(p=>{const s=p.summary;return '<div class="card provider"><h3>'+html(p.name)+pawClinicTag(p.id)+'</h3><div class="miniGrid"><div class="mini"><span>العمليات</span><b>'+s.caseCount+'</b></div><div class="mini"><span>العملاء</span><b>'+s.customerCount+'</b></div><div class="mini"><span>الخدمات مع النقل</span><b>'+s.lineCount+'</b></div></div><div class="miniGrid"><div class="mini"><span>لنا عندهم</span><b>'+cash(s.ours)+'</b></div><div class="mini"><span>لهم عندنا</span><b>'+cash(s.theirs)+'</b></div><div class="mini"><span>حصة الشركة</span><b>'+cash(s.provider)+'</b></div></div>'+(p.lines.some(l=>l.issues.length&&!(l.date>='2026-07-01'&&l.date<'2026-10-01'))?'<div class="hint">'+p.lines.filter(l=>l.issues.length&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')).length+' بند يحتاج مراجعة أو تأكيد.</div>':'')+'<div class="actions"><button class="btn primary" onclick="openProviderCRM(\''+p.id+'\')">التفاصيل والتقرير</button>'+(mayWrite()?'<button class="btn soft" onclick="openServiceManager(\''+p.id+'\')">الخدمات</button>':'')+'</div></div>';}).join('')||'<div class="card">لا توجد شركات</div>';}
+function pawSettlementSource(){return v('pawProviderSettlementSource')||'all'}
+function pawSourceMatchesLine(l){
+ const source=(snapshot?.cases||[]).find(c=>String(c.id)===String(l.caseId))?.source;
+ const filter=pawSettlementSource();
+ return filter==='all'||(filter==='pet_information_form'?source==='pet_information_form':source!=='pet_information_form');
+}
 function renderProviderSettlementPeriod(){
  const host=el('pawProviderSettlementPeriod');if(!host||!model||!selectedProvider)return;
  const p=model.providers.find(x=>String(x.id)===String(selectedProvider));if(!p)return;
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
  if(!from||!to){host.innerHTML='<p class="hint">اختاري تاريخ البداية والنهاية لعرض تسويات هذه الشركة. ما تم اختيار أي شهر تلقائياً.</p>';return;}
  if(from>to){host.innerHTML='<p class="hint">تاريخ البداية لازم يكون قبل تاريخ النهاية.</p>';return;}
- const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
+ const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to)&&pawSourceMatchesLine(l));
  const sum=F.summarize(lines);
  const cases=(snapshot?.cases||[]).filter(c=>lines.some(l=>l.caseId===String(c.id)));
  const historical=from>='2026-07-01'&&to<'2026-10-01';
  const pending=historical?[]:lines.filter(l=>l.ours>0n||l.theirs>0n);
  const unresolved=historical?[]:lines.filter(l=>l.issues.length);
+ const unlinkedServices=historical?[]:lines.filter(l=>{
+    if(!l.isPaid||l.component!=='main')return false;
+    const c=(snapshot?.cases||[]).find(c=>String(c.id)===l.caseId);
+    return !c?.service_id||!(snapshot?.services||[]).some(s=>String(s.id)===String(c.service_id)&&String(s.provider_id)===l.providerId);
+ });
  const settled=historical?lines:lines.filter(l=>l.isPaid&&l.ours===0n&&l.theirs===0n&&!l.issues.length);
- const approved=periodSettlements.filter(x=>String(x.provider_id)===String(selectedProvider)&&(!from||x.period_to>=from)&&(!to||x.period_from<=to));
+ const approved=pawSettlementSource()==='all'?periodSettlements.filter(x=>String(x.provider_id)===String(selectedProvider)&&(!from||x.period_to>=from)&&(!to||x.period_from<=to)):[];
  const settlementCards=['pawapp_to_provider','provider_to_pawapp'].map(dir=>{
    const title=dir==='pawapp_to_provider'?'مستحق للشركة على PawApp':'مستحق لـ PawApp على الشركة';
    const rows=approved.filter(x=>x.direction===dir);
    const amount=rows.reduce((a,x)=>a+Number(x.amount||0),0);
    const due=historical?0n:dir==='pawapp_to_provider'?sum.theirs:sum.ours;
    const relevant=lines.filter(l=>l.isPaid&&l.route===(dir==='pawapp_to_provider'?'pawapp':'provider'));
-   const unknown=relevant.some(l=>l.issues.length);
-   const label=historical?'إقفال تاريخي — ليس اعتماد تحويل':rows.length&&due===0n?'تسوية معتمدة وموثقة':due>0n?'مستحقات مفتوحة — لم تتم التسوية':lines.length&&unresolved.length?'تحتاج مراجعة — بيانات مالية ناقصة':lines.length?'سداد مسجل — التسوية غير معتمدة':'لا توجد عمليات في الفترة';
-   const canApprove=['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length&&!historical;
-   const canReconcile=!historical&&['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&relevant.length>0&&unresolved.length===0&&relevant.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
+   const unknown=relevant.some(l=>l.issues.length)||unlinkedServices.some(l=>relevant.includes(l));
+   const label=historical?'إقفال تاريخي — ليس اعتماد تحويل':rows.length&&due===0n?'تسوية معتمدة وموثقة':due>0n?'مستحقات مفتوحة — لم تتم التسوية':relevant.length?'مقفلة مالياً — تم تسجيل سداد الحصص بالكامل':lines.length&&unresolved.length?'تحتاج مراجعة البيانات':'لا يوجد مبلغ مستحق بهذا الاتجاه';
+   const canApprove=['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&from&&to&&from<=to&&due>0n&&!unknown&&!rows.length&&!historical&&pawSettlementSource()==='all';
+   const canReconcile=pawSettlementSource()==='all'&&!historical&&['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role)&&due===0n&&rows.length===0&&relevant.length>0&&unresolved.length===0&&relevant.every(l=>l.isPaid&&l.component==='main'&&l.total>0n);
    return '<div class="mini"><span>'+title+'</span><b>'+label+'</b><div class="hint">المعتمد: '+amount.toFixed(3)+' د.ك • المتبقي: '+cash(due)+'</div>'+
      (canApprove?'<button class="btn primary" onclick="pawConfirmPeriodSettlement(\''+dir+'\')">تمت التسوية — تأكيد الدفع/التحصيل</button>':'')+
      (canReconcile?'<button class="btn" onclick="pawConfirmZeroSettlement(\''+dir+'\')">اعتماد تسوية سابقة موثقة</button>':'')+
      (unknown?'<div class="hint">يلزم مراجعة البنود قبل الاعتماد</div>':'')+'</div>';
  }).join('');
- const status=historical?'إقفال تاريخي — لا يثبت اعتماد تحويل':unresolved.length?'تحتاج مراجعة':pending.length?'مستحقات مفتوحة — بانتظار التسوية':approved.length?'توجد تسوية معتمدة ولا مستحقات معلقة':'لا توجد مستحقات معلقة — اعتماد التسوية منفصل عن السداد';
- host.innerHTML='<div class="hint">إجمالي الفترة وحصص الطرفين تظهر دائماً، حتى لو المتبقي صفر. حالة الإقفال لا تثبت التحويل وحدها.</div>'+
+ const status=historical?'إقفال تاريخي — لا يثبت اعتماد تحويل':pending.length?'مستحقات مفتوحة — بانتظار التسوية':approved.length?'توجد تسوية معتمدة ولا مستحقات معلقة':lines.some(l=>l.isPaid)?'مقفلة مالياً — جميع حصص مقدمي الخدمة مسددة بالسجل':unresolved.length?'تحتاج مراجعة البيانات':'لا توجد مستحقات معلقة';
+ host.innerHTML='<div class="hint">'+(pawSettlementSource()==='all'?'كل مصادر الشركة':'المصدر المختار فقط؛ لتسوية كل عملية استخدمي زر المستحق في تفاصيلها، واعتماد الفترة الشامل معطّل حتى لا تختلط المصادر')+'</div><div class="hint">إجمالي الفترة وحصص الطرفين تظهر دائماً، حتى لو المتبقي صفر. حالة الإقفال لا تثبت التحويل وحدها.</div>'+
  '<div class="miniGrid"><div class="mini"><span>عمليات الفترة</span><b>'+sum.caseCount+'</b></div>'+
  '<div class="mini"><span>إجمالي العمليات</span><b>'+cash(sum.total)+'</b></div>'+
  '<div class="mini"><span>حصة PawApp</span><b>'+cash(sum.paw)+'</b></div>'+
@@ -185,13 +199,22 @@ function renderProviderSettlementPeriod(){
  '<div class="mini"><span>المحوّل للشركة</span><b>'+cash(sum.providerPaid)+'</b></div>'+
  '<div class="mini"><span>المتبقي على الشركة</span><b>'+cash(historical?0n:sum.ours)+'</b></div>'+
  '<div class="mini"><span>المتبقي على PawApp</span><b>'+cash(historical?0n:sum.theirs)+'</b></div></div>'+
- '<div class="miniGrid">'+settlementCards+'</div>'+ 
+ '<div class="miniGrid">'+settlementCards+'</div>'+
+ (unlinkedServices.length?'<p class="hint" style="font-weight:700;color:#9e5220">يوجد '+unlinkedServices.length+' دفعة مؤكدة لكن الخدمة الفعلية ناقصة. المبلغ يبقى ظاهرًا كمستحق، ولا تُعتمد تسوية مجمعة قبل استكمال الخدمة.</p>':'')+
+ '<div style="overflow-x:auto;margin:12px 0"><b>تفاصيل العمليات لهذا المصدر والفترة</b><table style="min-width:620px;width:100%"><thead><tr><th>رقم الحالة</th><th>العميل</th><th>الخدمة المطلوبة / الفعلية</th><th>إجمالي د.ك</th><th>حصة PawApp</th><th>حصة الشركة</th><th>المتبقي للشركة</th><th>الحالة</th></tr></thead><tbody>'+lines.map(l=>{
+   const c=(snapshot?.cases||[]).find(c=>String(c.id)===l.caseId);
+   const noService=l.component==='main'&&(!c?.service_id||!(snapshot?.services||[]).some(s=>String(s.id)===String(c.service_id)&&String(s.provider_id)===l.providerId));
+   const requested=Array.isArray(c?.intake_details?.requested_services)?c.intake_details.requested_services.join('، '):'';
+   const serviceText=(c?.service_name||'الخدمة الفعلية غير مربوطة')+(requested?' | الطلب: '+requested:'');
+   return '<tr><td><button class="btn soft" type="button" onclick="openCaseDetails(\''+l.caseId+'\')">'+caseCode(l.caseId)+'</button></td><td>'+html(l.client)+'</td><td>'+html(serviceText)+(noService&&c?.source==='pet_information_form'&&mayWrite()?'<div><button class="btn soft" type="button" onclick="pawBookingReview(\''+l.caseId+'\')">ربط الخدمة</button></div>':'')+'</td><td>'+cash(l.total)+'</td><td>'+cash(l.paw)+'</td><td>'+cash(l.provider)+'</td><td>'+cash(l.theirs)+'</td><td>'+html(!l.isPaid?'بانتظار دفع العميل':noService?'مدفوع — الخدمة تحتاج ربط':l.theirs>0n?'مدفوع — تسوية مفتوحة':'لا يوجد متبقٍ')+'</td></tr>';
+ }).join('')+'</tbody></table></div>'+
  '<button class="btn" onclick="pawPrintProviderReport()">طباعة تقرير رسمي بالشعار / حفظ PDF</button><p><b>التسوية: '+html(status)+'</b> • عمليات مستوفية: '+(historical?lines.length:settled.length)+' • بنود تحتاج مراجعة: '+(historical?0:unresolved.length)+'</p>'+
  '<div class="hint">'+(historical?'الفترة مقفلة خارج النظام؛ بيانات التحويلات الفعلية تظهر أعلاه كما هي ويمكن توثيقها بشكل مستقل.':'البنود الناقصة تحتاج مراجعة قبل اعتماد تسوية جديدة.')+'</div>';
 }
 window.pawProviderSettlementPeriodChanged=renderProviderSettlementPeriod;
 let periodSettlementBusy=false;
 window.pawConfirmPeriodSettlement=async function(direction){
+ if(pawSettlementSource()!=='all')return alert('التسوية المجمعة لا تفصل المصادر؛ اعتمدي تسوية كل عملية من تفاصيلها حتى لا تختلط طلبات Pet Information بباقي أكتوبر.');
  if(periodSettlementBusy)return;
  if(!['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role))return alert('صلاحية الإدارة أو العمليات أو المحاسبة فقط');
  if(!['pawapp_to_provider','provider_to_pawapp'].includes(direction))return alert('اتجاه التسوية غير صحيح');
@@ -206,6 +229,8 @@ window.pawConfirmPeriodSettlement=async function(direction){
   if(!p)throw Error('الشركة غير موجودة');
   const rows=p.lines.filter(l=>l.date>=from&&l.date<=to);
   const relevant=rows.filter(l=>l.isPaid&&l.route===(direction==='pawapp_to_provider'?'pawapp':'provider'));
+  const missingService=relevant.some(l=>l.component==='main'&&!(snapshot?.services||[]).some(s=>String(s.provider_id)===l.providerId&&String(s.id)===String(l.raw.service_id||'')));
+  if(missingService)return alert('توجد دفعة مؤكدة تحتاج ربط الخدمة الفعلية قبل اعتماد التسوية. افتحي تفاصيل الحالة.');
   const due=direction==='pawapp_to_provider'?F.summarize(rows).theirs:F.summarize(rows).ours;
   if(due<=0n)return alert('هذه التسوية مسجلة أو لا توجد مستحقات مفتوحة. لن يتم تسجيل دفع مكرر.');
   if(relevant.some(l=>l.issues.length))return alert('توجد بيانات مالية تحتاج مراجعة قبل التسوية.');
@@ -216,10 +241,9 @@ window.pawConfirmPeriodSettlement=async function(direction){
   if(methodInput===null)return;
   const method=methodInput.trim();
   if(!method)return alert('طريقة التحويل الفعلي مطلوبة لاعتماد التسوية.');
-  const referenceInput=prompt('رقم إيصال أو مرجع التحويل الحقيقي:','');
+  const referenceInput=prompt('رقم إيصال أو مرجع التحويل (اختياري، اتركيه فارغاً إذا ما عندج رقم):','');
   if(referenceInput===null)return;
-  const reference=referenceInput.trim();
-  if(!reference)return alert('مرجع التحويل الحقيقي مطلوب.');
+  const reference=referenceInput.trim()||NO_EXTERNAL_REFERENCE;
   const dateInput=prompt('تاريخ التحويل الفعلي YYYY-MM-DD:','');
   if(dateInput===null)return;
   const paidAt=dateInput.trim();
@@ -228,7 +252,7 @@ window.pawConfirmPeriodSettlement=async function(direction){
     && [parsed.getFullYear(),String(parsed.getMonth()+1).padStart(2,'0'),String(parsed.getDate()).padStart(2,'0')].join('-')===paidAt;
   if(!validDate)return alert('تاريخ التحويل غير صحيح. اكتبيه بصيغة YYYY-MM-DD.');
   if(paidAt>localDate())return alert('لا يمكن اعتماد تحويل بتاريخ مستقبلي.');
-  if(!confirm('هل تم تحويل '+cash(due)+' فعلياً؟\nالطريقة: '+method+'\nالمرجع: '+reference+'\nالتاريخ: '+paidAt+'\nلا تعتمدي التسوية بدون إثبات التحويل.'))return;
+  if(!confirm('هل تؤكدين أن التسوية تمت فعلياً بقيمة '+cash(due)+'؟\nالطريقة: '+method+'\nالتوثيق: '+reference+'\nالتاريخ: '+paidAt+'\nبدون مرجع خارجي سيظهر تأكيد داخلي باسم مستخدم النظام.'))return;
   const result=await window.PAWAPP_AUTH.client.rpc('test_confirm_provider_period_settlement',{
     p_provider:provider,p_from:from,p_to:to,p_direction:direction,
     p_method:method,p_reference:reference,p_paid_at:paidAt,p_expected:Number(F.format(due))
@@ -244,53 +268,198 @@ window.pawConfirmPeriodSettlement=async function(direction){
 };
 
 window.pawConfirmZeroSettlement=async function(direction){
+ if(pawSettlementSource()!=='all')return alert('اعتماد إقفال الفترة عام وليس حسب المصدر. استخدمي مراجعة كل عملية أولاً.');
  if(!['admin','operations','accountant'].includes(window.PAWAPP_AUTH?.access?.role))return alert('للإدارة والعمليات والمحاسبة فقط');
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
  if(!from||!to||from>to)return alert('اختاري الفترة');
- const ref=prompt('أدخلي مرجع إثبات التسوية السابقة (إيصال أو مرجع تحويل):','');
- if(!ref?.trim())return;
+ const ref=prompt('مرجع التسوية السابقة (اختياري؛ يمكن تركه فارغاً):','');
+ if(ref===null)return;
  const date=prompt('تاريخ التسوية الفعلي YYYY-MM-DD:','');
  if(!date||!/^\\d{4}-\\d{2}-\\d{2}$/.test(date))return alert('تاريخ غير صحيح');
  if(!confirm('هل راجعتي إثبات الدفع الفعلي؟ سيُعتمد الإقفال برصيد صفر بدون تسجيل تحويل جديد.'))return;
  try{
- const q=await window.PAWAPP_AUTH.client.rpc('test_confirm_zero_balance_period',{p_provider:selectedProvider,p_from:from,p_to:to,p_direction:direction,p_reference:ref.trim(),p_paid_at:date});
+ const q=await window.PAWAPP_AUTH.client.rpc('test_confirm_zero_balance_period',{p_provider:selectedProvider,p_from:from,p_to:to,p_direction:direction,p_reference:ref.trim()||NO_EXTERNAL_REFERENCE,p_paid_at:date});
  if(q.error)throw q.error;
  await refresh();el('pawSettlementFrom').value=from;el('pawSettlementTo').value=to;renderProviderSettlementPeriod();
  toast('تم اعتماد التسوية السابقة دون احتساب مبلغ جديد');
  }catch(e){alert('لم تُعتمد التسوية: '+e.message);}
 };
 function renderProvider(){if(!selectedProvider||!model)return;
-const savedFrom=v('pawSettlementFrom'),savedTo=v('pawSettlementTo');const p=model.providers.find(x=>String(x.id)===String(selectedProvider));if(!p)return;const s=p.summary;set('providerDetailName',p.name);set('providerDetailType','الخدمة الأساسية والنقل — كل مبلغ محسوب مرة واحدة');set('pdClients',s.customerCount);set('pdOps',s.caseCount);const pendingCases=new Set(p.lines.filter(actionable).map(l=>l.caseId));set('pdPending',pendingCases.size);set('pdComplete',s.caseCount-pendingCases.size);set('pdSales',cash(s.total));set('pdPaw',cash(s.paw));set('pdOurs',cash(s.ours));set('pdTheirs',cash(s.theirs));
+const savedFrom=v('pawSettlementFrom'),savedTo=v('pawSettlementTo'),savedSource=v('pawProviderSettlementSource')||'all';const p=model.providers.find(x=>String(x.id)===String(selectedProvider));if(!p)return;const s=p.summary;set('providerDetailName',p.name+(pawClinicOf(p.id)?' — '+pawClinicOf(p.id):''));set('providerDetailType','الخدمة الأساسية والنقل — كل مبلغ محسوب مرة واحدة');set('pdClients',s.customerCount);set('pdOps',s.caseCount);const pendingCases=new Set(p.lines.filter(actionable).map(l=>l.caseId));set('pdPending',pendingCases.size);set('pdComplete',s.caseCount-pendingCases.size);set('pdSales',cash(s.total));set('pdPaw',cash(s.paw));set('pdOurs',cash(s.ours));set('pdTheirs',cash(s.theirs));
 let extra=el('financeProviderCards');if(!extra){extra=document.createElement('div');extra.id='financeProviderCards';extra.className='cards';extra.style.cssText='grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px';el('pdSales').closest('.cards').after(extra);}extra.innerHTML=metric('حصة الشركة','finProviderShare',cash(s.provider))+metric('حُوّل للشركة','finProviderPaid',cash(s.providerPaid))+metric('المحصّل من العمولة','finProviderCollected',cash(s.pawCollected))+metric('بنود تحتاج مراجعة','finProviderIssues',p.lines.filter(l=>l.issues.length&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')).length);
 let period=el('pawProviderSettlementSection');
 if(!period){period=document.createElement('section');period.id='pawProviderSettlementSection';period.className='card';period.style.margin='12px 0';el('pdServices').before(period);}
-period.innerHTML='<h3>تسويات الشركة حسب الفترة — TEST</h3><div class="grid2"><div class="field"><label>من تاريخ</label><input id="pawSettlementFrom" type="date" onchange="pawProviderSettlementPeriodChanged()"></div><div class="field"><label>إلى تاريخ</label><input id="pawSettlementTo" type="date" onchange="pawProviderSettlementPeriodChanged()"></div></div><div id="pawProviderSettlementPeriod"></div>';
-if(savedFrom)el('pawSettlementFrom').value=savedFrom;if(savedTo)el('pawSettlementTo').value=savedTo;
+period.innerHTML='<h3>تسويات الشركة حسب الفترة — TEST</h3><div class="field" style="margin:10px 0"><label>المصدر</label><select id="pawProviderSettlementSource" onchange="renderProviderSettlementPeriod();renderProviderSourceCases()"><option value="all">جميع عمليات الشركة</option><option value="pet_information_form">Pet Information فقط</option><option value="other">باقي عمليات الكونسيرج فقط</option></select></div><div class="grid2"><div class="field"><label>من تاريخ</label><input id="pawSettlementFrom" type="date" onchange="pawProviderSettlementPeriodChanged()"></div><div class="field"><label>إلى تاريخ</label><input id="pawSettlementTo" type="date" onchange="pawProviderSettlementPeriodChanged()"></div></div><div id="pawProviderSettlementPeriod"></div>';
+if(savedFrom)el('pawSettlementFrom').value=savedFrom;if(savedTo)el('pawSettlementTo').value=savedTo;if(el('pawProviderSettlementSource'))el('pawProviderSettlementSource').value=savedSource;
 renderProviderSettlementPeriod();
 const counts=new Map();p.lines.forEach(l=>counts.set(l.service,(counts.get(l.service)||0)+1));el('pdServices').innerHTML=[...counts].map(([name,n])=>'<div class="kpi-line"><span>'+html(name)+'</span><b>'+n+'</b></div>').join('');
-el('pdClientList').innerHTML=p.lines.map(l=>'<div class="card provider"><h3>'+html(l.client)+'</h3><div class="hint">'+caseCode(l.caseId)+' • '+html(l.service)+'</div><div class="miniGrid"><div class="mini"><span>السعر</span><b>'+cash(l.total)+'</b></div><div class="mini"><span>PawApp</span><b>'+cash(l.paw)+'</b></div><div class="mini"><span>الشركة</span><b>'+cash(l.provider)+'</b></div></div><p>'+html(detail(l))+'</p><div class="actions">'+(actionable(l)?actionButton(l):'')+'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">العملية</button></div></div>').join('')||'<div class="card">لا توجد عمليات</div>';el('pdExportBtn').onclick=()=>window.exportProviderFullReport(p.id);
+el('pdClientList').innerHTML=p.lines.filter(pawSourceMatchesLine).map(l=>'<div class="card provider"><h3>'+html(l.client)+'</h3><div class="hint">'+caseCode(l.caseId)+' • '+html(l.service)+'</div><div class="miniGrid"><div class="mini"><span>السعر</span><b>'+cash(l.total)+'</b></div><div class="mini"><span>PawApp</span><b>'+cash(l.paw)+'</b></div><div class="mini"><span>الشركة</span><b>'+cash(l.provider)+'</b></div></div><p>'+html(detail(l))+'</p><div class="actions">'+(actionable(l)?actionButton(l):'')+'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">العملية</button></div></div>').join('')||'<div class="card">لا توجد عمليات</div>';el('pdExportBtn').onclick=()=>window.exportProviderFullReport(p.id);
 }
-function renderFollowups(){if(!model)return;
- const pendingBookings=(snapshot?.cases||[]).filter(c=>c.source==='booking_form_test'&&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'&&(!c.provider_id||Number(c.total_amount||0)<=0||!c.service_name));
- const followupBox=el('followupFinanceList');
- if(followupBox){
-  let area=el('pawBookingIntakeReview');
-  if(!area){area=document.createElement('section');area.id='pawBookingIntakeReview';followupBox.before(area);}
-  area.innerHTML=pendingBookings.length?'<h3>طلبات النموذج — استكمال مباشر من المتابعة</h3>'+pendingBookings.map(c=>{
-   const missing=[!c.provider_id?'مقدم الخدمة':null,!c.service_name?'الخدمة':null,Number(c.total_amount||0)<=0?'السعر والعمولة':null].filter(Boolean);
-   return '<div class="card"><b>'+html(c.client_name||'عميل')+' — '+caseCode(c.id)+'</b><div class="hint">المطلوب: '+html(missing.join('، '))+'</div><button class="btn primary" onclick="pawBookingReview('+Number(c.id)+')">استكمال الطلب وحساب العمولة</button></div>';
-  }).join(''):'';
+window.renderProviderSourceCases=function(){if(selectedProvider)renderProvider()};
+// Secondary intake archive: derived from the TEST finance snapshot, NOT the
+// employee follow-up/debt queue. A form remains discoverable until its core
+// client, pet, provider, service, and pricing fields are actually complete.
+let formArchiveRows=[];
+function incompleteFormIssues(c){
+ const issues=[];
+ if(!['booking_form','booking_form_test','pet_information_form'].includes(c.source)
+    ||String(c.workflow_status||'').toLowerCase()==='cancelled')return issues;
+ const name=String(c.client_name||'').trim();
+ const phone=String(c.client_phone||'').replace(/[^0-9]/g,'');
+ if(!name||/^(unknown|غير معروف|بدون اسم|n[/]a|null)$/i.test(name))issues.push('اسم العميل');
+ if(phone.length<8)issues.push('رقم الهاتف');
+ if(!String(c.pet_type||'').trim())issues.push('نوع الحيوان');
+ if(!c.provider_id)issues.push('العيادة / الطبيب');
+ const serviceLinked=!!c.service_id&&(snapshot?.services||[]).some(x=>
+   String(x.id)===String(c.service_id)&&String(x.provider_id)===String(c.provider_id));
+ if(!serviceLinked)issues.push('الخدمة الفعلية');
+ if(!(Number(c.total_amount||0)>0))issues.push('السعر والعمولة');
+ return issues;
+}
+function renderIncompleteFormArchiveList(){
+ const host=el('followupIntakeList');
+ if(!host)return;
+ const term=String(el('followupIntakeSearch')?.value||'').trim().toLocaleLowerCase();
+ const digits=term.replace(/[^0-9]/g,'');
+ const matching=formArchiveRows.filter(({c})=>{
+   if(!term)return true;
+   const words=[
+     c.client_name,c.client_phone,c.pet_name,c.pet_type,c.requested_service,c.service_name,
+     c.intake_details?.staff_listed_name,c.intake_details?.staff_listed_phone,
+     'PAW-'+String(c.id).padStart(4,'0'),String(c.id)
+   ].filter(Boolean).join(' ').toLocaleLowerCase();
+   return words.includes(term)||(digits.length>=4&&String(c.client_phone||'').replace(/[^0-9]/g,'').includes(digits));
+ });
+ const found=el('followupIntakeFound');
+ if(found)found.textContent='المعروض: '+matching.length+' من '+formArchiveRows.length+' طلب';
+ host.innerHTML=matching.length?matching.map(({c,issues})=>{
+   const id=Number(c.id);
+   const request=String(c.requested_service||c.service_name||'الخدمة المطلوبة غير محددة');
+   const isPaid=c.client_paid===true;
+   const status=isPaid?'العميل مسدّد — استكمال بيانات فقط':'نموذج يحتاج استكمال';
+   return '<div class="card provider" style="min-width:0">'+
+     '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">'+
+       '<h3 style="margin:0">'+html(c.client_name||'عميل بدون اسم')+'</h3>'+
+       '<span class="status partial">'+status+'</span></div>'+
+     '<div class="hint">'+caseCode(c.id)+' • '+html(c.client_phone||'بدون رقم')+
+       ' • '+html(c.source==='pet_information_form'?'Pet Information':'Concierge Booking')+'</div>'+
+     '<div class="hint" style="margin-top:6px">'+html(request)+'</div>'+
+     '<div class="hint" style="margin-top:6px"><b>الناقص:</b> '+html(issues.join('، '))+'</div>'+
+     '<div class="actions" style="flex-wrap:wrap">'+
+       '<button type="button" class="btn primary" onclick="pawOpenArchivedForm('+id+')">استكمال بيانات العميل</button>'+
+       '<button type="button" class="btn soft" onclick="openCaseDetails('+id+')">عرض العملية</button>'+
+     '</div></div>';
+ }).join(''):'<div class="card"><div class="hint">'+(formArchiveRows.length?'ما في عميل مطابق للبحث.':'لا توجد نماذج ناقصة حالياً.')+'</div></div>';
+}
+window.pawSearchIncompleteFormArchive=renderIncompleteFormArchiveList;
+window.pawOpenIncompleteForms=function(){
+ const section=el('followupIntakeDetails');
+ if(!section)return;
+ section.open=true;
+ renderIncompleteFormArchiveList();
+ section.scrollIntoView({behavior:'smooth',block:'start'});
+};
+window.pawOpenArchivedForm=function(id){
+ const record=formArchiveRows.find(r=>String(r.c.id)===String(id));
+ if(!record)return alert('الحالة لم تعد ضمن قائمة الاستكمال. حدّثي الصفحة.');
+ if(typeof window.pawBookingReview==='function')window.pawBookingReview(id);
+ else window.openCaseDetails(id);
+};
+function renderIncompleteFormArchive(){
+ formArchiveRows=(snapshot?.cases||[]).map(c=>({c,issues:incompleteFormIssues(c)}))
+   .filter(x=>x.issues.length>0)
+   .sort((a,b)=>Number(b.c.id)-Number(a.c.id));
+ set('fuIntake',formArchiveRows.length);
+ set('fuIntakeSummary',formArchiveRows.length);
+ renderIncompleteFormArchiveList();
+}
+
+function renderFollowups(){
+ if(!model)return;
+ // The legacy intake renderer owns the collapsed bottom section. Do not inject
+ // booking intake cards before the urgent financial queue.
+ const staleIntake=el('pawBookingIntakeReview');
+ if(staleIntake)staleIntake.remove();
+ const pendingBookings=(snapshot?.cases||[]).filter(c=>
+   ['booking_form_test','booking_form','pet_information_form'].includes(c.source)
+   &&c.workflow_status!=='closed'&&c.workflow_status!=='cancelled'
+   &&intakeMissing(c).length>0);
+ // Price/receipt exists: treat missing service/provider data as an important
+ // operational correction. Unpriced form submissions belong ONLY in the
+ // collapsed, bottom "طلبات النماذج" section.
+ const importantBookings=pendingBookings.filter(c=>
+   Number(c.total_amount||0)>0 || c.client_paid===true);
+ if(legacyFollowups)legacyFollowups();
+ renderIncompleteFormArchive();
+ renderSeptemberReviews();
+
+ const financialReviewIssues=new Set([
+   'payment_route_missing','direct_provider_and_payout','duplicate_commission_route',
+   'client_overpaid','provider_overpaid','commission_overpaid','paid_flag_mismatch',
+   'price_split_mismatch','invalid_price','unpriced_service','transport_payment_unknown'
+ ]);
+ const lines=model.lines.filter(l=>
+   !pendingBookings.some(c=>String(c.id)===l.caseId)
+   &&actionable(l)&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')
+   &&(l.action==='client_paid'||(l.date>='2026-10-01'
+     &&l.issues.some(issue=>financialReviewIssues.has(issue))))
+ );
+ const criticalCards=importantBookings.map(c=>{
+   const missing=intakeMissing(c);
+   return '<div class="card provider" style="border:1px solid #e8b960">'+
+     '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+       '<h3 style="margin:0">'+html(c.client_name||'عميل')+'</h3>'+
+       '<span class="status unpaid">بيانات مالية تحتاج تصحيح</span></div>'+
+     '<div class="hint">'+caseCode(c.id)+' • '+html(c.client_phone||'')+
+       ' • '+html(c.requested_service||c.service_name||'الخدمة غير محددة')+'</div>'+
+     '<div class="hint">السعر المسجل: '+cash(Number(c.total_amount||0))+
+       ' • المطلوب: '+html(missing.join('، '))+'</div>'+
+     '<div class="actions"><button class="btn primary" type="button" onclick="pawBookingReview('+Number(c.id)+')">استكمال بيانات العملية</button></div></div>';
+ }).join('');
+ const actionCards=lines.map(l=>
+   '<div class="card provider">'+
+     '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+       '<h3 style="margin:0">'+html(l.client)+'</h3>'+
+       '<span class="status unpaid">'+(l.issues.length?'تأكيد / مراجعة':'مستحقات')+'</span></div>'+
+     '<div class="hint">'+caseCode(l.caseId)+' • '+html(providerName(l.providerId))+
+       ' • '+(l.component==='transport'?'النقل':'الخدمة')+'</div>'+
+     '<h3>'+html(actionLabel(l))+'</h3>'+
+     '<div class="hint">'+html(detail(l))+'</div>'+
+     '<div class="actions">'+(
+       l.issues.includes('unpriced_service')
+         ?'<button class="btn primary" onclick="pawBookingReview(\''+l.caseId+'\')">استكمال السعر في العملية</button>'
+         :(String(l.caseId)==='384'&&l.action==='client_paid'
+           ?'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">مراجعة الاسترجاع 47 د.ك — لا تسجلي تحصيل</button>'
+           :actionButton(l))
+     )+'</div></div>'
+ ).join('');
+ const box=el('followupFinanceList');
+ if(box)box.innerHTML=(criticalCards+actionCards)||
+   '<div class="card"><b class="green">تمام ✓</b><div class="hint">لا توجد إجراءات مالية مطلوبة حالياً. مستحقات الشركات تظهر في لوحة التسويات.</div></div>';
+ const importantIds=new Set([...importantBookings.map(c=>String(c.id)),...lines.map(l=>l.caseId)]);
+ set('fuFinance',importantIds.size);
+ // Badge counts only work requiring immediate attention; form-only intake is separate.
+ const pending=new Set(importantIds);
+ for(const id of ['followupAppointmentList','followupMissingList']){
+   el(id)?.querySelectorAll('[onclick]').forEach(b=>{
+     const m=b.getAttribute('onclick')?.match(/\('([^']+)'/);
+     if(m)pending.add(m[1]);
+   });
  }
- if(legacyFollowups)legacyFollowups();renderSeptemberReviews();const financialReviewIssues=new Set(['payment_route_missing','direct_provider_and_payout','duplicate_commission_route','client_overpaid','provider_overpaid','commission_overpaid','paid_flag_mismatch','price_split_mismatch','invalid_price','unpriced_service','transport_payment_unknown']);const lines=model.lines.filter(l=>actionable(l)&&!(l.date>='2026-07-01'&&l.date<'2026-10-01')&&(l.action==='client_paid'||(l.date>='2026-10-01'&&l.issues.some(issue=>financialReviewIssues.has(issue)))));const box=el('followupFinanceList');if(box)box.innerHTML=lines.map(l=>'<div class="card provider"><div style="display:flex;justify-content:space-between;gap:10px"><h3>'+html(l.client)+'</h3><span class="status unpaid">'+(l.issues.length?'تأكيد / مراجعة':'مستحقات')+'</span></div><div class="hint">'+caseCode(l.caseId)+' • '+html(providerName(l.providerId))+' • '+(l.component==='transport'?'النقل':'الخدمة')+'</div><h3>'+html(actionLabel(l))+'</h3><div class="hint">'+html(detail(l))+'</div><div class="actions">'+(l.issues.includes('unpriced_service')?'<button class="btn primary" onclick="pawBookingReview(\''+l.caseId+'\')">استكمال السعر في العملية</button>':(String(l.caseId)==='384'&&l.action==='client_paid'?'<button class="btn soft" onclick="openCaseDetails(\''+l.caseId+'\')">مراجعة الاسترجاع 47 د.ك — لا تسجلي تحصيل</button>':actionButton(l)))+'</div></div>').join('')||'<div class="card"><b class="green">تمام ✓</b><div class="hint">لا توجد دفعات عملاء تحتاج متابعة. مستحقات الشركات وعمولات PawApp تظهر في التسويات فقط.</div></div>';
-set('fuFinance',new Set(lines.map(l=>l.caseId)).size);const pending=new Set(lines.map(l=>l.caseId));for(const id of ['followupAppointmentList','followupMissingList'])el(id)?.querySelectorAll('[onclick]').forEach(b=>{const m=b.getAttribute('onclick')?.match(/\('([^']+)'/);if(m)pending.add(m[1])});set('followupNavBadge',pending.size);if(el('followupNavBadge'))el('followupNavBadge').style.display=pending.size?'inline-block':'none';set('kNeedsFollowup',pending.size);
+ set('followupNavBadge',pending.size);
+ if(el('followupNavBadge'))el('followupNavBadge').style.display=pending.size?'inline-block':'none';
+ set('kNeedsFollowup',pending.size);
 }
 function isArchivedHistoricalCaseForTable(c){return String(c.workflow_status)==='closed'&&c.client_paid===true&&/\[BULK_IMPORT:2026:(?:7|8|9):ROW:\d+\]/.test(String(c.notes||''));}
 function renderCases(){
  if(!model)return;
- const q=v('caseSearch').toLowerCase(),pf=v('caseProviderFilter')||'all',sf=v('caseStatusFilter')||'all';
+ const q=v('caseSearch').toLowerCase(),pf=v('caseProviderFilter')||'all',sf=v('caseStatusFilter')||'all',origin=v('caseSourceFilter')||'all';
  const rows=snapshot.cases.slice().reverse().filter(c=>{
   const ls=linesFor(c.id),s=F.summarize(ls);
-  if(q&&![caseCode(c.id),c.client_name,c.client_phone,...ls.map(l=>providerName(l.providerId)),...ls.map(l=>l.service),c.pet_type,c.breed,db.staff.find(e=>String(e.id)===String(c.employee_id))?.name].join(' ').toLowerCase().includes(q))return false;
+  if(origin==='booking'&&!['booking_form','booking_form_test'].includes(c.source))return false;
+  if(origin==='pet_information_form'&&c.source!=='pet_information_form')return false;
+  if(origin==='other'&&['booking_form','booking_form_test','pet_information_form'].includes(c.source))return false;
+  if(q&&![caseCode(c.id),c.client_name,c.client_phone,...ls.map(l=>providerName(l.providerId)),...ls.map(l=>l.service),c.pet_type,c.breed,c.requested_service,c.service_name,typeof sourceLabel==='function'?sourceLabel(c.source):c.source,db.staff.find(e=>String(e.id)===String(c.employee_id))?.name].join(' ').toLowerCase().includes(q))return false;
   if(pf!=='all'&&!ls.some(l=>l.providerId===pf))return false;
   if(sf==='client_paid'&&(s.unpaid>0n||s.unknownCount))return false;
   if(sf==='client_unpaid'&&s.unpaid===0n&&!s.unknownCount)return false;
@@ -303,30 +472,193 @@ function renderCases(){
   const ls=linesFor(c.id),s=F.summarize(ls),employee=db.staff.find(e=>String(e.id)===String(c.employee_id));
   const clientTasks=isArchivedHistoricalCaseForTable(c)?[]:ls.filter(l=>l.action==='client_paid'||l.unknown);
   const partnerTasks=isArchivedHistoricalCaseForTable(c)?[]:ls.filter(l=>l.action==='provider_paid'||l.action==='commission_received'||(!l.action&&l.issues.length));
-  const paidText=s.unknownCount?'نقل غير مؤكد':s.unpaid>0n?'غير مدفوع':'تم السداد';
+  const isUnpricedIntake=['booking_form','pet_information_form'].includes(c.source)&&Number(c.total_amount||0)<=0;
+  const paidText=isUnpricedIntake?'السعر غير محدد':s.unknownCount?'نقل غير مؤكد':s.unpaid>0n?'غير مدفوع':'تم السداد';
   const button='<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>';
-  return '<tr><td>'+caseCode(c.id)+'</td><td>'+html(c.client_name)+'</td><td>'+html(c.pet_type||'—')+'</td><td>'+html(c.breed||'—')+'</td><td>'+yesNo(c.vaccinated)+'</td><td>'+yesNo(c.microchipped)+'</td><td>'+ls.map(l=>html(providerName(l.providerId))).join('<br>')+'</td><td>'+ls.map(l=>html(l.service)).join('<br>')+'</td>'+['total','paw','provider'].map(k=>'<td>'+cash(s[k])+'</td>').join('')+'<td><span class="status '+(s.unpaid>0n||s.unknownCount?'unpaid':'paid')+'">'+paidText+'</span></td><td>'+html(c.client_due_date||'—')+'</td><td>لنا: '+cash(s.ours)+'<br>علينا: '+cash(s.theirs)+(s.issueCount?'<br><span class="hint">يحتاج مراجعة</span>':'')+'</td><td>'+html(employee?.name||'—')+'<br>'+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source||'')+'</td><td><span class="hint">'+html(c.workflow_status||'new_request')+'</span><br>'+button+'</td><td>'+clientTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td><td>'+partnerTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td></tr>';
+  return '<tr><td>'+caseCode(c.id)+'</td><td>'+html(c.client_name)+'</td><td>'+html(c.pet_type||'—')+'</td><td>'+html(c.breed||'—')+'</td><td>'+yesNo(c.vaccinated)+'</td><td>'+yesNo(c.microchipped)+'</td><td>'+ls.map(l=>html(providerName(l.providerId))).join('<br>')+'</td><td>'+ls.map(l=>html(l.service)).join('<br>')+'</td>'+['total','paw','provider'].map(k=>'<td>'+cash(s[k])+'</td>').join('')+'<td><span class="status '+(isUnpricedIntake?'partial':s.unpaid>0n||s.unknownCount?'unpaid':'paid')+'">'+paidText+'</span></td><td>'+html(c.client_due_date||'—')+'</td><td>لنا: '+cash(s.ours)+'<br>علينا: '+cash(s.theirs)+(s.issueCount?'<br><span class="hint">يحتاج مراجعة</span>':'')+'</td><td>'+html(employee?.name||'—')+'<br>'+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source||'')+'</td><td><span class="hint">'+html(c.workflow_status||'new_request')+'</span><br>'+button+'</td><td>'+clientTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td><td>'+partnerTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td></tr>';
  }).join('')||'<tr><td colspan="18">لا توجد عمليات</td></tr>';
 }
 function render(){if(!snapshot)return;hydrate();renderDashboard();renderProviders();renderProvider();renderCases();renderFollowups();}
 function dialog(){if(el('financeActionModal'))return;document.body.insertAdjacentHTML('beforeend','<div id="financeActionModal" class="modalBg"><div class="modal"><div class="modalHead"><h3 id="financeActionTitle"></h3><button class="close" onclick="closeModal(\'financeActionModal\')">×</button></div><div id="financeActionBody"></div><div id="financeActionError" class="hint" style="color:#b42318;margin:10px 0" role="alert"></div><button id="financeActionSave" class="btn primary" style="width:100%" onclick="pawFinanceSaveAction()">حفظ وتحديث الحسابات</button></div></div>');}
+// Form intake is a separate, deliberately minimal flow: do not resubmit
+// the entire case and accidentally overwrite information from customer forms.
+let intakeId=null,intakeBusy=false,intakeRequestId=null;
+const intakeCases=new Set(['booking_form','booking_form_test','pet_information_form']);
+const intakeCase=()=>snapshot?.cases.find(c=>String(c.id)===String(intakeId));
+function intakeInput(id){return el('pawIntake'+id);}
+function intakeVal(id){return String(intakeInput(id)?.value??'').trim();}
+function intakeMissing(c){
+ if(c.source==='pet_information_form'&&c.client_paid===true&&c.client_paid_to==='pawapp'&&Number(c.total_amount||0)>0){
+   // Payment is confirmed: intake is over. Incomplete provider/service data
+   // remains visible in settlement review, never silently treated as settled.
+   return [];
+ }
+ const service=(snapshot?.services||[]).find(s=>String(s.provider_id)===String(c.provider_id)&&String(s.id)===String(c.service_id)&&s.name===c.service_name);
+ const isPetInfo=c.source==='pet_information_form';
+ // Appointment staff work under the existing shared Firebase login. A CRM
+ // employee assignment is not required to close Pet Information intake.
+ // Do not confuse customer payment closure with partner settlement.
+ return [
+   !isPetInfo&&!c.employee_id?'الموظف المسؤول':null,
+   !c.provider_id?'الشركة / الفريلانسر':null,
+   !service?'الخدمة الفعلية':null,
+   Number(c.total_amount||0)<=0?'السعر والعمولة':null,
+   isPetInfo&&Number(c.total_amount||0)>0&&(!c.client_paid||c.client_paid_to!=='pawapp')?'تأكيد وصول الدفع إلى PawApp من لوحة المواعيد':null
+ ].filter(Boolean);
+}
+function ensureIntakeModal(){
+ if(el('pawQuickIntakeModal'))return;
+ const m=document.createElement('div');m.id='pawQuickIntakeModal';m.className='modalBg';
+ m.innerHTML='<div class="modal" style="max-height:88vh;overflow-y:auto;overscroll-behavior:contain">'+
+ '<div class="modalHead"><h3>استكمال الطلب — البيانات الناقصة فقط</h3><button class="close" type="button" onclick="closeModal(\'pawQuickIntakeModal\')">×</button></div>'+
+ '<div id="pawIntakeSummary" class="card" style="box-shadow:none;margin-bottom:12px"></div>'+
+ '<div id="pawIntakeMissing" class="hint" style="margin:8px 0"></div>'+
+ '<div class="grid2">'+
+ '<div class="field"><label>الموظف المسؤول</label><select id="pawIntakeEmployee"></select></div>'+
+ '<div class="field"><label>الشركة / الفريلانسر</label><select id="pawIntakeProvider" onchange="pawIntakeProviderChanged()"></select></div>'+
+ '<div class="field full"><label>الخدمة الفعلية لدى الشركة</label><select id="pawIntakeService" onchange="pawIntakeServiceChanged()"></select><div id="pawIntakeServiceHint" class="hint"></div><input id="pawIntakeNewService" placeholder="اسم الخدمة الجديدة" style="display:none;margin-top:8px"></div>'+
+ '<div class="field"><label>إجمالي سعر الخدمة على العميل (د.ك)</label><input id="pawIntakePrice" type="number" min="0.001" step="0.001" inputmode="decimal" oninput="pawIntakeRecalculate()"></div>'+
+ '<div class="field"><label>طريقة حصة PawApp</label><select id="pawIntakeFeeType" onchange="pawIntakeRecalculate()"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت من الإجمالي</option></select></div>'+
+ '<div class="field"><label id="pawIntakeFeeLabel">نسبة PawApp %</label><input id="pawIntakeFee" type="number" min="0" step="0.001" inputmode="decimal" oninput="pawIntakeRecalculate()"></div>'+
+ '<div class="field full"><div id="pawIntakeQuote" class="hint"></div></div>'+
+ '<div class="field"><label>العميل دفع؟</label><select id="pawIntakePaid" onchange="pawIntakePaidChanged()"><option value="no">لا، لم يدفع</option><option value="yes">نعم، دفع كامل المبلغ</option></select></div>'+
+ '<div class="field" id="pawIntakeAmountWrap" style="display:none"><label>المبلغ اللي دفعه العميل (د.ك)</label><input id="pawIntakePaidAmount" type="number" min="0.001" step="0.001" inputmode="decimal"></div>'+
+ '<div class="field" id="pawIntakeRecipientWrap" style="display:none"><label>العميل دفع لمن؟</label><select id="pawIntakeRecipient"><option value="">اختاري جهة الاستلام</option><option value="pawapp">PawApp</option><option value="provider">الشركة / الفريلانسر مباشرة</option></select></div>'+
+ '<div class="field" id="pawIntakeMethodWrap" style="display:none"><label>طريقة الدفع</label><select id="pawIntakeMethod"><option>KNET</option><option>رابط دفع</option><option>كاش</option><option>تحويل بنكي</option><option>دفع للعيادة مباشرة</option></select></div>'+
+ '<div class="field" id="pawIntakeDueWrap"><label>موعد متابعة الدفع (اختياري)</label><input id="pawIntakeDueDate" type="date"></div>'+
+ '</div><div id="pawIntakeError" role="alert" style="color:#a4262c;margin:10px 0"></div>'+
+ '<button id="pawIntakeSaveBtn" type="button" class="btn primary" style="width:100%;margin-top:12px" onclick="pawIntakeSave()">حفظ البيانات الناقصة وتحديث الحسابات</button>'+
+ '<button type="button" class="btn soft" style="width:100%;margin-top:8px" onclick="pawIntakeShowFullCase()">عرض باقي بيانات الحالة</button></div>';
+ document.body.appendChild(m);
+}
+function intakeOptions(list,selected){
+ const s=selected==null?'':String(selected);
+ return list.map(([value,label])=>'<option value="'+html(value)+'"'+(String(value)===s?' selected':'')+'>'+html(label)+'</option>').join('');
+}
+window.pawIntakeProviderChanged=function(){
+ const c=intakeCase(),p=(snapshot?.providers||[]).find(x=>String(x.id)===intakeVal('Provider'));
+ const services=(snapshot?.services||[]).filter(x=>String(x.provider_id)===String(p?.id));
+ const previous=intakeVal('Service');
+ const desired=c&&String(c.provider_id)===String(p?.id)?(services.find(s=>s.name===c.service_name)?.id||''):previous;
+ intakeInput('Service').innerHTML=intakeOptions([['','اختاري الخدمة'],...services.map(s=>[s.id,s.name]),['__new__','+ إضافة خدمة جديدة لهذه الشركة']],desired);
+ if(desired&&!services.some(s=>String(s.id)===desired))intakeInput('Service').value='';
+ intakeInput('Service').disabled=!p;
+ intakeInput('ServiceHint').textContent=!p?'اختاري الشركة أولاً حتى تظهر خدماتها':!services.length?'لا توجد خدمات للشركة حالياً؛ اختاري إضافة خدمة جديدة.':'اختاري من خدمات الشركة المسجلة';
+ if(p && (String(c?.provider_id)!==String(p.id)||(Number(c?.total_amount||0)<=0&&Number(c?.fee_value||0)===0))){
+   intakeInput('FeeType').value=p.default_fee_type||'percent';
+   intakeInput('Fee').value=String(p.default_fee_value||0);
+ }
+ window.pawIntakeServiceChanged();
+ window.pawIntakeRecalculate();
+};
+window.pawIntakeServiceChanged=function(){
+ intakeInput('NewService').style.display=intakeVal('Service')==='__new__'?'':'none';
+};
+window.pawIntakeRecalculate=function(){
+ try{
+   const quote=F.quote(intakeVal('Price')||'0',intakeVal('FeeType')||'percent',intakeVal('Fee')||'0');
+   intakeInput('Quote').textContent='حصة PawApp: '+F.format(quote.paw)+' د.ك | مستحق الشركة: '+F.format(quote.provider)+' د.ك';
+   intakeInput('FeeLabel').textContent=intakeVal('FeeType')==='fixed'?'حصة PawApp (د.ك)':'نسبة PawApp %';
+   if(intakeVal('Paid')==='yes' && !intakeInput('PaidAmount').dataset.edited)intakeInput('PaidAmount').value=F.format(quote.total);
+   intakeInput('Error').textContent='';
+ }catch(e){
+   intakeInput('Quote').textContent='راجعي السعر والعمولة';
+   intakeInput('Error').textContent=String(e?.message||e);
+ }
+};
+window.pawIntakePaidChanged=function(){
+ const paid=intakeVal('Paid')==='yes';
+ for(const id of ['AmountWrap','RecipientWrap','MethodWrap'])intakeInput(id).style.display=paid?'':'none';
+ intakeInput('DueWrap').style.display=paid?'none':'';
+ if(paid)window.pawIntakeRecalculate();
+};
+window.pawIntakeShowFullCase=function(){
+ const id=intakeId;closeModal('pawQuickIntakeModal');if(id!=null)window.openCaseDetails(id);
+};
 window.pawBookingReview=function(id){
  if(!mayWrite())return alert('هذه العملية تتطلب صلاحية التعديل');
- if(typeof window.openCaseDetails==='function'){
-  window.openCaseDetails(id);
-  document.getElementById('completeCaseModal')?.classList.add('show');
- }else alert('تعذر فتح استكمال العملية');
+ const c=snapshot?.cases.find(x=>String(x.id)===String(id));
+ if(!c)return alert('لم يتم العثور على الحالة. حدّثي الصفحة.');
+ if(!intakeCases.has(c.source)){window.openCaseDetails(id);return;}
+ intakeId=String(id);intakeRequestId=crypto.randomUUID();ensureIntakeModal();
+ const details=c.intake_details||{},requested=(details.requested_services||[]);
+ intakeInput('Summary').innerHTML='<b>'+html(c.client_name||'العميل')+' — '+caseCode(c.id)+'</b>'+
+ '<div class="hint">'+html(c.client_phone||'')+' • '+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source)+'</div>'+
+ '<div class="hint">الطلب من العميل: '+html(c.requested_service||'غير محدد')+'</div>'+
+ (requested.length?'<div class="hint">الخدمات المختارة: '+html(requested.join('، '))+'</div>':'');
+ intakeInput('Missing').textContent='المطلوب استكماله: '+(intakeMissing(c).join('، ')||'تأكيد البيانات المالية فقط');
+ intakeInput('Employee').innerHTML=intakeOptions([['','اختاري الموظف'],...(snapshot.employees||[]).map(e=>[e.id,e.name])],c.employee_id||window.PAWAPP_AUTH?.access?.employee_id||'');
+ intakeInput('Provider').innerHTML=intakeOptions([['','اختاري الشركة / الفريلانسر'],...(snapshot.providers||[]).map(p=>[p.id,p.name])],c.provider_id||'');
+ intakeInput('Price').value=Number(c.total_amount||0)>0?F.format(F.minor(c.total_amount)):'';
+ intakeInput('FeeType').value=c.fee_type||'percent';
+ intakeInput('Fee').value=String(c.fee_value||0);
+ intakeInput('Paid').value=c.client_paid?'yes':'no';
+ intakeInput('PaidAmount').value=c.client_paid?F.format(F.minor(c.total_amount||0)):'';
+ delete intakeInput('PaidAmount').dataset.edited;
+ intakeInput('PaidAmount').oninput=()=>{intakeInput('PaidAmount').dataset.edited='1'};
+ intakeInput('Recipient').value=c.client_paid_to||'';
+ intakeInput('Method').value=c.payment_method||'KNET';
+ intakeInput('DueDate').value=c.client_due_date||'';
+ intakeInput('Error').textContent='';
+ window.pawIntakeProviderChanged();
+ window.pawIntakePaidChanged();
+ el('pawQuickIntakeModal').classList.add('show');
+};
+window.pawIntakeSave=async function(){
+ if(intakeBusy||!mayWrite())return;
+ const c=intakeCase();if(!c)return;
+ const error=intakeInput('Error'),btn=intakeInput('SaveBtn');
+ try{
+  const provider=intakeVal('Provider'),serviceChoice=intakeVal('Service'),employee=intakeVal('Employee');
+  if(!employee||!provider||!serviceChoice)throw Error('اختاري الموظف والشركة والخدمة أولاً.');
+  const q=F.quote(intakeVal('Price'),intakeVal('FeeType'),intakeVal('Fee')||'0');
+  if(q.total<=0n)throw Error('أدخلي سعر الخدمة أكبر من صفر.');
+  const paid=intakeVal('Paid')==='yes',recipient=intakeVal('Recipient');
+  if(paid&&!recipient)throw Error('اختاري العميل دفع لمن: PawApp أو الشركة.');
+  if(paid && F.minor(intakeVal('PaidAmount'))!==q.total)throw Error('المبلغ المدفوع لازم يساوي إجمالي الخدمة عند اختيار سداد كامل. لا تسجلي دفعة جزئية كأنها مدفوعة بالكامل.');
+  if(c.client_paid&&!paid)throw Error('لا يمكن تغيير دفعة عميل مسجلة إلى غير مدفوع.');
+  if(serviceChoice==='__new__'&&!intakeVal('NewService'))throw Error('اكتبي اسم الخدمة الجديدة.');
+  intakeBusy=true;btn.disabled=true;btn.textContent='جاري حفظ البيانات...';error.textContent='';
+  let service=(snapshot.services||[]).find(s=>String(s.id)===serviceChoice);
+  if(serviceChoice==='__new__'){
+    const name=intakeVal('NewService');
+    // Query the current catalog, not only the cached snapshot: a previous
+    // interrupted save may already have added this service.
+    const catalog=await window.PAWAPP_AUTH.client.from('test_services').select('id,name,provider_id').eq('provider_id',provider);
+    if(catalog.error)throw Error('تعذر تحميل خدمات الشركة: '+catalog.error.message);
+    service=(catalog.data||[]).find(s=>String(s.name).trim().toLowerCase()===name.toLowerCase());
+    if(!service){
+      const saved=await window.PAWAPP_AUTH.client.from('test_services').insert({provider_id:provider,name}).select('id,name,provider_id').single();
+      if(saved.error)throw Error('تعذر إضافة الخدمة إلى كتالوج الشركة: '+saved.error.message);
+      service=saved.data;
+    }
+  }
+  if(!service||String(service.provider_id)!==provider)throw Error('الخدمة لا تتبع الشركة المختارة. أعيدي الاختيار.');
+  const patch={provider_id:provider,service_id:service.id,service_name:service.name,employee_id:employee,
+    total_amount:F.format(q.total),fee_type:intakeVal('FeeType'),fee_value:intakeVal('Fee')||'0',
+    client_due_date:paid?null:(intakeVal('DueDate')||null)};
+  if(paid)patch.payment_method=intakeVal('Method')||'KNET';
+  const payments={main:{paid,recipient:paid?recipient:null}};
+  const {error:rpcError}=await window.PAWAPP_AUTH.client.rpc('test_finance_save',{
+    p_request_id:intakeRequestId,p_case_id:Number(intakeId),p_patch:patch,p_payments:payments,p_revision:c.finance_revision||0});
+  if(rpcError)throw rpcError;
+  closeModal('pawQuickIntakeModal');
+  await refresh();
+  intakeId=null;intakeRequestId=null;
+  toast('تم تحديث الخدمة والسعر والحسابات ✓');
+ }catch(e){error.textContent=message(e);}
+ finally{intakeBusy=false;btn.disabled=false;btn.textContent='حفظ البيانات الناقصة وتحديث الحسابات';}
 };
 window.pawFinanceOpen=function(caseId,component='main'){if(saving)return;const l=findLine(caseId,component);if(!l)return;if(!mayActOnLine(l)){alert('مشاهدة فقط');return}dialog();activeAction={caseId:String(caseId),component,revision:l.revision,requestId:crypto.randomUUID(),line:l};set('financeActionTitle',actionLabel(l));set('financeActionError','');let body='<div class="card" style="box-shadow:none"><b>'+html(detail(l))+'</b><div class="hint">'+caseCode(caseId)+' • '+html(providerName(l.providerId))+' • '+(component==='transport'?'النقل':'الخدمة')+'</div></div>';const reviewOnly=!l.action;el('financeActionSave').style.display=reviewOnly?'none':'';if(l.unknown)body+='<div class="field"><label>هل العميل دفع قيمة النقل؟</label><select id="finConfirmPaid"><option value="">اختاري</option><option value="yes">نعم، تم استلامه</option><option value="no">لا، لم يدفع النقل</option></select></div>';
 if(l.action==='client_paid'||l.unknown)body+='<div class="field"><label>جهة استلام دفعة العميل</label><select id="finRecipient" onchange="pawFinanceTransportRouteChanged()"><option value="">اختاري جهة الاستلام</option><option value="pawapp">PawApp</option><option value="provider">'+html(providerName(l.providerId))+' مباشرة</option></select></div>';
 if(l.component==='transport'&&(l.action==='client_paid'||l.unknown))body+='<div id="finTransportCloseout" class="field" style="display:none"><label id="finTransportCloseoutLabel">إغلاق تسوية النقل بنفس الحفظ؟</label><select id="finTransportCloseoutValue"><option value="no">لا، خلّها بالمتابعة</option><option value="yes">نعم، تمت التسوية</option></select><div class="hint" id="finTransportCloseoutHint">إذا اخترتي نعم، يسجل النظام الطرف الثاني تلقائيًا بنفس عملية الحفظ.</div></div>';
 if(l.action==='provider_paid'||l.action==='commission_received')body+='<div class="field"><label>المبلغ المستلم / المحوّل (د.ك)</label><input id="finAmount" type="number" min="0.001" step="0.001" value="'+F.format(l.action==='provider_paid'?l.theirs:l.ours)+'"></div>';
-if(!reviewOnly)body+='<div class="grid2"><div class="field"><label>تاريخ الدفع الفعلي</label><input id="finDate" type="date" value="'+localDate()+'"></div><div class="field"><label>طريقة الدفع</label><select id="finMethod"><option>KNET</option><option>تحويل بنكي</option><option>كاش</option><option>رابط دفع</option></select></div></div><div class="field"><label>رقم المرجع / التحويل (إلزامي عند التسوية فقط)</label><input id="finReference"></div>';
+if(!reviewOnly)body+='<div class="grid2"><div class="field"><label>تاريخ السداد الفعلي (أو تاريخ توثيق تسوية سابقة)</label><input id="finDate" type="date" value="'+localDate()+'"></div><div class="field"><label>طريقة الدفع</label><select id="finMethod"><option value="">اختاري طريقة التسوية</option><option>KNET</option><option>تحويل بنكي</option><option>كاش</option><option>رابط دفع</option><option>تسوية سابقة - تأكيد المحاسب</option></select></div></div><div class="field"><label>رقم المرجع / التحويل (اختياري)</label><input id="finReference" placeholder="اتركيه فارغاً إذا ما عندج رقم"></div><p class="hint">بدون رقم مرجع خارجي، نسجّل اعتماداً داخلياً مع حساب الموظف. للتسويات السابقة اختاري «تسوية سابقة - تأكيد المحاسب».</p>';
 if(l.issues.length&&!l.unknown)body+='<div class="hint">'+html(review(l))+'</div>';if(reviewOnly)body+='<p>لا تسجلي دفعة إضافية لإخفاء الملاحظة. نراجع التسجيلات المتعارضة أولًا بدون حذفها.</p>';el('financeActionBody').innerHTML=body;el('financeActionModal').classList.add('show');};
 function localInput(value){if(!value)return '';const d=new Date(value);return Number.isFinite(d.getTime())?new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16):'';}
 function localDate(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 window.pawFinanceTransportRouteChanged=function(){if(!activeAction||activeAction.component!=='transport')return;const wrap=el('finTransportCloseout'),label=el('finTransportCloseoutLabel'),hint=el('finTransportCloseoutHint'),recipient=v('finRecipient');if(!wrap)return;wrap.style.display=recipient?'block':'none';if(recipient==='pawapp'){if(label)label.textContent='هل تم دفع مستحق شركة النقل أيضًا؟';if(hint)hint.textContent='نعم = يسجل دفع حصة شركة النقل تلقائيًا بنفس الحفظ. لا = تبقى كمستحق بالمتابعة.';}else if(recipient==='provider'){if(label)label.textContent='هل تم تحصيل حصة PawApp من شركة النقل أيضًا؟';if(hint)hint.textContent='نعم = يسجل تحصيل حصة PawApp تلقائيًا بنفس الحفظ. لا = تبقى كتحصيل مطلوب بالمتابعة.';}};
-window.pawFinanceSaveAction=async function(){if(saving||!activeAction||!mayActOnLine(activeAction.line))return;const a=activeAction,l=a.line;let action=l.action;try{if(l.unknown){if(!v('finConfirmPaid'))throw Error('اختاري هل النقل مدفوع.');action=v('finConfirmPaid')==='no'?'confirm_transport_unpaid':'client_paid';}const data={date:v('finDate')||localDate(),method:v('finMethod'),reference:v('finReference')};if(action==='client_paid'){if(!v('finRecipient'))throw Error('اختاري جهة استلام دفعة العميل.');data.recipient=v('finRecipient');}if(['provider_paid','commission_received'].includes(action)){data.amount=F.format(F.minor(v('finAmount')));if(F.minor(data.amount)<=0n)throw Error('أدخلي مبلغًا أكبر من صفر.');}const closeTransport=l.component==='transport'&&action==='client_paid'&&v('finTransportCloseoutValue')==='yes';if((['provider_paid','commission_received'].includes(action)||closeTransport)&&!String(data.reference||'').trim())throw Error('مرجع التحويل أو الإيصال الفعلي مطلوب لاعتماد التسوية.');const recipient=data.recipient;saving=true;el('financeActionSave').disabled=true;await rpc('test_finance_action',{p_case_id:Number(a.caseId),p_component:a.component,p_action:action,p_request_id:a.requestId,p_data:data,p_revision:a.revision});await refresh();if(closeTransport){const next=findLine(a.caseId,'transport');const nextAction=recipient==='pawapp'?'provider_paid':'commission_received';if(next&&next.action===nextAction){const amount=nextAction==='provider_paid'?next.theirs:next.ours;if(amount>0n){await rpc('test_finance_action',{p_case_id:Number(a.caseId),p_component:'transport',p_action:nextAction,p_request_id:crypto.randomUUID(),p_data:{date:data.date,method:data.method,reference:data.reference,amount:F.format(amount)},p_revision:next.revision});await refresh();}}}const nextStep=findLine(a.caseId,a.component);const shouldContinue=!closeTransport&&nextStep&&nextStep.action&&nextStep.action!==action;if(shouldContinue){closeModal('financeActionModal');activeAction=null;toast('تم حفظ الخطوة الأولى • باقي '+actionLabel(nextStep));setTimeout(()=>window.pawFinanceOpen(a.caseId,a.component),80);return;}closeModal('financeActionModal');activeAction=null;toast(closeTransport?'تم تسجيل سداد النقل وتسوية الطرفين بنفس العملية ✓':'تم الحفظ وتحديث حسابات الخدمة والنقل');}catch(e){set('financeActionError',message(e));}finally{saving=false;el('financeActionSave').disabled=false}};
+window.pawFinanceSaveAction=async function(){if(saving||!activeAction||!mayActOnLine(activeAction.line))return;const a=activeAction,l=a.line;let action=l.action;try{if(l.unknown){if(!v('finConfirmPaid'))throw Error('اختاري هل النقل مدفوع.');action=v('finConfirmPaid')==='no'?'confirm_transport_unpaid':'client_paid';}const data={date:v('finDate')||localDate(),method:v('finMethod'),reference:v('finReference')};if(action==='client_paid'){if(!v('finRecipient'))throw Error('اختاري جهة استلام دفعة العميل.');data.recipient=v('finRecipient');}if(['provider_paid','commission_received'].includes(action)){data.amount=F.format(F.minor(v('finAmount')));if(F.minor(data.amount)<=0n)throw Error('أدخلي مبلغًا أكبر من صفر.');}const closeTransport=l.component==='transport'&&action==='client_paid'&&v('finTransportCloseoutValue')==='yes';if(['provider_paid','commission_received'].includes(action)||closeTransport){if(!String(data.method||'').trim())throw Error('اختاري طريقة التسوية.');if(!String(data.reference||'').trim())data.reference=NO_EXTERNAL_REFERENCE;if(!confirm('هل تؤكدين أن التسوية تمت فعلاً، وليس مجرد سداد العميل؟\nالمبلغ: '+(data.amount||'تسوية النقل')+' د.ك\nالتوثيق: '+data.reference))return;}const recipient=data.recipient;saving=true;el('financeActionSave').disabled=true;await rpc('test_finance_action',{p_case_id:Number(a.caseId),p_component:a.component,p_action:action,p_request_id:a.requestId,p_data:data,p_revision:a.revision});await refresh();if(closeTransport){const next=findLine(a.caseId,'transport');const nextAction=recipient==='pawapp'?'provider_paid':'commission_received';if(next&&next.action===nextAction){const amount=nextAction==='provider_paid'?next.theirs:next.ours;if(amount>0n){await rpc('test_finance_action',{p_case_id:Number(a.caseId),p_component:'transport',p_action:nextAction,p_request_id:crypto.randomUUID(),p_data:{date:data.date,method:data.method,reference:data.reference,amount:F.format(amount)},p_revision:next.revision});await refresh();}}}const nextStep=findLine(a.caseId,a.component);const shouldContinue=!closeTransport&&nextStep&&nextStep.action&&nextStep.action!==action;if(shouldContinue){closeModal('financeActionModal');activeAction=null;toast('تم حفظ الخطوة الأولى • باقي '+actionLabel(nextStep));setTimeout(()=>window.pawFinanceOpen(a.caseId,a.component),80);return;}closeModal('financeActionModal');activeAction=null;toast(closeTransport?'تم تسجيل سداد النقل وتسوية الطرفين بنفس العملية ✓':'تم الحفظ وتحديث حسابات الخدمة والنقل');}catch(e){set('financeActionError',message(e));}finally{saving=false;el('financeActionSave').disabled=false}};
 function optionSelect(id,label,values,extra=''){return '<div class="field"><label>'+label+'</label><select id="'+id+'" '+extra+'>'+values.map(([value,name])=>'<option value="'+html(value)+'">'+html(name)+'</option>').join('')+'</select></div>'}
 function setup(){const financeGrid=el('cTransportAddon')?.querySelector('.grid2');if(financeGrid&&!el('cFinTransportFeeType')){const d=document.createElement('div');d.className='field';d.innerHTML='<label>طريقة حصة PawApp من النقل</label><select id="cFinTransportFeeType" onchange="calcTransportAddon()"><option value="fixed">مبلغ ثابت من إجمالي النقل</option><option value="percent">نسبة من إجمالي النقل %</option></select>';financeGrid.prepend(d);financeGrid.insertAdjacentHTML('beforeend',optionSelect('cFinTransportPaid','العميل دفع النقل؟',[['no','لا'],['yes','نعم']])+optionSelect('cFinTransportRecipient','دفع النقل لمن؟',[['','اختاري عند الدفع'],['pawapp','PawApp'],['provider','شركة النقل مباشرة']]));}
 if(!el('financeGrandTotal'))el('calcTotal')?.closest('.calc')?.insertAdjacentHTML('afterend','<div class="card" style="box-shadow:none;margin-top:10px"><span>الإجمالي شامل النقل: </span><b id="financeGrandTotal"></b></div>');
@@ -351,7 +683,7 @@ window.openSettlement=id=>window.pawFinanceOpen(id,'main');window.openClientPaym
 window.exportProviderFullReport=function(id){
  const p=model.providers.find(x=>String(x.id)===String(id));if(!p)return;
  const from=v('pawSettlementFrom'),to=v('pawSettlementTo');
- const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
+ const lines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to)&&pawSourceMatchesLine(l));
   const report=F.csv(lines,p.name);
  const bom=report.startsWith('\ufeff')?'\ufeff':'';
  const plain=bom?report.slice(1):report;
@@ -377,7 +709,7 @@ window.pawPrintProviderReport=function(){
  const w=window.open('','_blank');
  if(!w)return alert('اسمحي بفتح نافذة التقرير للطباعة');
  const safe=x=>html(x);
- const reportLines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to));
+ const reportLines=p.lines.filter(l=>(!from||l.date>=from)&&(!to||l.date<=to)&&pawSourceMatchesLine(l));
  const historical=from>='2026-07-01'&&to<'2026-10-01';
  const reportRows=reportLines.map(l=>{
   const status=historical?'إقفال تاريخي':l.issues.length?'تحتاج مراجعة':l.ours>0n?'الشركة مطالبة لـ PawApp':l.theirs>0n?'PawApp مطالبة للشركة':l.isPaid?'سداد مسجل — الاعتماد منفصل':'العميل لم يسدد';
@@ -394,7 +726,21 @@ function csvCell(value){let s=String(value??'');if(/^[\\s]*[=+@-]/.test(s))s="'"
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name.replace(/[\\/]/g,'-');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 window.downloadTestBackup=async function(){try{const data=await rpc('test_finance_backup');download(JSON.stringify(data,null,2),'pawapp-test-finance-backup-'+localDate()+'.json','application/json');toast('تم تجهيز نسخة TEST الاحتياطية');}catch(e){alert(message(e))}};
 window.renderDashboard=renderDashboard;window.renderProviders=renderProviders;window.renderCases=renderCases;window.renderAutomaticFollowups=renderFollowups;window.loadData=refresh;window.renderAll=function(){render();};
-window.openProviderCRM=function(id){selectedProvider=id;if(el('pawSettlementFrom'))el('pawSettlementFrom').value='';if(el('pawSettlementTo'))el('pawSettlementTo').value='';legacyShowPage('providerdetail');renderProvider();};window.providerCases=window.openProviderCRM;
-window.showPage=async function(id){if(id==='admin'&&!window.pawIsAdmin()){toast('Admin only');return;}await legacyShowPage(id);if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();};
+window.pawFinanceRefresh=refresh;
+window.openProviderCRM=async function(id){
+ selectedProvider=id;
+ if(el('pawSettlementFrom'))el('pawSettlementFrom').value='';
+ if(el('pawSettlementTo'))el('pawSettlementTo').value='';
+ legacyShowPage('providerdetail');
+ // Avoid stale partner balances after staff payments recorded in appointment dashboard.
+ try{await refresh();}catch(e){alert('تعذر تحديث حسابات الشركة: '+String(e?.message||e));return;}
+ renderProvider();
+};window.providerCases=window.openProviderCRM;
+window.showPage=async function(id){if(id==='admin'&&!window.pawIsAdmin()){toast('Admin only');return;}await legacyShowPage(id);
+ if(['dashboard','providers','followups','cases','providerdetail'].includes(id)){
+   try{await refresh();}catch(e){console.warn('Finance snapshot refresh failed',e);toast('تعذر تحديث الحسابات — جربي تحديث الصفحة');}
+ }
+ if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();
+};
 setup();await refresh();if(typeof fillProviders==='function')fillProviders();if(typeof fillStaff==='function')fillStaff();window.PAW_FINANCE_READY=true;window.PAW_FINANCE_VERSION='finance-v3';
 };

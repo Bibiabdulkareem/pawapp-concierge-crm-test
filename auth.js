@@ -102,7 +102,7 @@
     document.querySelectorAll('.modalBg input, .modalBg select, .modalBg textarea').forEach(field => {
       const accountantInvoicePin = accountant && field.id === 'attachmentPin';
       // Accountants can enter settlement evidence in the finance action dialog only.
-      const accountantSettlementField = accountant && !!field.closest('#financeActionModal');
+      const accountantSettlementField = accountant && !!field.closest('#financeActionModal, #pawAccountingSettleModal');
       const personalPasswordField = !!field.closest('#myPasswordModal');
       if (noWrite && !accountantInvoicePin && !accountantSettlementField && !personalPasswordField) {
         field.disabled = true;
@@ -195,7 +195,8 @@
 
         const { data, error } = await sb.auth.signUp({
           email,
-          password
+          password,
+          options:{emailRedirectTo:location.origin+location.pathname}
         });
         if (error) throw error;
 

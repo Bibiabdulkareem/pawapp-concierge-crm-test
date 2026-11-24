@@ -204,7 +204,7 @@
 
   <div class="intro">
     <h1 data-i18n="h1">Book a service in seconds</h1>
-    <p data-i18n="sub">Pick what your pet needs — your booking goes straight to us on WhatsApp.</p>
+    <p data-i18n="sub">Save a sample booking in the PawApp Concierge test system.</p>
   </div>
 
   <div class="perks">
@@ -331,16 +331,15 @@
     </section>
 
     <div class="grp">
-      <button type="submit" class="cta" data-i18n="submit">Review &amp; send on WhatsApp</button>
-      <p class="fineprint" data-i18n="fineprint">This opens WhatsApp with your booking details ready to send.</p>
+      <button type="submit" class="cta" data-i18n="submit">Save test booking</button>
+      <p class="fineprint" data-i18n="fineprint">Use sample details for this booking.</p>
     </div>
   </form>
 
   <section class="done" id="done" hidden>
     <div class="check" aria-hidden="true">✓</div>
-    <h2 data-i18n="doneH">Almost there!</h2>
-    <p data-i18n="doneP">WhatsApp should have opened with your booking. If it didn't, tap below.</p>
-    <a class="cta" id="waLink" target="_blank" rel="noopener" data-i18n="openWa">Open WhatsApp</a>
+    <h2 data-i18n="doneH">Test booking saved</h2>
+    <p data-i18n="doneP">The reference below identifies the booking in the test system.</p>
     <button class="linkbtn" type="button" id="editBtn" data-i18n="edit">Edit booking</button>
     <pre class="summary" id="summary"></pre>
   </section>
@@ -351,7 +350,6 @@
 <script>
 (function(){
   "use strict";
-  var WA = "96541117003";
 
   var ICONS = {
     home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
@@ -385,7 +383,7 @@
     en:{
       langBtn:'العربية', tagline:'Concierge',
       h1:'Book a service in seconds',
-      sub:'Pick what your pet needs — your booking goes straight to us on WhatsApp.',
+      sub:'Save a sample booking in the PawApp Concierge test system.',
       perk1:'Free vet consultation for Pet ID holders',
       hot24:'24 hrs', perk2:'emergency assistance on WhatsApp',
       hours:'Booking hours: daily 12:00 PM – 9:00 PM',
@@ -406,11 +404,11 @@
       petIdNote:'Pet ID holders are already vaccinated and microchipped — and vet consultations are free.',
       date:'Preferred date',
       yes:'Yes', no:'No', req:'Required',
-      submit:'Review & send on WhatsApp',
-      fineprint:'This opens WhatsApp with your booking details ready to send.',
-      doneH:'Almost there!',
-      doneP:"WhatsApp should have opened with your booking. If it didn't, tap below.",
-      openWa:'Open WhatsApp', edit:'Edit booking',
+      submit:'Save test booking',
+      fineprint:'Use sample details for this booking.',
+      doneH:'Test booking saved',
+      doneP:"The reference below identifies the booking in the test system.",
+      edit:'Edit booking',
       mTitle:'New booking — PawApp Concierge',
       mService:'Service', mEmergency:'Emergency', mName:'Name', mPhone:'Phone',
       mLocation:'Location', mPet:'Pet', mAge:'Age', mFriendly:'Friendly',
@@ -420,7 +418,7 @@
     ar:{
       langBtn:'English', tagline:'كونسيرج',
       h1:'احجز خدمتك خلال ثوانٍ',
-      sub:'اختر ما يحتاجه حيوانك الأليف — ويصلنا حجزك مباشرة على واتساب.',
+      sub:'احفظي حجز تجريبي في نسخة تست باو أب كونسيرج.',
       perk1:'استشارة بيطرية مجانية لحاملي بطاقة هوية الحيوان',
       hot24:'٢٤ ساعة', perk2:'مساعدة طوارئ عبر واتساب',
       hours:'أوقات الحجز: يومياً ١٢:٠٠ ظهراً – ٩:٠٠ مساءً',
@@ -441,11 +439,11 @@
       petIdNote:'حاملو بطاقة هوية الحيوان مطعّمون ومزوّدون بشريحة مسبقاً — والاستشارة البيطرية مجانية.',
       date:'التاريخ المفضّل',
       yes:'نعم', no:'لا', req:'مطلوب',
-      submit:'مراجعة وإرسال عبر واتساب',
-      fineprint:'سيفتح واتساب وتفاصيل حجزك جاهزة للإرسال.',
-      doneH:'بقيت خطوة واحدة!',
-      doneP:'من المفترض أن يكون واتساب قد فُتح بحجزك. إن لم يحدث ذلك، اضغط بالأسفل.',
-      openWa:'افتح واتساب', edit:'تعديل الحجز',
+      submit:'حفظ الحجز التجريبي',
+      fineprint:'استخدمي بيانات تجريبية لهذا الحجز.',
+      doneH:'تم حفظ الحجز التجريبي',
+      doneP:'الرقم أدناه هو مرجع الحجز في نسخة التست.',
+      edit:'تعديل الحجز',
       mTitle:'حجز جديد — PawApp Concierge',
       mService:'الخدمة', mEmergency:'حالة طارئة', mName:'الاسم', mPhone:'الهاتف',
       mLocation:'الموقع', mPet:'الحيوان', mAge:'العمر', mFriendly:'أليف',
@@ -635,10 +633,7 @@
       if(!saveRes.ok || !saved.ok) throw new Error('save_failed');
 
       var text=buildMsg()+'\n\nPawApp Case: PAW-'+String(saved.case_id).padStart(4,'0');
-      var url='https://wa.me/'+WA+'?text='+encodeURIComponent(text);
-      window.open(url,'_blank');
-      $('#waLink').href=url;
-      $('#summary').textContent=text+'\n\nTEST CRM Case: '+saved.case_id;
+      $('#summary').textContent=text+'\n\nPawApp CRM Case: '+saved.case_id;
       $('#form').hidden=true;
       $('#done').hidden=false;
       $('.wrap').scrollIntoView({behavior:'smooth',block:'start'});

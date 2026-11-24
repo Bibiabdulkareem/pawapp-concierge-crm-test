@@ -1,4 +1,4 @@
-/* TEST-only boot sequence. Never changes the Live repository or selects Live finance tables. */
+/* Isolated TEST boot sequence for the new Supabase environment. */
 (async function(){
   'use strict';
   if(window.__pawFinanceBoot)return;
@@ -23,6 +23,7 @@
   try{
     if(!window.PAWAPP_AUTH?.client)throw new Error('سجلي الدخول أولًا.');
     await script('finance-core.js?v=3.24-'+Date.now());
+    await script('accountant-format-hotfix.js?v=20261104-1');
     await script('finance-ui.js?v=3.24-'+Date.now());
     await script('app.js?v=3.24-'+Date.now());
     const start=Date.now();
@@ -34,6 +35,22 @@
     await window.PawFinanceInstall();
     window.PAW_FINANCE_VERSION='3.4';
     overlay.remove();
+    // Keep new form submissions reflected in staff counts without reloading during active editing.
+    let testRefreshBusy=false;
+    async function refreshTestIntake(){
+      if(document.visibilityState!=='visible'||!window.PAW_FINANCE_READY||testRefreshBusy)return;
+      if(document.querySelector('.modalBg.show'))return;
+      testRefreshBusy=true;
+      try{
+        await window.loadData();
+        if(typeof window.pawFinanceRefresh==='function')await window.pawFinanceRefresh();
+      }catch(error){console.warn('TEST dashboard refresh unavailable',error);}
+      finally{testRefreshBusy=false;}
+    }
+    document.addEventListener('visibilitychange',function(){
+      if(document.visibilityState==='visible')refreshTestIntake();
+    });
+    setInterval(refreshTestIntake,60000);
   }catch(error){
     console.error('TEST finance initialization failed',error);
     overlay.textContent='تعذر فتح الحسابات المحدثة. '+String(error?.message||'');

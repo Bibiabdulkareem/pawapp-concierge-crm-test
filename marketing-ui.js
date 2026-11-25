@@ -25,7 +25,7 @@ function summarizeMarketing(cases,lines,normalize,filters={}){
 const F=window.PawFinanceCore;
 if(!F||!F.validPhone)return;
 const labels={tiktok:['TikTok','TikTok','#7186a6'],instagram:['Instagram','Instagram','#b5a0e5'],facebook:['Facebook','Facebook','#80b5ed'],whatsapp:['WhatsApp','WhatsApp','#83cba5'],snapchat:['Snapchat','Snapchat','#f8d449'],google:['Google','Google','#e9a8c5'],referral:['توصية','Referral','#f4b084'],existing:['عميل سابق','Existing customer','#7acdc8'],excel:['Excel — مصدر غير محدد','Excel — unknown source','#cbd5e1'],form:['نموذج — القناة غير محددة','Form — channel unknown','#a9c7f5'],phone:['استشارة هاتفية','Phone consultation','#c5dda0'],unknown:['غير محدد','Unknown','#a1aab9']};
-let data=null,model=null,lang='ar',tab='analytics',from='',to='',source='',inboxSearch='',root;
+let data=null,model=null,lang=window.PawI18n?.language||'ar',tab='analytics',from='',to='',source='',inboxSearch='',root;
 const tr=(a,b)=>lang==='ar'?a:b;
 const name=k=>labels[k]?.[lang==='ar'?0:1]||tr('غير محدد','Unknown');
 const money=x=>F.format(x)+' '+tr('د.ك','KWD');
@@ -40,8 +40,9 @@ function ensure(){
  const style=el('style',undefined,'',root);style.textContent='#marketing{max-width:1500px;margin:auto;min-width:0}#marketing .pm-card{margin:12px 0;min-width:0}#marketing h3{margin:0 0 9px}#marketing .pm-metrics,#marketing .pm-platforms{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}#marketing .pm-metric{border:1px solid #dde6f1;border-radius:12px;background:#f4f8fd;padding:12px;min-width:0;border-top:4px solid #80b5ed}#marketing .pm-metric strong{display:block;font-size:clamp(15px,2vw,23px);overflow-wrap:anywhere;margin:6px 0;color:#0c3b78}#marketing .pm-metric:nth-child(3n+2){border-top-color:#83cba5}#marketing .pm-metric:nth-child(3n){border-top-color:#f8d449}#marketing .pm-tabs,#marketing .pm-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:10px 0}#marketing .pm-filters label{flex:1;min-width:120px;display:grid;gap:4px}#marketing .pm-filters input,#marketing .pm-filters select,#marketing .pm-search{max-width:100%;width:100%;box-sizing:border-box;border:1px solid #dbe2ed;padding:10px;border-radius:9px;background:white;color:#10233d}#marketing .pm-chart{display:grid;grid-template-columns:minmax(120px,220px) minmax(0,1fr);gap:16px;align-items:center}#marketing .pm-donut{width:100%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center}#marketing .pm-donut-center{width:65%;aspect-ratio:1;background:white;border-radius:50%;display:grid;place-content:center;text-align:center;color:#0c3b78}#marketing .pm-legend{display:grid;gap:8px}#marketing .pm-legend-line{display:flex;align-items:center;gap:8px;font-size:13px}#marketing .pm-dot{display:inline-block;width:12px;height:12px;border-radius:4px;flex:none}#marketing .pm-legend-line strong{margin-inline-start:auto}#marketing .pm-table{overflow-x:auto;max-width:100%}#marketing .pm-table table{width:100%;min-width:620px;border-collapse:collapse}#marketing .pm-table td,#marketing .pm-table th{padding:10px;text-align:start;border-bottom:1px solid #e1e8f0;white-space:nowrap}#marketing .pm-platform{border:1px solid #e1e8f0;border-radius:10px;padding:12px;border-top:4px solid var(--pm-color)}#marketing .pm-platform small{display:block;margin-top:6px}#marketing .pm-message{padding:12px;border-bottom:1px solid #e1e8f0;overflow-wrap:anywhere}@media(max-width:760px){#marketing .pm-metrics,#marketing .pm-platforms{grid-template-columns:repeat(2,minmax(0,1fr))}#marketing .pm-chart{grid-template-columns:1fr}#marketing .pm-donut{max-width:180px;margin:auto}#marketing .pm-filters label{min-width:110px}}';
  const body=el('div',undefined,'',root);body.id='pmBody';
  const shortcut=el('div',undefined,'card');shortcut.id='pawMarketingShortcut';shortcut.style.cssText='margin:10px 0;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;border-inline-start:4px solid #f8d449';
- const text=el('div',undefined,'',shortcut);el('b','التسويق ومصادر العملاء / Marketing','',text);el('div','تحليل الطلبات وسجل التواصل — الربط الخارجي مؤجل','hint',text);
- btn(shortcut,'فتح التسويق / Open marketing',()=>window.showPage('marketing'),true);
+ const text=el('div',undefined,'',shortcut);const label=el('b',tr('التسويق ومصادر العملاء','Marketing & customer sources'),'',text);const desc=el('div',tr('تحليل الطلبات وسجل التواصل — الربط الخارجي مؤجل','Request analytics and message history — external connection pending'),'hint',text);
+ const open=btn(shortcut,tr('فتح التسويق','Open marketing'),()=>window.showPage('marketing'),true);
+ document.addEventListener('paw-language-change',()=>{lang=window.PawI18n?.language||'ar';label.textContent=tr('التسويق ومصادر العملاء','Marketing & customer sources');desc.textContent=tr('تحليل الطلبات وسجل التواصل — الربط الخارجي مؤجل','Request analytics and message history — external connection pending');open.textContent=tr('فتح التسويق','Open marketing');if(root?.classList.contains('active'))render();});
  const title=home.querySelector('.title');if(title)title.after(shortcut);else home.prepend(shortcut);
 }
 function platforms(parent){
@@ -52,11 +53,12 @@ function platforms(parent){
  }
 }
 function render(){
+ lang=window.PawI18n?.language||'ar';
  ensure();if(!root||!data||!model)return;
  const body=document.getElementById('pmBody');body.replaceChildren();root.dir=lang==='ar'?'rtl':'ltr';root.lang=lang;
  const title=el('div',undefined,'title',body),heading=el('div',undefined,'',title);
  el('h1',tr('التسويق والتواصل','Marketing & Inbox'),'',heading);el('p','PawApp Concierge — TEST','hint',heading);
- const actions=el('div',undefined,'pm-tabs',title);btn(actions,tr('English','العربية'),()=>{lang=lang==='ar'?'en':'ar';render()});btn(actions,tr('الرئيسية','Home'),()=>window.showPage('dashboard'));
+ const actions=el('div',undefined,'pm-tabs',title);btn(actions,tr('English','العربية'),()=>window.PawI18n?.setLanguage(lang==='ar'?'en':'ar'));btn(actions,tr('الرئيسية','Home'),()=>window.showPage('dashboard'));
  const tabs=el('div',undefined,'pm-tabs',body);btn(tabs,tr('تحليل التسويق','Marketing analytics'),()=>{tab='analytics';render()},tab==='analytics');btn(tabs,tr('سجل التواصل','Inbox'),()=>{tab='inbox';render()},tab==='inbox');
  platforms(body);
  if(tab==='inbox'){

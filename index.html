@@ -265,7 +265,7 @@ html[dir="ltr"] #authUserBar{justify-content:flex-end}
  .top .brand b{font-size:15px}
  .top .brand small{font-size:10px}
  .top .sp{display:none}
- #authUserBar{grid-column:1/-1;display:flex;flex-wrap:nowrap;justify-content:space-between;gap:6px;min-width:0}
+ #authUserBar{grid-column:1/-1;flex-wrap:nowrap;justify-content:space-between;gap:6px;min-width:0}
  #authUserEmail{max-width:100px;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
  #authUserBar .btn{font-size:11px;padding:6px;white-space:nowrap}
  #authUserBar [data-paw-language]{min-width:70px!important;max-width:88px!important;font-size:12px!important;padding:5px!important}
@@ -1008,6 +1008,7 @@ window.pawMonthlySettlementOverview=async function(){
      T('الأرصدة محسوبة من الدفعات والتحويلات المسجلة في الكونسيرج، وليست تأكيدًا مستقلًا من البنك. اختيار المصدر لا يسجل تسوية ولا يثبت تحويلًا فعليًا.');out.appendChild(note);
  }catch(e){summary.textContent='تعذر تحميل المستحقات: '+String(e?.message||e)}
 };
+document.addEventListener('paw-language-change',()=>{const host=document.getElementById('pawSettlementRows');if(document.getElementById('providers')?.classList.contains('active')&&host?.childElementCount&&!document.querySelector('.modalBg.show'))window.pawMonthlySettlementOverview();});
 window.pawOpenMonthlyProvider=async function(providerId,month,source){
   if(!providerId||typeof window.openProviderCRM!=='function')return alert('تفاصيل الشركة لم تُحمّل بعد. جرّبي تحديث الصفحة.');
   await window.openProviderCRM(providerId);

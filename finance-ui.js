@@ -131,13 +131,14 @@ function renderHomeAnalytics(){
   panel.dataset.lang='ar';
   el('haPeriod').innerHTML='<option value="month">هذا الشهر</option><option value="today">اليوم</option><option value="week">آخر 7 أيام</option><option value="year">هذه السنة</option><option value="all">كل الفترات</option><option value="custom">مخصص</option>';
   el('haGroup').innerHTML='<option value="day">Daily</option><option value="month">Monthly</option><option value="year">Yearly</option>';
+  el('haPeriod').value='all';el('haGroup').value='month';
   el('haLang').onclick=()=>{panel.dataset.lang=panel.dataset.lang==='ar'?'en':'ar';renderHomeAnalytics()};
   for(const id of ['haPeriod','haFrom','haTo','haProvider','haService','haGroup'])el(id).onchange=()=>{if(id==='haFrom'||id==='haTo')el('haPeriod').value='custom';renderHomeAnalytics()};
  }
  const en=panel.dataset.lang==='en',tr=(a,b)=>en?b:a;
  panel.dir=en?'ltr':'rtl';set('haTitle',tr('التحليل المالي','Financial analytics'));set('haLang',en?'العربية':'English');
  for(const [id,a,b] of [['haPeriodLabel','الفترة','Period'],['haFromLabel','من','From'],['haToLabel','إلى','To'],['haProviderLabel','مقدم الخدمة','Provider'],['haServiceLabel','الخدمة','Service'],['haGroupLabel','عرض المخطط','Chart grouping']])set(id,tr(a,b));
- const period=el('haPeriod').value||'month',group=el('haGroup').value||'day',provider=el('haProvider').value;
+ const period=el('haPeriod').value||'all',group=el('haGroup').value||'month',provider=el('haProvider').value;
  const options=(id,items,current)=>{el(id).innerHTML=items.map(([v,a,b])=>'<option value="'+html(v)+'">'+html(tr(a,b))+'</option>').join('');el(id).value=current;};
  options('haPeriod',[['month','هذا الشهر','This month'],['today','اليوم','Today'],['week','آخر 7 أيام','Last 7 days'],['year','هذه السنة','This year'],['all','كل الفترات','All time'],['custom','مخصص','Custom']],period);
  options('haGroup',[['day','يومي','Daily'],['month','شهري','Monthly'],['year','سنوي','Yearly']],group);

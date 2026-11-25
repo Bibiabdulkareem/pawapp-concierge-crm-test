@@ -10,6 +10,10 @@ const supported=x=>x==='ar'||x==='en';
 let account='',lang=safeGet(prefix+'guest')==='en'?'en':'ar';
 const originals=new WeakMap(),attributes=new WeakMap();
 function t(ar,en){return lang==='en'?(en!==undefined?en:has(ar)?dict[ar]:ar):ar;}
+function workflow(status){
+ const labels={new_request:'New — جديد',client_contacted:'Client Contacted — تم التواصل مع العميل',provider_confirmed:'Doctor / Provider Confirmed — تم تأكيد الطبيب / مقدم الخدمة',doctor_confirmed:'Doctor / Provider Confirmed — تم تأكيد الطبيب / مقدم الخدمة',appointment_completed:'Appointment Completed — تم الموعد / الخدمة',payment_completed:'Payment Completed — اكتمل الدفع والتسويات',closed:'Closed — مغلقة',cancelled:'Cancelled — ملغاة'};
+ return t(labels[status]||labels.new_request);
+}
 function translated(raw){
  const key=raw.trim();
  return has(key)?raw.replace(key,dict[key]):raw;
@@ -74,6 +78,6 @@ function bind(){
  for(const select of document.querySelectorAll('[data-paw-language]'))select.addEventListener('change',()=>setLanguage(select.value));
  update();watchMarkedLabels();
 }
-window.PawI18n=Object.freeze({get language(){return lang;},t,setLanguage,activateUser,refreshStatic:update});
+window.PawI18n=Object.freeze({get language(){return lang;},t,workflow,setLanguage,activateUser,refreshStatic:update});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
 })();

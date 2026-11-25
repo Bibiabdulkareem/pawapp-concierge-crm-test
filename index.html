@@ -802,8 +802,8 @@ window.PawProviderAffiliations=(function(){
   return Object.freeze({clinic,doctors:Object.freeze(doctors.map(d=>Object.freeze(d))),clinicFor,clinicForName});
 })();
 </script>
-<script src="i18n-dictionary.js?v=1"></script>
-<script src="i18n.js?v=1"></script>
+<script src="i18n-dictionary.js?v=2"></script>
+<script src="i18n.js?v=2"></script>
 <script src="auth.js?v=pawapp-test-auth-20261125-i18n"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="bulk-import.js?v=20261021-diagnostic7"></script>
@@ -855,7 +855,7 @@ pv.textContent='عدد الصفوف: '+items.length+' | مكرر داخل الم
 st.textContent=(st.textContent.includes('تعذر فحص')||st.textContent.includes('خطأ')||st.textContent.includes('الصلاحية'))?st.textContent:'تمت قراءة الملف، لكن فحص قاعدة TEST لم يكتمل؛ الاستيراد معطل لحماية البيانات.';
 }catch(e){st.textContent='خطأ المعاينة: '+e.message}
 };
-</script><script src="pet-registry.js?v=6"></script><script src="referral-review-stage.js?v=1"></script><script src="import-validation-v2.js?v=2"></script><script>
+</script><script src="pet-registry.js?v=20261125-i18n"></script><script src="referral-review-stage.js?v=1"></script><script src="import-validation-v2.js?v=2"></script><script>
 window.pawMonthlySettlementOverview=async function(){
  const month=document.getElementById('pawSettlementMonth')?.value||'2026-10';
  const summary=document.getElementById('pawSettlementSummary'),out=document.getElementById('pawSettlementRows');
@@ -1011,7 +1011,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-p="providers"]'
   </div>
   <div class="actions" style="margin-top:12px"><button id="pawAccountingSettleSave" class="btn primary" type="button" onclick="pawAccountantConfirmSettlement()"><!--paw-i18n-->تأكيد التسوية</button><button class="btn soft" type="button" onclick="pawAccountantCloseSettlement()"><!--paw-i18n-->إلغاء</button></div>
 </div></div>
-<script src="accountant-report.js?v=20261104-v1"></script>
+<script src="accountant-report.js?v=20261125-i18n"></script>
 <script src="accountant-report-v2.js?v=20261112-clinic-label-only"></script>
 <script>
 /* Small bounded select popovers on desktop only; the original native selects are kept for phones. */

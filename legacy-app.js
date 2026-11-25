@@ -88,22 +88,22 @@ function renderDashboard(){
  let upcoming=[];
  db.cases.forEach(c=>{const n=nextInstallment(c);if(n)upcoming.push({client:c.client_name,date:n.due_date,amount:n.remaining_amount,caseId:c.id})});
  upcoming.sort((a,b)=>a.date.localeCompare(b.date));
- document.getElementById('upcomingInstallments').innerHTML=upcoming.slice(0,6).map(x=>'<div class="card provider"><h3>'+esc(x.client)+'</h3><p>PAW-'+String(x.caseId).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span>المبلغ</span><b>'+money(x.amount)+'</b></div><div class="mini"><span>الاستحقاق</span><b>'+x.date+'</b></div><div class="mini"><span>الحالة</span><b>قادم</b></div></div></div>').join('')||'<div class="card">ما في أقساط قادمة.</div>';
+ document.getElementById('upcomingInstallments').innerHTML=upcoming.slice(0,6).map(x=>'<div class="card provider"><h3>'+esc(x.client)+'</h3><p>PAW-'+String(x.caseId).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span><!--paw-i18n-->المبلغ</span><b>'+money(x.amount)+'</b></div><div class="mini"><span><!--paw-i18n-->الاستحقاق</span><b>'+x.date+'</b></div><div class="mini"><span><!--paw-i18n-->الحالة</span><b><!--paw-i18n-->قادم</b></div></div></div>').join('')||'<div class="card"><!--paw-i18n-->ما في أقساط قادمة.</div>';
  const pf=document.getElementById('dashboardProviderFilter')?.value||'all';
  let ph='';
  db.providers.forEach(pr=>{
   if(pf!=='all'&&pr.id!==pf)return;
   const cs=db.cases.filter(x=>x.providerId===pr.id); if(!cs.length)return;
   let du=0,rm=0;cs.forEach(x=>{du+=due(x);rm+=rem(x)});
-  ph+=`<div class="card provider"><h3>${esc(pr.name)}</h3><div class="miniGrid"><div class="mini"><span>العمليات</span><b>${cs.length}</b></div><div class="mini"><span>مستحق له</span><b>${money(du)}</b></div><div class="mini"><span>متبقي علينا</span><b class="${rm>0?'red':'green'}">${money(rm)}</b></div></div><div class="actions"><button class="btn soft" onclick="providerCases('${pr.id}')">التفاصيل</button><button class="btn soft" onclick="exportProviderReport('${pr.id}')">تقرير</button></div></div>`;
+  ph+=`<div class="card provider"><h3>${esc(pr.name)}</h3><div class="miniGrid"><div class="mini"><span><!--paw-i18n-->العمليات</span><b>${cs.length}</b></div><div class="mini"><span><!--paw-i18n-->مستحق له</span><b>${money(du)}</b></div><div class="mini"><span><!--paw-i18n-->متبقي علينا</span><b class="${rm>0?'red':'green'}">${money(rm)}</b></div></div><div class="actions"><button class="btn soft" onclick="providerCases('${pr.id}')"><!--paw-i18n-->التفاصيل</button><button class="btn soft" onclick="exportProviderReport('${pr.id}')"><!--paw-i18n-->تقرير</button></div></div>`;
  });
- document.getElementById('dashboardProviders').innerHTML=ph||'<div class="card">ما في عمليات مسجلة للحين.</div>';
+ document.getElementById('dashboardProviders').innerHTML=ph||'<div class="card"><!--paw-i18n-->ما في عمليات مسجلة للحين.</div>';
  let h='';
  db.cases.slice().reverse().slice(0,6).forEach(c=>{
   const pr=byProvider(c.providerId),s=st(c);
   h+=`<tr><td>PAW-${String(c.id).padStart(4,'0')}</td><td>${esc(c.client_name)}</td><td>${esc(pr.name)}</td><td>${esc(c.service)}</td><td>${money(c.amount)}</td><td>${money(paw(c))}</td><td>${esc(c.staff)}</td><td><span class="status ${s[1]}">${s[0]}</span></td></tr>`;
  });
- document.getElementById('recent').innerHTML=h||'<tr><td colspan="8">لا توجد عمليات</td></tr>';
+ document.getElementById('recent').innerHTML=h||'<tr><td colspan="8"><!--paw-i18n-->لا توجد عمليات</td></tr>';
 }
 
 function renderProviders(){
@@ -112,9 +112,9 @@ function renderProviders(){
   const cs=db.cases.filter(c=>c.providerId===p.id);let sales=0,r=0;cs.forEach(c=>{sales+=c.amount;r+=rem(c)});
   const typ=p.type==='freelancer'?'Freelancer':(p.category==='veterinary'?'Company - Veterinary':'Company - Services');
   const feeTxt=p.feeType==='fixed'?money(p.feeValue)+' ثابت':p.feeValue+'%';
-  h+=`<div class="card provider"><h3>${esc(p.name)}</h3><p>${typ} • ${feeTxt}</p><p>${esc(p.services.join('، '))}</p><div class="miniGrid"><div class="mini"><span>العمليات</span><b>${cs.length}</b></div><div class="mini"><span>الإجمالي</span><b>${money(sales)}</b></div><div class="mini"><span>متبقي</span><b>${money(r)}</b></div></div><div class="actions"><button class="btn soft" onclick="providerCases('${p.id}')">العمليات</button><button class="btn soft" onclick="exportProviderReport('${p.id}')">تقرير</button><button class="btn danger" onclick="deleteProvider('${p.id}')">حذف</button></div></div>`;
+  h+=`<div class="card provider"><h3>${esc(p.name)}</h3><p>${typ} • ${feeTxt}</p><p>${esc(p.services.join('، '))}</p><div class="miniGrid"><div class="mini"><span><!--paw-i18n-->العمليات</span><b>${cs.length}</b></div><div class="mini"><span><!--paw-i18n-->الإجمالي</span><b>${money(sales)}</b></div><div class="mini"><span><!--paw-i18n-->متبقي</span><b>${money(r)}</b></div></div><div class="actions"><button class="btn soft" onclick="providerCases('${p.id}')"><!--paw-i18n-->العمليات</button><button class="btn soft" onclick="exportProviderReport('${p.id}')"><!--paw-i18n-->تقرير</button><button class="btn danger" onclick="deleteProvider('${p.id}')"><!--paw-i18n-->حذف</button></div></div>`;
  });
- document.getElementById('providerList').innerHTML=h||'<div class="card">لا توجد نتائج</div>';
+ document.getElementById('providerList').innerHTML=h||'<div class="card"><!--paw-i18n-->لا توجد نتائج</div>';
 }
 
 function renderCases(){
@@ -125,18 +125,18 @@ function renderCases(){
  db.cases.slice().reverse().forEach(c=>{
   const pr=byProvider(c.providerId),hay=['PAW-'+String(c.id).padStart(4,'0'),c.client_name,c.client_phone,c.staff,pr.name,c.service].join(' ').toLowerCase(),s=st(c);
   if(q&&!hay.includes(q))return;if(sf!=='all'&&s[1]!==sf)return;if(pf!=='all'&&c.providerId!==pf)return;
-  const ni=nextInstallment(c);h+=`<tr><td>PAW-${String(c.id).padStart(4,'0')}</td><td>${c.service_date}</td><td>${esc(c.client_name)}</td><td>${planLabel(c)}${c.client_payment_note?'<br><span class="hint">'+esc(c.client_payment_note)+'</span>':''}</td><td>${money(clientPaidAmt(c))}</td><td>${money(clientRem(c))}</td><td>${ni?money(ni.remaining_amount)+'<br><span class="hint">'+ni.due_date+'</span>':'—'}</td><td>${esc(pr.name)}</td><td>${esc(c.service)}</td><td>${money(c.amount)}</td><td>${money(paw(c))}</td><td>${money(due(c))}</td><td>${money(c.providerPaid||0)}</td><td>${money(rem(c))}</td><td>${esc(c.staff)}</td><td><span class="status ${s[1]}">${s[0]}</span></td><td><button class="btn soft" style="padding:7px" onclick="openClientPayment('${c.id}')">دفعة عميل</button></td><td><button class="btn soft" style="padding:7px" onclick="openSettlement('${c.id}')">دفعة للمقدم</button></td></tr>`;
+  const ni=nextInstallment(c);h+=`<tr><td>PAW-${String(c.id).padStart(4,'0')}</td><td>${c.service_date}</td><td>${esc(c.client_name)}</td><td>${planLabel(c)}${c.client_payment_note?'<br><span class="hint">'+esc(c.client_payment_note)+'</span>':''}</td><td>${money(clientPaidAmt(c))}</td><td>${money(clientRem(c))}</td><td>${ni?money(ni.remaining_amount)+'<br><span class="hint">'+ni.due_date+'</span>':'—'}</td><td>${esc(pr.name)}</td><td>${esc(c.service)}</td><td>${money(c.amount)}</td><td>${money(paw(c))}</td><td>${money(due(c))}</td><td>${money(c.providerPaid||0)}</td><td>${money(rem(c))}</td><td>${esc(c.staff)}</td><td><span class="status ${s[1]}">${s[0]}</span></td><td><button class="btn soft" style="padding:7px" onclick="openClientPayment('${c.id}')"><!--paw-i18n-->دفعة عميل</button></td><td><button class="btn soft" style="padding:7px" onclick="openSettlement('${c.id}')"><!--paw-i18n-->دفعة للمقدم</button></td></tr>`;
  });
- document.getElementById('caseRows').innerHTML=h||'<tr><td colspan="13">لا توجد عمليات</td></tr>';
+ document.getElementById('caseRows').innerHTML=h||'<tr><td colspan="13"><!--paw-i18n-->لا توجد عمليات</td></tr>';
 }
 
 function fillProviders(){
- const s=document.getElementById('cProvider');s.innerHTML='<option value="">اختاري مقدم الخدمة</option>';db.providers.forEach(p=>s.innerHTML+=`<option value="${p.id}">${esc(p.name)}</option>`);providerChanged();
- const f=document.getElementById('caseProviderFilter');if(f){const keep=f.value;f.innerHTML='<option value="all">كل مقدمي الخدمة</option>';db.providers.forEach(p=>f.innerHTML+=`<option value="${p.id}">${esc(p.name)}</option>`);if([...f.options].some(o=>o.value===keep))f.value=keep}
- const d=document.getElementById('dashboardProviderFilter');if(d){const keep=d.value;d.innerHTML='<option value="all">كل مقدمي الخدمة</option>';db.providers.forEach(p=>d.innerHTML+=`<option value="${p.id}">${esc(p.name)}</option>`);if([...d.options].some(o=>o.value===keep))d.value=keep}
+ const s=document.getElementById('cProvider');s.innerHTML='<option value=""><!--paw-i18n-->اختاري مقدم الخدمة</option>';db.providers.forEach(p=>s.innerHTML+=`<option value="${p.id}">${esc(p.name)}</option>`);providerChanged();
+ const f=document.getElementById('caseProviderFilter');if(f){const keep=f.value;f.innerHTML='<option value="all"><!--paw-i18n-->كل مقدمي الخدمة</option>';db.providers.forEach(p=>f.innerHTML+=`<option value="${p.id}">${esc(p.name)}</option>`);if([...f.options].some(o=>o.value===keep))f.value=keep}
+ const d=document.getElementById('dashboardProviderFilter');if(d){const keep=d.value;d.innerHTML='<option value="all"><!--paw-i18n-->كل مقدمي الخدمة</option>';db.providers.forEach(p=>d.innerHTML+=`<option value="${p.id}">${esc(p.name)}</option>`);if([...d.options].some(o=>o.value===keep))d.value=keep}
 }
-function fillStaff(){const s=document.getElementById('cStaff');if(!s)return;s.innerHTML='<option value="">اختاري الموظف المسؤول</option>';db.staff.forEach(e=>s.innerHTML+=`<option value="${e.id}">${esc(e.name)}</option>`)}
-function renderStaff(){let h='';db.staff.forEach(e=>h+=`<div class="card provider"><h3>${esc(e.name)}</h3><p>موظف PawApp / مسؤول عن تسجيل الطلبات</p><div class="actions"><button class="btn danger" onclick="deleteStaff('${e.id}')">حذف</button></div></div>`);document.getElementById('staffList').innerHTML=h||'<div class="card">ما في موظفين مسجلين.</div>'}
+function fillStaff(){const s=document.getElementById('cStaff');if(!s)return;s.innerHTML='<option value=""><!--paw-i18n-->اختاري الموظف المسؤول</option>';db.staff.forEach(e=>s.innerHTML+=`<option value="${e.id}">${esc(e.name)}</option>`)}
+function renderStaff(){let h='';db.staff.forEach(e=>h+=`<div class="card provider"><h3>${esc(e.name)}</h3><p><!--paw-i18n-->موظف PawApp / مسؤول عن تسجيل الطلبات</p><div class="actions"><button class="btn danger" onclick="deleteStaff('${e.id}')"><!--paw-i18n-->حذف</button></div></div>`);document.getElementById('staffList').innerHTML=h||'<div class="card"><!--paw-i18n-->ما في موظفين مسجلين.</div>'}
 
 function openStaff(){document.getElementById('staffModal').classList.add('show')}
 async function saveStaff(){
@@ -147,7 +147,7 @@ async function deleteStaff(id){if(db.cases.some(c=>c.employee_id===id)){alert('�
 
 function providerChanged(){
  const p=byProvider(document.getElementById('cProvider').value),s=document.getElementById('cService');
- s.innerHTML='<option value="">اختاري الخدمة</option>';p.services.forEach(x=>s.innerHTML+=`<option>${esc(x)}</option>`);
+ s.innerHTML='<option value=""><!--paw-i18n-->اختاري الخدمة</option>';p.services.forEach(x=>s.innerHTML+=`<option>${esc(x)}</option>`);
  document.getElementById('cFeeType').value=p.feeType||'percent';
  document.getElementById('cCommission').value=p.feeValue||0;toggleCasePricing();
 }
@@ -178,7 +178,7 @@ function buildInstallmentRows(){
  wrap.innerHTML='';
  for(let i=0;i<n;i++){
    const d=document.createElement('div');d.className='grid2 installmentRow';d.style.marginTop='8px';
-   d.innerHTML='<div class="field"><label>القسط '+(i+1)+' - المبلغ</label><input class="instAmount" type="number" min="0" step="0.001" placeholder="0.000" value="'+(old[i]?.amount||'')+'"></div><div class="field"><label>تاريخ الاستحقاق</label><input class="instDate" type="date" value="'+(old[i]?.date||'')+'"></div>';
+   d.innerHTML='<div class="field"><label>القسط '+(i+1)+' - المبلغ</label><input class="instAmount" type="number" min="0" step="0.001" placeholder="0.000" value="'+(old[i]?.amount||'')+'"></div><div class="field"><label><!--paw-i18n-->تاريخ الاستحقاق</label><input class="instDate" type="date" value="'+(old[i]?.date||'')+'"></div>';
    wrap.appendChild(d);
  }
 }

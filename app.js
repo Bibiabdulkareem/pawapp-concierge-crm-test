@@ -1008,6 +1008,8 @@ window.sourceLabel = function(src){
       return {groups:result,missing};
     }
     window.renderCRM = function(){
+      const t=(ar,en)=>window.PawI18n?.t(ar,en)??ar;
+      const serviceLabel=v=>t(v||'الخدمة غير محددة',v?undefined:'Unspecified service');
       window.pawPetCases=db.cases;
       const q=(document.getElementById('crmSearch')?.value||'').trim();
       const groups=new Map();
@@ -1038,10 +1040,10 @@ window.sourceLabel = function(src){
         customerCount.textContent=String(known);
         let note=document.getElementById('crmIdentityNote');
         if(!note){note=document.createElement('div');note.id='crmIdentityNote';note.className='hint';customerCount.parentElement.appendChild(note);}
-        note.textContent=(all.length-known)+' عمليات بدون رقم صالح، منفصلة للمراجعة وغير داخلة في عدد العملاء.';
+        note.textContent=(all.length-known)+t(' عمليات بدون رقم صالح، منفصلة للمراجعة وغير داخلة في عدد العملاء.',' bookings without a valid phone; excluded from customer count.');
       }
       const petSummary=pawGroupedPets(db.cases);
-      if(petCount)petCount.textContent=String(petSummary.groups.length)+' (تقديري)';
+      if(petCount)petCount.textContent=String(petSummary.groups.length)+t(' (تقديري)',' (est.)');
       groups.forEach((g,key)=>{
         g.pets=new Map();
         petSummary.groups.filter(p=>p.owner===key).forEach(p=>{
@@ -1050,31 +1052,31 @@ window.sourceLabel = function(src){
         });
       });
       let petNote=document.getElementById('pawPetCountNote');
-      if(!petNote){petNote=document.createElement('div');petNote.id='pawPetCountNote';petNote.className='hint';petNote.style.cssText='margin:8px 0;padding:8px;border:1px solid #dbe2ed;border-radius:10px';petCount?.parentElement?.appendChild(petNote);}
-      if(petNote)petNote.textContent='حسبة تلقائية: نفس العميل ونفس النوع = حيوان واحد ما لم تظهر سلالات مختلفة. نقص السلالة لا ينشئ حيواناً جديداً. الاسم اختياري. حالات بدون نوع: '+petSummary.missing+'. العدد قد يحتاج مراجعة إذا لدى العميل حيوانان متشابهان.';
+      if(!petNote){petNote=document.createElement('div');petNote.id='pawPetCountNote';petNote.className='hint';petNote.style.cssText='margin:8px 0;padding:8px;border:1px solid #dbe2ed;border-radius:10px';petCount?.closest('.cards')?.after(petNote);}
+      if(petNote){const grid=petCount?.closest('.cards');if(grid&&petNote.previousElementSibling!==grid)grid.after(petNote);petNote.textContent=t('عدد الحيوانات تقديري: نفس العميل والنوع يُحسبان كحيوان واحد ما لم تختلف السلالة. السلالة الناقصة لا تنشئ حيواناً جديداً. الاسم اختياري. حالات بلا نوع: ','Estimated pet count: same customer and pet type count as one pet unless breeds differ. Missing breed does not create another pet. Names are optional. Cases without pet type: ')+petSummary.missing+t('. قد يحتاج العدد مراجعة عند وجود حيوانات متشابهة.','. Similar pets may require review.');}
       if(caseCount) caseCount.textContent=String(db.cases.length);
       const out=document.getElementById('crmCustomerList');
       if(!out) return;
       out.innerHTML=filtered.length?filtered.map((g,idx)=>{
         const pets=[...g.pets.values()];
-        const petHtml=pets.map(p=>'<span class="status" style="margin:3px 3px 0 0">'+esc([p.pet_type,p.breed].filter(Boolean).join(' - '))+'</span>').join('');
+        const petHtml=pets.map(p=>'<span class="status" style="margin:3px 3px 0 0">'+esc([t(p.pet_type),p.breed].filter(Boolean).join(' - '))+'</span>').join('');
         const last=g.cases[0];
         const caseList=g.cases.map(c=>'<div style="border-top:1px solid #e4e8f0;padding:10px 0;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">'+
-          '<div><b>PAW-'+String(c.id).padStart(4,'0')+'</b> • '+esc(c.service||c.requested_service||'الخدمة غير محددة')+
-          '<div class="hint">'+esc(c.service_date||'بدون تاريخ')+' • '+esc(byProvider(c.providerId).name||'بدون عيادة')+' • '+
-          Number(c.total_amount||0).toFixed(3)+' د.ك • '+(c.client_paid?'دافع':'غير مدفوع')+'</div></div>'+
+          '<div><b>PAW-'+String(c.id).padStart(4,'0')+'</b> • '+esc(serviceLabel(c.service||c.requested_service))+
+          '<div class="hint">'+esc(c.service_date||t('بدون تاريخ'))+' • '+esc(byProvider(c.providerId).name||t('بدون عيادة','No clinic'))+' • '+
+          Number(c.total_amount||0).toFixed(3)+' '+t('د.ك','DK')+' • '+t(c.client_paid?'دافع':'غير مدفوع')+'</div></div>'+
           '<button class="btn soft" type="button" onclick="crmJumpToCase('+Number(c.id)+')"><!--paw-i18n-->فتح العملية</button></div>').join('');
         return '<div class="card" style="box-shadow:none">'+
           '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">'+
-            '<div><b style="font-size:16px">'+esc(g.name)+'</b><div class="hint">'+esc(g.phone||'بدون رقم')+(g.location?' • '+esc(g.location):'')+'</div></div>'+
-            '<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="status paid">'+pets.length+' حيوان (تقديري)</span><span class="status partial">'+g.cases.length+' عملية</span></div>'+
+            '<div><b style="font-size:16px">'+esc(g.name==='بدون اسم'?t('بدون اسم'):g.name)+'</b><div class="hint">'+esc(g.phone||t('بدون رقم'))+(g.location?' • '+esc(g.location==='غير محدد'?t('غير محدد'):g.location):'')+'</div></div>'+
+            '<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="status paid">'+pets.length+t(' حيوان (تقديري)',pets.length===1?' pet (est.)':' pets (est.)')+'</span><span class="status partial">'+g.cases.length+t(' عملية',g.cases.length===1?' booking':' bookings')+'</span></div>'+
           '</div>'+
-          '<div style="margin-top:8px">'+(petHtml||'<span class="hint">لا توجد بيانات حيوان كاملة</span>')+'</div>'+
-          '<div class="hint" style="margin-top:8px">آخر خدمة: '+esc((last&& (last.service||last.requested_service))||'غير محدد')+'</div>'+
+          '<div style="margin-top:8px">'+(petHtml||'<span class="hint">'+t('لا توجد بيانات حيوان كاملة','No complete pet details')+'</span>')+'</div>'+
+          '<div class="hint" style="margin-top:8px">'+t('آخر خدمة: ','Last service: ')+esc(serviceLabel(last&&(last.service||last.requested_service)))+'</div>'+
           (Array.isArray(last?.intake_details?.staff_requested_services)&&last.intake_details.staff_requested_services.length?
-            '<div class="hint">حسب قائمة الموظفة: '+esc(last.intake_details.staff_requested_services.join(' + '))+' (غير مسعّرة بشكل منفصل)</div>':'')+
-          (last?.intake_details?.staff_same_phone_repeat_review===true?'<div class="hint" style="color:#a15d00">يوجد سجل مشابه يحتاج مراجعة، بدون تعديل القيود المالية.</div>':'')+
-          '<div style="margin-top:10px"><b>عمليات العميل:</b>'+caseList+'</div>'+
+            '<div class="hint">'+t('حسب قائمة الموظفة: ','Staff request list: ')+esc(last.intake_details.staff_requested_services.map(serviceLabel).join(' + '))+t(' (غير مسعّرة بشكل منفصل)',' (not priced separately)')+'</div>':'')+
+          (last?.intake_details?.staff_same_phone_repeat_review===true?'<div class="hint" style="color:#a15d00">'+t('يوجد سجل مشابه يحتاج مراجعة، بدون تعديل القيود المالية.','Similar record needs review; no financial entries changed.')+'</div>':'')+
+          '<div style="margin-top:10px"><b>'+t('عمليات العميل:','Customer bookings:')+'</b>'+caseList+'</div>'+
           '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
             '<button class="btn primary" type="button" onclick="crmEditCustomer(\''+String(last?.id||'')+'\')"><!--paw-i18n-->تعديلات</button>'+
             '<button class="btn soft" type="button" onclick="crmOpenProfile('+Number(last.id)+')"><!--paw-i18n-->ملف العميل</button>'+

@@ -28,7 +28,7 @@ const labels={tiktok:['TikTok','TikTok','#7186a6'],instagram:['Instagram','Insta
 let data=null,model=null,lang=window.PawI18n?.language||'ar',tab='analytics',from='',to='',source='',inboxSearch='',root;
 const tr=(a,b)=>lang==='ar'?a:b;
 const name=k=>labels[k]?.[lang==='ar'?0:1]||tr('غير محدد','Unknown');
-const money=x=>F.format(x)+' '+tr('د.ك','KWD');
+const money=x=>F.format(x)+' '+tr('د.ك','DK');
 function el(tag,txt,cls,parent){const n=document.createElement(tag);if(txt!==undefined)n.textContent=String(txt);if(cls)n.className=cls;if(parent)parent.appendChild(n);return n;}
 function btn(parent,txt,action,primary=false){const b=el('button',txt,'btn '+(primary?'primary':'soft'),parent);b.type='button';b.onclick=action;return b;}
 function section(parent,title,desc){const n=el('section',undefined,'card pm-card',parent);el('h3',title,'',n);if(desc)el('p',desc,'hint',n);return n;}
@@ -58,7 +58,7 @@ function render(){
  const body=document.getElementById('pmBody');body.replaceChildren();root.dir=lang==='ar'?'rtl':'ltr';root.lang=lang;
  const title=el('div',undefined,'title',body),heading=el('div',undefined,'',title);
  el('h1',tr('التسويق والتواصل','Marketing & Inbox'),'',heading);el('p','PawApp Concierge — TEST','hint',heading);
- const actions=el('div',undefined,'pm-tabs',title);btn(actions,tr('English','العربية'),()=>window.PawI18n?.setLanguage(lang==='ar'?'en':'ar'));btn(actions,tr('الرئيسية','Home'),()=>window.showPage('dashboard'));
+ const actions=el('div',undefined,'pm-tabs',title);btn(actions,tr('الرئيسية','Home'),()=>window.showPage('dashboard'));
  const tabs=el('div',undefined,'pm-tabs',body);btn(tabs,tr('تحليل التسويق','Marketing analytics'),()=>{tab='analytics';render()},tab==='analytics');btn(tabs,tr('سجل التواصل','Inbox'),()=>{tab='inbox';render()},tab==='inbox');
  platforms(body);
  if(tab==='inbox'){

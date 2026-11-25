@@ -14,6 +14,20 @@ const NO_EXTERNAL_REFERENCE='بدون مرجع خارجي - تسوية مؤكد�
 const mayActOnLine=l=>mayWrite()||(maySettle()&&['provider_paid','commission_received'].includes(l?.action));
 let snapshot=null,model=null,loading=null,selectedProvider=null,activeAction=null,saving=false,editorRevision=null;
 let periodSettlements=[];
+let recordedPayments=null;
+async function loadRecordedPayments(){
+ try{
+  const client=window.PAWAPP_AUTH.client, rows=[],size=500;
+  for(let offset=0;;offset+=size){
+   const q=await client.from('test_client_payments').select('id,case_id,component,amount,paid_at').order('id').range(offset,offset+size-1);
+   if(q.error)throw q.error;
+   rows.push(...(q.data||[]));
+   if((q.data||[]).length<size)break;
+  }
+  recordedPayments=rows;
+ }catch(e){recordedPayments=null;console.warn('Payment-date ledger unavailable',e?.message||e);}
+}
+
 async function loadPeriodSettlements(){const q=await window.PAWAPP_AUTH.client.from('test_provider_period_settlements').select('id,provider_id,period_from,period_to,direction,amount,paid_at,method,reference,approved_at');if(q.error){console.warn('Settlement records unavailable',q.error.message);periodSettlements=[];}else periodSettlements=q.data||[];}
 
 const requests=new Map();
@@ -106,7 +120,7 @@ function requestFor(key,payload){const signature=JSON.stringify(payload);const o
 async function rpc(name,args={}){if(!name.startsWith('test_finance_'))throw Error('TEST finance calls only');const {data,error}=await window.PAWAPP_AUTH.client.rpc(name,args);if(error)throw Error(error.message||'تعذر حفظ العملية');return data;}
 function message(error){const text=String(error?.message||error);const rules=[['Case changed','الحالة تعدلت من جهاز آخر. أغلقيها وافتحيها من جديد قبل الحفظ.'],['Paid service price/provider','الخدمة فيها دفعات مسجلة؛ لا نغيّر سعرها أو مقدمها بدون تصحيح موثق.'],['Paid transport price/provider','النقل فيه دفعات مسجلة؛ لا نغيّر سعره أو الشركة بدون تصحيح موثق.'],['Cannot change received payment','المبلغ مسجل كمستلم. لا يمكن تحويله إلى غير مدفوع بدون تصحيح موثق.'],['Cannot change a paid transaction recipient','لا يمكن تغيير مستلم دفعة مسجلة بدون مراجعة.'],['Cannot clear recorded commission','العمولة مستلمة ومسجلة؛ لا يمكن مسح استلامها.'],['Choose payment recipient','اختاري جهة استلام دفعة العميل.'],['No permission','ما عندج صلاحية لتعديل الحسابات.'],['Invalid amount','المبلغ غير صحيح أو أكبر من المتبقي.']];return rules.find(r=>text.includes(r[0]))?.[1]||text;}
 function hydrate(){if(!snapshot)return;db.staff=snapshot.employees||[];db.providers=(snapshot.providers||[]).map(p=>({...p,type:p.provider_type,feeType:p.default_fee_type||'percent',feeValue:Number(p.default_fee_value||0),services:(snapshot.services||[]).filter(s=>String(s.provider_id)===String(p.id)).map(s=>s.name)}));db.cases=snapshot.cases.map(c=>({...c,providerId:c.provider_id,service:c.service_name,amount:Number(c.total_amount),staff:db.staff.find(e=>String(e.id)===String(c.employee_id))?.name||'',providerPaid:Number(c.main_provider_paid||0),clientPaidAmount:Number(c.main_paid_recorded||0),schedule:[]}));db.followups=snapshot.followups||[];}
-async function refresh(){const previous=loading;const job=(async()=>{if(previous){try{await previous}catch(e){}}const next=await rpc('test_finance_snapshot');const projected=F.project(next);await loadSeptemberReviews();await loadPeriodSettlements();snapshot=next;model=projected;hydrate();render();return next;})();loading=job;try{return await job}finally{if(loading===job)loading=null}}
+async function refresh(){const previous=loading;const job=(async()=>{if(previous){try{await previous}catch(e){}}const next=await rpc('test_finance_snapshot');const projected=F.project(next);await loadSeptemberReviews();await loadPeriodSettlements();await loadRecordedPayments();snapshot=next;model=projected;hydrate();render();return next;})();loading=job;try{return await job}finally{if(loading===job)loading=null}}
 const legacyFollowups=window.renderAutomaticFollowups,legacyCases=window.renderCases,legacyOpen=window.openCaseDetails,legacyShowPage=window.showPage,legacyNewCase=window.openNewCase;
 function linesFor(id){return model?.lines.filter(l=>l.caseId===String(id))||[]}
 function findLine(id,component){return linesFor(id).find(l=>l.component===component)}
@@ -169,6 +183,27 @@ function renderHomeAnalytics(){
  const groups=new Map();for(const l of rows){if(!l.date)continue;const key=l.date.slice(0,group==='year'?4:group==='month'?7:10);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(l);}
  const points=[...groups].sort((a,b)=>a[0].localeCompare(b[0])).map(([key,ls])=>[key,F.summarize(ls)]);const max=points.reduce((m,[,x])=>Math.max(m,Number(x.paw),Number(x.pawCollected)),1);
  out+='<div class="ha-block" style="margin-top:12px"><h3 style="margin:0">'+html(tr('حركة عمولات PawApp','PawApp fee trend'))+'</h3><div class="hint">'+html(tr('أزرق: مستحقة • أخضر: محصلة حالياً حسب تاريخ الخدمة','Blue: earned • Green: currently collected, grouped by service date'))+'</div><div class="ha-chart">'+points.map(([key,x])=>'<div class="ha-col"><div class="ha-bars"><i title="'+html(money(x.paw))+'" style="height:'+Number(x.paw)/max*100+'%"></i><i title="'+html(money(x.pawCollected))+'" style="height:'+Number(x.pawCollected)/max*100+'%"></i></div><div>'+html(key)+'</div><div>'+html(F.format(x.paw))+'</div><div style="color:#16834f">'+html(F.format(x.pawCollected))+'</div></div>').join('')+'</div>'+(points.length?'':'<p class="hint">'+html(tr('لا توجد عمليات مؤرخة في الفترة','No dated services in period'))+'</p>')+'</div>';
+
+
+ // Dated ledger: actual payment rows, not a reconstruction of historic flags.
+ out+='<div class="ha-block" style="margin-top:12px"><h3>'+html(tr('مدفوعات العملاء حسب تاريخ الدفع المسجل','Recorded client payments by payment date'))+'</h3><p class="hint">'+html(tr('سجل الدفعات فقط. الفلتر حسب تاريخ الدفع، وليس تاريخ الخدمة. لا يشمل العمليات القديمة المسجلة كمدفوعة دون قيد دفعة، ولا يمثل صافي ربح أو تحصيل PawApp البنكي.','Payment ledger only. Filtered by recorded payment date, not service date. Historic paid flags without a payment row are excluded. Not net profit or PawApp bank receipts.'))+'</p>';
+ if(recordedPayments===null)out+='<p class="hint">'+html(tr('تعذر تحميل سجل الدفعات؛ لم يتم افتراض أن قيمته صفر.','Payment ledger unavailable; no zero value is assumed.'))+'</p>';
+ else {
+  try{
+   const allowed=new Set(active.map(l=>l.caseId+':'+l.component));
+   const matches=recordedPayments.filter(p=>allowed.has(String(p.case_id)+':'+p.component));
+   const dated=matches.filter(p=>/^\d{4}-\d{2}-\d{2}$/.test(String(p.paid_at||'')));
+   const selectedPayments=dated.filter(p=>(!from||p.paid_at>=from)&&(!to||p.paid_at<=to));
+   const amounts=new Map();let total=0n;
+   for(const p of selectedPayments){const amount=F.minor(p.amount),key=p.paid_at.slice(0,group==='year'?4:group==='month'?7:10);total+=amount;amounts.set(key,(amounts.get(key)||0n)+amount);}
+   const chart=[...amounts].sort((a,b)=>a[0].localeCompare(b[0])),peak=chart.reduce((m,[,v])=>Math.max(m,Number(v)),1);
+   out+='<div class="ha-kpis" style="grid-template-columns:repeat(auto-fit,minmax(125px,1fr))">'+kpi('الدفعات المسجلة','Recorded payments',total,'collected')+'<div class="ha-kpi"><span class="hint">'+html(tr('عدد قيود الدفعات','Payment records'))+'</span><b>'+selectedPayments.length+'</b></div></div>';
+   out+='<div class="ha-chart">'+chart.map(([key,v])=>'<div class="ha-col"><div class="ha-bars"><i title="'+html(money(v))+'" style="height:'+Number(v)/peak*100+'%;background:#83cba5"></i></div><div>'+html(key)+'</div><div>'+html(F.format(v))+'</div></div>').join('')+'</div>';
+   if(!chart.length)out+='<p class="hint">'+html(tr('لا توجد دفعات مؤرخة في الفترة المختارة.','No dated payment records in this period.'))+'</p>';
+   out+='<p class="hint">'+html(tr('قيود بلا تاريخ ضمن الخدمات المطابقة: ','Undated payment rows for matching services: '))+(matches.length-dated.length)+'</p>';
+  }catch(e){out+='<p class="hint">'+html(tr('توجد مبالغ تحتاج مراجعة؛ لم يتم عرض إجمالي غير مؤكد.','Payment amounts require review; no unverified total is shown.'))+'</p>';}
+ }
+ out+='</div>';
 
  // Source analytics count distinct cases, never service/transport lines twice.
  const sourceOf=l=>{

@@ -183,12 +183,12 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
           <td>${dueTxt}</td>
           <td><span class="status ${companyStatusClass}">${companyStatus}</span><div class="hint">التسوية: ${testSettlementState(c)}</div></td>
           <td>${esc(c.staff||'—')}<br><span class="status partial" style="margin-top:4px">${esc(sourceLabel(c.source))}</span></td>
-          <td><span class="status partial" style="display:inline-block;margin-bottom:5px">${esc(workflowLabel(c.workflow_status))}</span><br><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')">تعديلات</button>${(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))?'<button class="btn danger" style="padding:7px" onclick="deleteCaseFromOperations(\''+c.id+'\')">حذف العملية</button>':''}</div></td>
+          <td><span class="status partial" style="display:inline-block;margin-bottom:5px">${esc(workflowLabel(c.workflow_status))}</span><br><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ${missing?'yellow':'soft'}" style="padding:7px" onclick="openCaseDetails('${c.id}')"><!--paw-i18n-->تعديلات</button>${(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))?'<button class="btn danger" style="padding:7px" onclick="deleteCaseFromOperations(\''+c.id+'\')"><!--paw-i18n-->حذف العملية</button>':''}</div></td>
           <td><button class="btn soft" style="padding:7px" onclick="openCaseDetails('${c.id}')">${clientPaid?'بيانات السداد':'تحديث السداد'}</button></td>
           <td><button class="btn soft" style="padding:7px" onclick="${Number(c.provider_amount||0)>0?'openSettlement(\''+c.id+'\')':'openCaseDetails(\''+c.id+'\')'}">${Number(c.provider_amount||0)<=0?'أكمل السعر':(vendorPaid?'تم الدفع':'تسجيل دفع')}</button></td>
         </tr>`;
       });
-      document.getElementById('caseRows').innerHTML=h||'<tr><td colspan="18">لا توجد عمليات</td></tr>';
+      document.getElementById('caseRows').innerHTML=h||'<tr><td colspan="18"><!--paw-i18n-->لا توجد عمليات</td></tr>';
     };
 
     const originalRenderDashboard = window.renderDashboard;
@@ -208,7 +208,7 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
       if(remEl){
         remEl.innerHTML=reminders.map(c=>{
           const overdue=String(c.client_due_date)<today;
-          return '<div class="card provider"><h3>'+esc(c.client_name)+'</h3><p>PAW-'+String(c.id).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span>المبلغ المتبقي</span><b>'+money(clientRem(c))+'</b></div><div class="mini"><span>موعد السداد</span><b>'+c.client_due_date+'</b></div><div class="mini"><span>الحالة</span><b class="'+(overdue?'red':'blue')+'">'+(overdue?'متأخر':'قادم')+'</b></div></div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح الحالة</button></div></div>';
+          return '<div class="card provider"><h3>'+esc(c.client_name)+'</h3><p>PAW-'+String(c.id).padStart(4,'0')+'</p><div class="miniGrid"><div class="mini"><span><!--paw-i18n-->المبلغ المتبقي</span><b>'+money(clientRem(c))+'</b></div><div class="mini"><span><!--paw-i18n-->موعد السداد</span><b>'+c.client_due_date+'</b></div><div class="mini"><span><!--paw-i18n-->الحالة</span><b class="'+(overdue?'red':'blue')+'">'+(overdue?'متأخر':'قادم')+'</b></div></div><div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')"><!--paw-i18n-->فتح الحالة</button></div></div>';
         }).join('');
       }
 
@@ -228,9 +228,9 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
         const fullyPaid=totalDue>0 && totalRemain<=0.0001;
         if(vf==='paid'&&!fullyPaid)return;
         if(vf==='unpaid'&&fullyPaid)return;
-        ph+='<div class="card provider"><h3>'+esc(pr.name)+'</h3><div class="miniGrid"><div class="mini"><span>العمليات</span><b>'+cs.length+'</b></div><div class="mini"><span>إجمالي المستحق</span><b>'+money(totalDue)+'</b></div><div class="mini"><span>تم دفعه</span><b class="green">'+money(totalPaid)+'</b></div></div><div class="miniGrid"><div class="mini"><span>المتبقي</span><b class="'+(totalRemain>0?'red':'green')+'">'+money(totalRemain)+'</b></div><div class="mini"><span>حالة الحساب</span><b>'+(fullyPaid?'مسدد':'عليه مستحق')+'</b></div><div class="mini"><span>الجهة</span><b>'+esc(pr.name)+'</b></div></div><div class="actions"><button class="btn soft" onclick="providerCases(\''+pr.id+'\')">التفاصيل</button><button class="btn soft" onclick="exportProviderReport(\''+pr.id+'\')">تقرير CSV</button></div></div>';
+        ph+='<div class="card provider"><h3>'+esc(pr.name)+'</h3><div class="miniGrid"><div class="mini"><span><!--paw-i18n-->العمليات</span><b>'+cs.length+'</b></div><div class="mini"><span><!--paw-i18n-->إجمالي المستحق</span><b>'+money(totalDue)+'</b></div><div class="mini"><span><!--paw-i18n-->تم دفعه</span><b class="green">'+money(totalPaid)+'</b></div></div><div class="miniGrid"><div class="mini"><span><!--paw-i18n-->المتبقي</span><b class="'+(totalRemain>0?'red':'green')+'">'+money(totalRemain)+'</b></div><div class="mini"><span><!--paw-i18n-->حالة الحساب</span><b>'+(fullyPaid?'مسدد':'عليه مستحق')+'</b></div><div class="mini"><span><!--paw-i18n-->الجهة</span><b>'+esc(pr.name)+'</b></div></div><div class="actions"><button class="btn soft" onclick="providerCases(\''+pr.id+'\')"><!--paw-i18n-->التفاصيل</button><button class="btn soft" onclick="exportProviderReport(\''+pr.id+'\')"><!--paw-i18n-->تقرير CSV</button></div></div>';
       });
-      document.getElementById('dashboardProviders').innerHTML=ph||'<div class="card">ما في نتائج على الفلتر الحالي.</div>';
+      document.getElementById('dashboardProviders').innerHTML=ph||'<div class="card"><!--paw-i18n-->ما في نتائج على الفلتر الحالي.</div>';
 
       let h='';
       db.cases.slice().reverse().slice(0,6).forEach(c=>{
@@ -250,7 +250,7 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
           <td><span class="status ${clientPaid?'paid':'unpaid'}">${clientPaid?'تم السداد':'لم يسدد'}</span></td>
         </tr>`;
       });
-      document.getElementById('recent').innerHTML=h||'<tr><td colspan="10">لا توجد عمليات</td></tr>';
+      document.getElementById('recent').innerHTML=h||'<tr><td colspan="10"><!--paw-i18n-->لا توجد عمليات</td></tr>';
     };
 
     window.togglePaymentPlan = function(){
@@ -269,10 +269,10 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
         let sales=0,r=0; cs.forEach(x=>{sales+=x.amount;r+=rem(x)});
         const typ=p.type==='freelancer'?'Freelancer':(p.category==='veterinary'?'Company - Veterinary':'Company - Services');
         const feeTxt=p.feeType==='fixed'?money(p.feeValue)+' ثابت':p.feeValue+'%';
-        const services=p.services.length?p.services.map(x=>'<span class="status partial" style="margin:3px">'+esc(x)+'</span>').join(''):'<span class="hint">ما في خدمات مضافة</span>';
-        h+='<div class="card provider"><h3>'+esc(p.name)+'</h3><p>'+typ+' • '+feeTxt+'</p><div style="margin-top:8px">'+services+'</div><div class="miniGrid"><div class="mini"><span>العمليات</span><b>'+cs.length+'</b></div><div class="mini"><span>الإجمالي</span><b>'+money(sales)+'</b></div><div class="mini"><span>متبقي</span><b>'+money(r)+'</b></div></div><div class="actions"><button class="btn primary" onclick="openServiceManager(\''+p.id+'\')">إدارة الخدمات</button><button class="btn soft" onclick="providerCases(\''+p.id+'\')">العمليات</button><button class="btn danger" onclick="deleteProvider(\''+p.id+'\')">حذف</button></div></div>';
+        const services=p.services.length?p.services.map(x=>'<span class="status partial" style="margin:3px">'+esc(x)+'</span>').join(''):'<span class="hint"><!--paw-i18n-->ما في خدمات مضافة</span>';
+        h+='<div class="card provider"><h3>'+esc(p.name)+'</h3><p>'+typ+' • '+feeTxt+'</p><div style="margin-top:8px">'+services+'</div><div class="miniGrid"><div class="mini"><span><!--paw-i18n-->العمليات</span><b>'+cs.length+'</b></div><div class="mini"><span><!--paw-i18n-->الإجمالي</span><b>'+money(sales)+'</b></div><div class="mini"><span><!--paw-i18n-->متبقي</span><b>'+money(r)+'</b></div></div><div class="actions"><button class="btn primary" onclick="openServiceManager(\''+p.id+'\')"><!--paw-i18n-->إدارة الخدمات</button><button class="btn soft" onclick="providerCases(\''+p.id+'\')"><!--paw-i18n-->العمليات</button><button class="btn danger" onclick="deleteProvider(\''+p.id+'\')"><!--paw-i18n-->حذف</button></div></div>';
       });
-      document.getElementById('providerList').innerHTML=h||'<div class="card">لا توجد نتائج</div>';
+      document.getElementById('providerList').innerHTML=h||'<div class="card"><!--paw-i18n-->لا توجد نتائج</div>';
     };
 
     window.openServiceManager = async function(providerId){
@@ -281,7 +281,7 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
       document.getElementById('serviceModalTitle').textContent='خدمات '+p.name;
       document.getElementById('serviceName').value='';
       const rows=await api('services?select=*&provider_id=eq.'+encodeURIComponent(providerId)+'&order=created_at.asc');
-      document.getElementById('serviceList').innerHTML=(rows||[]).map(s=>'<div class="card" style="box-shadow:none;margin-bottom:8px;display:flex;align-items:center;gap:8px"><b style="flex:1">'+esc(s.name)+'</b><button class="btn danger" onclick="deleteProviderService(\''+s.id+'\',\''+providerId+'\')">حذف</button></div>').join('')||'<div class="card" style="box-shadow:none">ما في خدمات مضافة.</div>';
+      document.getElementById('serviceList').innerHTML=(rows||[]).map(s=>'<div class="card" style="box-shadow:none;margin-bottom:8px;display:flex;align-items:center;gap:8px"><b style="flex:1">'+esc(s.name)+'</b><button class="btn danger" onclick="deleteProviderService(\''+s.id+'\',\''+providerId+'\')"><!--paw-i18n-->حذف</button></div>').join('')||'<div class="card" style="box-shadow:none"><!--paw-i18n-->ما في خدمات مضافة.</div>';
       document.getElementById('serviceModal').classList.add('show');
     };
 
@@ -390,14 +390,14 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
       box.innerHTML='<div style="padding:10px;border:1px solid #b4d3e9;border-radius:10px;background:#f2f8ff">'+
         '<b>العميل موجود مسبقاً: '+esc(main.client_name)+'</b>'+
         '<div class="hint">'+esc(main.client_phone||'')+' • '+matches.length+' عملية سابقة'+(distinctTypes.length?' • أنواع الحيوانات: '+esc(distinctTypes.join('، ')):'')+'</div>'+
-        '<button class="btn soft" type="button" style="margin-top:7px" onclick="selectExistingCustomer('+Number(main.id)+')">استخدمي بيانات العميل فقط</button>'+
+        '<button class="btn soft" type="button" style="margin-top:7px" onclick="selectExistingCustomer('+Number(main.id)+')"><!--paw-i18n-->استخدمي بيانات العميل فقط</button>'+
         '<div class="hint" style="margin-top:5px">'+(exactPhone?'اختاري الحيوان الموجود من القائمة أو أضيفي حيواناً مختلفاً.':'تأكدي من رقم التلفون قبل ربط العميل.')+
         ' لا يتم نسخ الخدمة أو السعر أو المدفوعات.</div></div>';
     };
     window.searchExistingCustomer=function(){
       const q=String(document.getElementById('existingCustomerSearch')?.value||'').trim();
       const out=document.getElementById('existingCustomerResults');if(!out)return;
-      if(!q){out.innerHTML='<div class="hint">اكتبي رقم التلفون أو اسم العميل.</div>';return;}
+      if(!q){out.innerHTML='<div class="hint"><!--paw-i18n-->اكتبي رقم التلفون أو اسم العميل.</div>';return;}
       const found=db.cases.slice().reverse().filter(x=>x.workflow_status!=='cancelled'&&
         customerSearchMatches(q,[x.client_name,x.client_phone,x.intake_details?.staff_listed_name,x.intake_details?.staff_listed_phone]));
       const seen=new Set(),matches=[];
@@ -409,7 +409,7 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
         '<button type="button" class="card" style="width:100%;text-align:right;box-shadow:none;margin-bottom:7px;cursor:pointer" onclick="selectExistingCustomer('+Number(x.id)+')">'+
         '<b>'+esc(x.client_name)+'</b><div class="hint">'+esc(x.client_phone||'بدون رقم')+
         ' • تعبئة العميل فقط، ثم اختاري الحيوان والخدمة المطلوبة</div></button>'
-      ).join(''):'<div class="hint">ما لقينا عميل سابق، تقدرين تسجلينه كعميل جديد.</div>';
+      ).join(''):'<div class="hint"><!--paw-i18n-->ما لقينا عميل سابق، تقدرين تسجلينه كعميل جديد.</div>';
     };
     window.selectExistingCustomer=function(id){
       const x=db.cases.find(v=>Number(v.id)===Number(id));if(!x)return;
@@ -421,7 +421,7 @@ function testSettlementState(c){const d=String(c.service_date||'').slice(0,10);i
       }
       const location=document.getElementById('cLocation');if(location&&!location.value)location.value=x.location||'';
       const box=document.getElementById('existingCustomerResults');
-      if(box)box.innerHTML='<div class="status paid">تم اختيار ملف العميل. اختاري نفس الحيوان أو حيواناً جديداً، ثم الخدمة والسعر.</div>';
+      if(box)box.innerHTML='<div class="status paid"><!--paw-i18n-->تم اختيار ملف العميل. اختاري نفس الحيوان أو حيواناً جديداً، ثم الخدمة والسعر.</div>';
       window.smartNewCustomerHint();
     };
 
@@ -583,7 +583,7 @@ window.sourceLabel = function(src){
       const pid=document.getElementById('eProvider').value;
       const p=db.providers.find(x=>x.id===pid);
       const s=document.getElementById('eService');
-      s.innerHTML='<option value="">اختاري الخدمة</option>';
+      s.innerHTML='<option value=""><!--paw-i18n-->اختاري الخدمة</option>';
       if(p){
         p.services.forEach(x=>s.innerHTML+='<option>'+esc(x)+'</option>');
         document.getElementById('eFeeType').value=p.feeType||'percent';
@@ -627,7 +627,7 @@ window.sourceLabel = function(src){
       document.getElementById('eReason').value=c.reason||'';
 
       const ps=document.getElementById('eProvider');
-      ps.innerHTML='<option value="">اختاري الشركة / الفريلانسر</option>';
+      ps.innerHTML='<option value=""><!--paw-i18n-->اختاري الشركة / الفريلانسر</option>';
       db.providers.forEach(p=>ps.innerHTML+='<option value="'+p.id+'">'+esc(p.name)+'</option>');
       ps.value=c.providerId||'';
       editProviderChanged();
@@ -773,7 +773,7 @@ window.sourceLabel = function(src){
     window.renderReports=function(){
       const sel=document.getElementById('reportProvider'); if(!sel)return;
       const keep=sel.value||'all';
-      sel.innerHTML='<option value="all">الكل</option>'+db.providers.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
+      sel.innerHTML='<option value="all"><!--paw-i18n-->الكل</option>'+db.providers.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
       if(Array.from(sel.options).some(function(o){return o.value===keep}))sel.value=keep;
       const rows=reportRows(),clientKeys=new Set(),providerIds=new Set();
       let sales=0,pawTotal=0,providerDue=0;
@@ -790,7 +790,7 @@ window.sourceLabel = function(src){
       const unknownClients=rows.filter(c=>canonicalCustomerKey(c).startsWith('case:')).length;
       let reportExtra=document.getElementById('pawReportExtraStats');
       if(!reportExtra){reportExtra=document.createElement('div');reportExtra.id='pawReportExtraStats';reportExtra.className='card';reportExtra.style.margin='12px 0';document.getElementById('reportCases')?.closest('.cards')?.after(reportExtra);}
-      if(reportExtra)reportExtra.innerHTML='<b>تفاصيل الإحصائيات</b><div class="hint">أنواع الخدمات المنفذة: '+uniqueServices.size+' | حالات بلا هوية عميل: '+unknownClients+' | عمليات التقرير: '+rows.length+'</div><div class="hint">الحيوانات تحتاج معرّف مستقل لكل حيوان حتى يصير عددها مؤكداً، مو مجرد نوع وسلالة.</div>';
+      if(reportExtra)reportExtra.innerHTML='<b><!--paw-i18n-->تفاصيل الإحصائيات</b><div class="hint">أنواع الخدمات المنفذة: '+uniqueServices.size+' | حالات بلا هوية عميل: '+unknownClients+' | عمليات التقرير: '+rows.length+'</div><div class="hint"><!--paw-i18n-->الحيوانات تحتاج معرّف مستقل لكل حيوان حتى يصير عددها مؤكداً، مو مجرد نوع وسلالة.</div>';
       document.getElementById('reportClients').textContent=clientKeys.size;
       document.getElementById('reportProviders').textContent=providerIds.size;
       document.getElementById('reportCases').textContent=rows.length;
@@ -805,8 +805,8 @@ window.sourceLabel = function(src){
         const pr=rows.filter(function(x){return String(x.providerId||'none')===e[0]});
         const clients=new Set(pr.map(canonicalCustomerKey));
         const total=pr.reduce(function(n,x){return n+Number(x.total_amount||0)},0);
-        return '<div class="card" style="box-shadow:none"><b>'+esc(p?p.name:'بدون شركة')+'</b><div class="miniGrid" style="margin-top:8px"><div class="mini"><span>العمليات</span><b>'+e[1]+'</b></div><div class="mini"><span>العملاء</span><b>'+clients.size+'</b></div><div class="mini"><span>الإجمالي</span><b>'+total.toFixed(3)+' د.ك</b></div></div></div>';
-      }).join(''):'<div class="card"><div class="hint">ما في بيانات ضمن الفترة المختارة.</div></div>';
+        return '<div class="card" style="box-shadow:none"><b>'+esc(p?p.name:'بدون شركة')+'</b><div class="miniGrid" style="margin-top:8px"><div class="mini"><span><!--paw-i18n-->العمليات</span><b>'+e[1]+'</b></div><div class="mini"><span><!--paw-i18n-->العملاء</span><b>'+clients.size+'</b></div><div class="mini"><span><!--paw-i18n-->الإجمالي</span><b>'+total.toFixed(3)+' د.ك</b></div></div></div>';
+      }).join(''):'<div class="card"><div class="hint"><!--paw-i18n-->ما في بيانات ضمن الفترة المختارة.</div></div>';
     };
     window.exportGeneralReport=function(){
       const rows=reportRows();if(!rows.length){alert('ما في بيانات للتصدير ضمن الفترة المختارة');return}
@@ -876,21 +876,21 @@ window.sourceLabel = function(src){
       const box=document.createElement('div');
       box.id='caseAttachmentsBox';
       box.innerHTML=
-        '<div class="section"><h2>الفواتير والمرفقات</h2></div>'+
+        '<div class="section"><h2><!--paw-i18n-->الفواتير والمرفقات</h2></div>'+
         '<div class="card" style="box-shadow:none">'+
           (writable?'<div class="grid2">'+
-            '<div class="field"><label>نوع المرفق</label><select id="caseAttachmentType">'+
-              '<option value="client_invoice">فاتورة العميل</option>'+
-              '<option value="client_receipt">إيصال دفع العميل</option>'+
-              '<option value="vendor_invoice">فاتورة الشركة / الفريلانسر</option>'+
-              '<option value="vendor_receipt">إيصال دفع الشركة / الفريلانسر</option>'+
-              '<option value="other">مرفق آخر</option>'+
+            '<div class="field"><label><!--paw-i18n-->نوع المرفق</label><select id="caseAttachmentType">'+
+              '<option value="client_invoice"><!--paw-i18n-->فاتورة العميل</option>'+
+              '<option value="client_receipt"><!--paw-i18n-->إيصال دفع العميل</option>'+
+              '<option value="vendor_invoice"><!--paw-i18n-->فاتورة الشركة / الفريلانسر</option>'+
+              '<option value="vendor_receipt"><!--paw-i18n-->إيصال دفع الشركة / الفريلانسر</option>'+
+              '<option value="other"><!--paw-i18n-->مرفق آخر</option>'+
             '</select></div>'+
-            '<div class="field"><label>اختيار الملف</label><input id="caseAttachmentFile" type="file" accept="image/*,.pdf"></div>'+
+            '<div class="field"><label><!--paw-i18n-->اختيار الملف</label><input id="caseAttachmentFile" type="file" accept="image/*,.pdf"></div>'+
           '</div>'+
           '<button class="btn soft" style="width:100%;margin-top:10px" type="button" onclick="uploadCaseAttachment()">+ رفع المرفق</button>':'')+
           '<div id="caseAttachmentList" style="margin-top:10px"></div>'+
-          '<div class="hint">الصور وPDF حتى 10MB • الوصول حسب حساب الموظف وصلاحيته.</div>'+
+          '<div class="hint"><!--paw-i18n-->الصور وPDF حتى 10MB • الوصول حسب حساب الموظف وصلاحيته.</div>'+
         '</div>';
       saveBtn.parentNode.insertBefore(box,saveBtn);
     }
@@ -908,7 +908,7 @@ window.sourceLabel = function(src){
       ensureAttachmentUI();
       const list=document.getElementById('caseAttachmentList');
       if(!list) return;
-      list.innerHTML='<div class="hint">جاري تحميل المرفقات...</div>';
+      list.innerHTML='<div class="hint"><!--paw-i18n-->جاري تحميل المرفقات...</div>';
       try{
         const data=await attachmentJson({action:'list',case_id:Number(id)});
         const rows=data.attachments||[];
@@ -918,7 +918,7 @@ window.sourceLabel = function(src){
               '<div><b>'+esc(attachmentTypeLabel(x.attachment_type))+'</b><div class="hint">'+esc(x.file_name||'ملف')+'</div></div>'+
               '<div style="display:flex;gap:6px">'+
                 (x.signed_url?'<a class="btn soft" href="'+esc(x.signed_url)+'" target="_blank" rel="noopener">فتح</a>':'')+
-                (canEditAttachments()?'<button class="btn danger" type="button" onclick="deleteCaseAttachment(\''+x.id+'\')">حذف</button>':'')+
+                (canEditAttachments()?'<button class="btn danger" type="button" onclick="deleteCaseAttachment(\''+x.id+'\')"><!--paw-i18n-->حذف</button>':'')+
               '</div>'+
             '</div>'+
           '</div>').join(''):'<div class="hint">ما في مرفقات على هالحالة.</div>';
@@ -1063,7 +1063,7 @@ window.sourceLabel = function(src){
           '<div><b>PAW-'+String(c.id).padStart(4,'0')+'</b> • '+esc(c.service||c.requested_service||'الخدمة غير محددة')+
           '<div class="hint">'+esc(c.service_date||'بدون تاريخ')+' • '+esc(byProvider(c.providerId).name||'بدون عيادة')+' • '+
           Number(c.total_amount||0).toFixed(3)+' د.ك • '+(c.client_paid?'دافع':'غير مدفوع')+'</div></div>'+
-          '<button class="btn soft" type="button" onclick="crmJumpToCase('+Number(c.id)+')">فتح العملية</button></div>').join('');
+          '<button class="btn soft" type="button" onclick="crmJumpToCase('+Number(c.id)+')"><!--paw-i18n-->فتح العملية</button></div>').join('');
         return '<div class="card" style="box-shadow:none">'+
           '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">'+
             '<div><b style="font-size:16px">'+esc(g.name)+'</b><div class="hint">'+esc(g.phone||'بدون رقم')+(g.location?' • '+esc(g.location):'')+'</div></div>'+
@@ -1076,12 +1076,12 @@ window.sourceLabel = function(src){
           (last?.intake_details?.staff_same_phone_repeat_review===true?'<div class="hint" style="color:#a15d00">يوجد سجل مشابه يحتاج مراجعة، بدون تعديل القيود المالية.</div>':'')+
           '<div style="margin-top:10px"><b>عمليات العميل:</b>'+caseList+'</div>'+
           '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
-            '<button class="btn primary" type="button" onclick="crmEditCustomer(\''+String(last?.id||'')+'\')">تعديلات</button>'+
-            '<button class="btn soft" type="button" onclick="crmOpenProfile('+Number(last.id)+')">ملف العميل</button>'+
-            ((['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))?'<button class="btn danger" type="button" onclick="crmDeleteCustomer(\''+String(last?.id||'')+'\')">حذف العميل</button>':'')+
+            '<button class="btn primary" type="button" onclick="crmEditCustomer(\''+String(last?.id||'')+'\')"><!--paw-i18n-->تعديلات</button>'+
+            '<button class="btn soft" type="button" onclick="crmOpenProfile('+Number(last.id)+')"><!--paw-i18n-->ملف العميل</button>'+
+            ((['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))?'<button class="btn danger" type="button" onclick="crmDeleteCustomer(\''+String(last?.id||'')+'\')"><!--paw-i18n-->حذف العميل</button>':'')+
           '</div>'+
         '</div>';
-      }).join(''):'<div class="card"><div class="hint">ما لقينا عميل مطابق.</div></div>';
+      }).join(''):'<div class="card"><div class="hint"><!--paw-i18n-->ما لقينا عميل مطابق.</div></div>';
     };
 
     function crmCustomerCases(caseId){
@@ -1099,15 +1099,15 @@ window.sourceLabel = function(src){
       bg.id='crmCustomerModal';
       bg.className='modalBg';
       bg.innerHTML='<div class="modal">'+
-        '<div class="modalHead"><h3>تعديل بيانات العميل</h3><button class="close" type="button" onclick="closeModal(\'crmCustomerModal\')">×</button></div>'+
+        '<div class="modalHead"><h3><!--paw-i18n-->تعديل بيانات العميل</h3><button class="close" type="button" onclick="closeModal(\'crmCustomerModal\')">×</button></div>'+
         '<input id="crmCustomerCaseId" type="hidden">'+
         '<div class="grid2">'+
-          '<div class="field"><label>اسم العميل</label><input id="crmCustomerName"></div>'+
-          '<div class="field"><label>رقم العميل</label><input id="crmCustomerPhone" inputmode="tel"></div>'+
-          '<div class="field full"><label>المنطقة / الموقع</label><input id="crmCustomerLocation"></div>'+
+          '<div class="field"><label><!--paw-i18n-->اسم العميل</label><input id="crmCustomerName"></div>'+
+          '<div class="field"><label><!--paw-i18n-->رقم العميل</label><input id="crmCustomerPhone" inputmode="tel"></div>'+
+          '<div class="field full"><label><!--paw-i18n-->المنطقة / الموقع</label><input id="crmCustomerLocation"></div>'+
         '</div>'+
         '<div class="hint" style="margin-top:10px">يتم تحديث بيانات العميل الأساسية في كل عملياته المرتبطة بنفس الرقم.</div>'+
-        '<button class="btn primary" type="button" style="width:100%;margin-top:12px" onclick="crmSaveCustomer()">حفظ التعديل</button>'+
+        '<button class="btn primary" type="button" style="width:100%;margin-top:12px" onclick="crmSaveCustomer()"><!--paw-i18n-->حفظ التعديل</button>'+
       '</div>';
       document.body.appendChild(bg);
     }
@@ -1212,7 +1212,7 @@ window.sourceLabel = function(src){
       let bg=document.getElementById('crmProfileModal');
       if(!bg){
         bg=document.createElement('div');bg.id='crmProfileModal';bg.className='modalBg';
-        bg.innerHTML='<div class="modal" style="width:min(960px,100%);max-height:90vh;overflow:auto"><div class="modalHead"><h3>ملف العميل / Customer Profile</h3><button type="button" class="close" aria-label="إغلاق" onclick="closeModal(\'crmProfileModal\')">×</button></div><div id="crmProfileBody"></div></div>';
+        bg.innerHTML='<div class="modal" style="width:min(960px,100%);max-height:90vh;overflow:auto"><div class="modalHead"><h3><!--paw-i18n-->ملف العميل / Customer Profile</h3><button type="button" class="close" aria-label="إغلاق" onclick="closeModal(\'crmProfileModal\')">×</button></div><div id="crmProfileBody"></div></div>';
         document.body.appendChild(bg);
       }
       const body=document.getElementById('crmProfileBody');
@@ -1337,10 +1337,10 @@ window.sourceLabel = function(src){
           '<div class="hint">الموظف: '+esc(emp?.name||ca.staff||'غير محدد')+'</div>'+
           (isOpen?'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
             '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'done\')">✓ تم / خلص الموضوع</button>'+
-            '<button class="btn soft" onclick="openCaseDetails(\''+String(ca.id||f.case_id)+'\')">فتح الحالة</button>'+
-            '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'no_answer\')">ما رد</button>'+
-            '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'confirmed\')">تم التأكيد</button>'+
-            '<button class="btn danger" onclick="setFollowupStatus(\''+f.id+'\',\'cancelled\')">ألغى</button>'+
+            '<button class="btn soft" onclick="openCaseDetails(\''+String(ca.id||f.case_id)+'\')"><!--paw-i18n-->فتح الحالة</button>'+
+            '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'no_answer\')"><!--paw-i18n-->ما رد</button>'+
+            '<button class="btn soft" onclick="setFollowupStatus(\''+f.id+'\',\'confirmed\')"><!--paw-i18n-->تم التأكيد</button>'+
+            '<button class="btn danger" onclick="setFollowupStatus(\''+f.id+'\',\'cancelled\')"><!--paw-i18n-->ألغى</button>'+
           '</div>':'')+
         '</div>';
       };
@@ -1424,13 +1424,13 @@ window.sourceLabel = function(src){
       const box=document.createElement('div');
       box.id='caseFollowupBox';
       box.innerHTML=
-        '<div class="section"><h2>المتابعة</h2></div>'+
+        '<div class="section"><h2><!--paw-i18n-->المتابعة</h2></div>'+
         '<div class="card" style="box-shadow:none">'+
           '<div class="grid2">'+
             '<div class="field"><label>تاريخ ووقت المتابعة</label><input id="caseFollowupAt" type="datetime-local"></div>'+
             '<div class="field"><label>سبب المتابعة</label><input id="caseFollowupReason" placeholder="مثال: تأكيد الموعد"></div>'+
           '</div>'+
-          '<div class="field" style="margin-top:8px"><label>ملاحظة</label><textarea id="caseFollowupNotes" rows="2"></textarea></div>'+
+          '<div class="field" style="margin-top:8px"><label><!--paw-i18n-->ملاحظة</label><textarea id="caseFollowupNotes" rows="2"></textarea></div>'+
           '<button class="btn soft" style="width:100%;margin-top:9px" type="button" onclick="addCaseFollowup()">+ إضافة متابعة</button>'+
           '<div id="caseFollowupHistory" style="margin-top:8px"></div>'+
         '</div>';
@@ -1838,7 +1838,7 @@ window.sourceLabel = function(src){
           transport='<div class="hint" style="margin-top:5px">+ '+esc(tdir)+' • '+esc(tp.name)+' • '+money(c.transport_total_amount)+'</div>';
         }
         recent+='<div class="card provider">'+
-          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">'+esc(c.client_name)+'</h3>'+(needsAttention?'<span class="status unpaid">● تحتاج متابعة</span>':'<span class="status paid">مكتملة</span>')+'</div>'+
+          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">'+esc(c.client_name)+'</h3>'+(needsAttention?'<span class="status unpaid">● تحتاج متابعة</span>':'<span class="status paid"><!--paw-i18n-->مكتملة</span>')+'</div>'+
           '<p>PAW-'+String(c.id).padStart(4,'0')+'</p>'+
           '<div><b>'+esc(c.service||c.requested_service||'—')+'</b><div class="hint">'+esc(pr.name)+'</div>'+transport+'</div>'+
           '<div class="actions"><button class="btn soft" onclick="openCaseWorkflow(\''+c.id+'\',\'missing\')">فتح المطلوب فقط</button></div></div>';
@@ -1857,14 +1857,14 @@ window.sourceLabel = function(src){
         h+='<div class="card provider">'+
           '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">'+esc(p.name)+'</h3>'+(a.attention?'<span class="status unpaid">● '+a.attention+' تحتاج متابعة</span>':'<span class="status paid">مستقرة</span>')+'</div>'+
           '<p>'+typ+'</p>'+
-          '<div class="miniGrid"><div class="mini"><span>العملاء</span><b>'+a.clients.length+'</b></div><div class="mini"><span>العمليات</span><b>'+a.operations+'</b></div><div class="mini"><span>الخدمات</span><b>'+Object.keys(a.serviceCounts).length+'</b></div></div>'+
-          '<div class="miniGrid"><div class="mini"><span>لنا عندهم</span><b>'+money(a.ours)+'</b></div><div class="mini"><span>لهم عندنا</span><b>'+money(a.theirs)+'</b></div><div class="mini"><span>الصافي</span><b>'+money(Math.abs(a.ours-a.theirs))+'</b></div></div>'+
+          '<div class="miniGrid"><div class="mini"><span><!--paw-i18n-->العملاء</span><b>'+a.clients.length+'</b></div><div class="mini"><span><!--paw-i18n-->العمليات</span><b>'+a.operations+'</b></div><div class="mini"><span><!--paw-i18n-->الخدمات</span><b>'+Object.keys(a.serviceCounts).length+'</b></div></div>'+
+          '<div class="miniGrid"><div class="mini"><span><!--paw-i18n-->لنا عندهم</span><b>'+money(a.ours)+'</b></div><div class="mini"><span><!--paw-i18n-->لهم عندنا</span><b>'+money(a.theirs)+'</b></div><div class="mini"><span>الصافي</span><b>'+money(Math.abs(a.ours-a.theirs))+'</b></div></div>'+
           (a.clients.length?'<div class="hint" style="margin-top:9px"><b>العملاء:</b> '+names+(a.clients.length>5?' +'+(a.clients.length-5):'')+'</div>':'')+
-          '<div class="actions"><button class="btn primary" onclick="openProviderCRM(\''+p.id+'\')">التفاصيل والتحليل</button><button class="btn soft" onclick="openServiceManager(\''+p.id+'\')">الخدمات</button></div>'+
+          '<div class="actions"><button class="btn primary" onclick="openProviderCRM(\''+p.id+'\')">التفاصيل والتحليل</button><button class="btn soft" onclick="openServiceManager(\''+p.id+'\')"><!--paw-i18n-->الخدمات</button></div>'+
           '</div>';
       });
       const list=document.getElementById('providerList');
-      if(list)list.innerHTML=h||'<div class="card">لا توجد نتائج</div>';
+      if(list)list.innerHTML=h||'<div class="card"><!--paw-i18n-->لا توجد نتائج</div>';
     };
 
     window.openProviderCRM=function(id){
@@ -1896,7 +1896,7 @@ window.sourceLabel = function(src){
           return !v2ClientPaid(c) || !c.client_paid_to || (x.role==='main'&&(v2CollectFromProvider(c)>0.0001||v2PayProvider(c)>0.0001));
         }).length;
         clientsHtml+='<div class="card provider">'+
-          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">'+esc(cl.name)+'</h3>'+(pending?'<span class="status unpaid">● '+pending+' غير مكتملة</span>':'<span class="status paid">مكتملة</span>')+'</div>'+
+          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">'+esc(cl.name)+'</h3>'+(pending?'<span class="status unpaid">● '+pending+' غير مكتملة</span>':'<span class="status paid"><!--paw-i18n-->مكتملة</span>')+'</div>'+
           '<p>'+esc(cl.phone||'بدون رقم')+' • '+cl.cases.length+' عملية</p>'+
           cl.cases.map(function(x){
             const c=x.case;
@@ -2100,7 +2100,7 @@ window.sourceLabel = function(src){
     function populateEditEmployees(selectedId){
       const sel=document.getElementById('eEmployee');
       if(!sel) return;
-      sel.innerHTML='<option value="">اختاري الموظف المسؤول</option>';
+      sel.innerHTML='<option value=""><!--paw-i18n-->اختاري الموظف المسؤول</option>';
       (db.staff||[]).forEach(function(emp){
         sel.innerHTML+='<option value="'+emp.id+'">'+esc(emp.name)+'</option>';
       });
@@ -2293,22 +2293,22 @@ window.sourceLabel = function(src){
 
       let html='';
       if(key==='provider'){
-        html='<div class="field"><label>الشركة / الفريلانسر</label><select id="missingTaskValue"><option value="">اختاري</option>'+
+        html='<div class="field"><label><!--paw-i18n-->الشركة / الفريلانسر</label><select id="missingTaskValue"><option value=""><!--paw-i18n-->اختاري</option>'+
           db.providers.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('')+
           '</select></div>';
       }else if(key==='service'){
         const pr=byProvider(row.providerId);
-        html='<div class="field"><label>الخدمة</label><select id="missingTaskValue"><option value="">اختاري</option>'+
+        html='<div class="field"><label><!--paw-i18n-->الخدمة</label><select id="missingTaskValue"><option value=""><!--paw-i18n-->اختاري</option>'+
           (pr.services||[]).map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>'}).join('')+
           '</select></div>';
       }else if(key==='price'){
-        html='<div class="field"><label>إجمالي ما يدفعه العميل (د.ك)</label><input id="missingTaskValue" type="number" min="0" step="0.001" inputmode="decimal"></div>';
+        html='<div class="field"><label><!--paw-i18n-->إجمالي ما يدفعه العميل (د.ك)</label><input id="missingTaskValue" type="number" min="0" step="0.001" inputmode="decimal"></div>';
       }else if(key==='employee'){
-        html='<div class="field"><label>الموظف المسؤول</label><select id="missingTaskValue"><option value="">اختاري</option>'+
+        html='<div class="field"><label><!--paw-i18n-->الموظف المسؤول</label><select id="missingTaskValue"><option value=""><!--paw-i18n-->اختاري</option>'+
           (db.staff||[]).map(function(e){return '<option value="'+e.id+'">'+esc(e.name)+'</option>'}).join('')+
           '</select></div>';
       }else if(key==='pet_type'){
-        html='<div class="field"><label>نوع الحيوان</label><select id="missingTaskValue"><option value="">اختاري</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>';
+        html='<div class="field"><label><!--paw-i18n-->نوع الحيوان</label><select id="missingTaskValue"><option value=""><!--paw-i18n-->اختاري</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>';
       }else{
         const title=key==='location'?'المنطقة / الموقع':key==='pickup_location'?'مكان الاستلام':'مكان التوصيل';
         html='<div class="field"><label>'+title+'</label><input id="missingTaskValue"></div>';
@@ -2516,13 +2516,13 @@ window.sourceLabel = function(src){
         const c=x.c,item=x.items[0],now=Date.now();
         const overdue=item.at.getTime()<now;
         const soon=item.at.getTime()<=now+24*60*60*1000;
-        const badge=overdue?'<span class="status unpaid">متأخر</span>':soon?'<span class="status partial">خلال 24 ساعة</span>':'<span class="status paid">قادم</span>';
+        const badge=overdue?'<span class="status unpaid">متأخر</span>':soon?'<span class="status partial">خلال 24 ساعة</span>':'<span class="status paid"><!--paw-i18n-->قادم</span>';
         return '<div class="card provider">'+followupCaseHeader(c,badge)+
           '<div style="margin-top:10px"><b>'+esc(item.label)+'</b><div class="hint">'+esc(formatFollowupDate(item.at))+'</div></div>'+
           '<div class="actions">'+
             '<button class="btn primary" onclick="completeAppointmentFollowup(\''+c.id+'\')">✓ تمت الخدمة / الموعد</button>'+
             '<button class="btn soft" onclick="openAppointmentReminder(\''+c.id+'\')">تأجيل التذكير</button>'+
-            '<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button>'+
+            '<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')"><!--paw-i18n-->فتح العملية</button>'+
           '</div></div>';
       }).join(''):'<div class="card"><div class="hint">ما في مواعيد أو ريميندر قادمة.</div></div>';
 
@@ -2530,7 +2530,7 @@ window.sourceLabel = function(src){
         const c=x.c;
         return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial">بيانات ناقصة</span>')+
           '<div style="margin-top:10px">'+x.items.map(function(r){return '<div class="kpi-line"><span>'+esc(r)+'</span></div>'}).join('')+'</div>'+
-          '<div class="actions"><button class="btn primary" onclick="openMissingTask(\''+c.id+'\')">استكمال المطلوب</button><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح العملية</button></div></div>';
+          '<div class="actions"><button class="btn primary" onclick="openMissingTask(\''+c.id+'\')"><!--paw-i18n-->استكمال المطلوب</button><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')"><!--paw-i18n-->فتح العملية</button></div></div>';
       }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في بيانات أساسية ناقصة.</div></div>';
 
       intakeBox.innerHTML=intakeRows.length?intakeRows.map(function(x){
@@ -2809,7 +2809,7 @@ window.sourceLabel = function(src){
 
       if(employeeSelect){
         const selectedEmployee=employeeSelect.value||'';
-        employeeSelect.innerHTML='<option value="">اختاري الموظف</option>'+
+        employeeSelect.innerHTML='<option value=""><!--paw-i18n-->اختاري الموظف</option>'+
           rows.map(function(e){
             return '<option value="'+e.id+'">'+esc(e.name||'موظف')+'</option>';
           }).join('');

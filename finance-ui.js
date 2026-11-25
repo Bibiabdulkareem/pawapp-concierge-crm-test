@@ -176,7 +176,7 @@ function renderHomeAnalytics(){
   const names={tiktok:['TikTok','TikTok'],instagram:['Instagram','Instagram'],whatsapp:['WhatsApp','WhatsApp'],snapchat:['Snapchat','Snapchat'],facebook:['Facebook','Facebook'],referral:['توصية','Referral'],existingcustomer:['عميل سابق','Existing customer'],google:['Google','Google'],historicalexcel:['مستورد من Excel — غير محدد','Excel import — unknown'],bookingform:['نموذج حجز — قناة غير محددة','Booking form — channel unknown'],petinfo:['نموذج بيانات — قناة غير محددة','Pet form — channel unknown'], 'استشارههاتفيه':['استشارة هاتفية','Phone consultation']};
   return {key:names[raw]?raw:'unknown',label:names[raw]?tr(...names[raw]):tr('غير محدد','Unknown')};
  };
- const analyticsPhone=l=>{const p=F.phone(l.phone);return /^\d{8,15}$/.test(p)?p:'';};
+ const analyticsPhone=l=>F.validPhone(l.phone);
  const sourceGroups=new Map(),allCases=new Set(),knownPhones=new Set();
  for(const l of rows){const src=sourceOf(l);if(!sourceGroups.has(src.key))sourceGroups.set(src.key,{...src,lines:[],cases:new Set(),phones:new Set()});const g=sourceGroups.get(src.key);g.lines.push(l);g.cases.add(l.caseId);allCases.add(l.caseId);const phone=analyticsPhone(l);if(phone){g.phones.add(phone);knownPhones.add(phone);}}
  const sources=[...sourceGroups.values()].sort((a,b)=>b.cases.size-a.cases.size);
@@ -193,15 +193,16 @@ function renderHomeAnalytics(){
  const open=[...el('haResults').querySelectorAll('details')].map(d=>d.open);el('haResults').innerHTML=out;[...el('haResults').querySelectorAll('details')].forEach((d,i)=>{if(open[i])d.open=true;});
 }
 
-function renderDashboard(){if(!model)return;const s=model.summary;try{renderHomeAnalytics()}catch(e){console.warn('Home analytics unavailable',e);}set('kOps',s.caseCount);set('kCustomers',s.customerCount);set('kProviders',model.providers.length);
+function renderDashboard(){if(!model)return;const s=model.summary;try{renderHomeAnalytics()}catch(e){console.warn('Home analytics unavailable',e);}set('kOps',s.caseCount);set('kCustomers',new Set((snapshot.cases||[]).filter(c=>c.workflow_status!=='cancelled').map(c=>F.validPhone(c.client_phone)).filter(Boolean)).size);set('kProviders',model.providers.length);
 const identified=new Set(),unidentified=new Set();
 for(const c of snapshot.cases||[]){
- const k=F.customerKey(c);
- if(k.startsWith('case:'))unidentified.add(k);else identified.add(k);
+ if(c.workflow_status==='cancelled')continue;
+ const p=F.validPhone(c.client_phone);
+ if(p)identified.add(p);else unidentified.add(String(c.id));
 }
 let customerAudit=el('pawCustomerCountAudit');
 if(!customerAudit){customerAudit=document.createElement('div');customerAudit.id='pawCustomerCountAudit';customerAudit.className='hint';customerAudit.style.cssText='margin:8px 0;padding:10px;border:1px solid #dbe2ed;border-radius:12px';const customerCard=el('kCustomers')?.closest('.card');if(customerCard)customerCard.appendChild(customerAudit);}
-if(customerAudit)customerAudit.textContent='عملاء برقم/معرّف مميز: '+identified.size+' | عمليات بلا رقم أو معرّف: '+unidentified.size+' (تحتاج مطابقة، ليست بالضرورة عملاء جدد). العدد المعروض يشملها مؤقتاً.';set('kClientPaidTotal',cash(s.paid));set('kClientUnpaidTotal',cash(s.unpaid));set('kOursFromProviders',cash(s.ours));set('kOweProviders',cash(s.theirs));
+if(customerAudit)customerAudit.textContent='عملاء بأرقام صالحة مختلفة: '+identified.size+' | عمليات بلا رقم صالح: '+unidentified.size+' (للمراجعة، غير داخلة في عدد العملاء).';set('kClientPaidTotal',cash(s.paid));set('kClientUnpaidTotal',cash(s.unpaid));set('kOursFromProviders',cash(s.ours));set('kOweProviders',cash(s.theirs));
 let settlementsDashboard=el('pawSettlementsDashboard');
 if(!settlementsDashboard){settlementsDashboard=document.createElement('section');settlementsDashboard.id='pawSettlementsDashboard';settlementsDashboard.className='card';el('dashboard')?.appendChild(settlementsDashboard);}
 const settledTotal=periodSettlements.reduce((a,x)=>a+Number(x.amount||0),0);
@@ -553,7 +554,7 @@ function renderCases(){
   return '<tr><td>'+caseCode(c.id)+'</td><td>'+html(c.client_name)+'</td><td>'+html(c.pet_type||'—')+'</td><td>'+html(c.breed||'—')+'</td><td>'+yesNo(c.vaccinated)+'</td><td>'+yesNo(c.microchipped)+'</td><td>'+ls.map(l=>html(providerName(l.providerId))).join('<br>')+'</td><td>'+ls.map(l=>html(l.service)).join('<br>')+'</td>'+['total','paw','provider'].map(k=>'<td>'+cash(s[k])+'</td>').join('')+'<td><span class="status '+(isUnpricedIntake?'partial':s.unpaid>0n||s.unknownCount?'unpaid':'paid')+'">'+paidText+'</span></td><td>'+html(c.client_due_date||'—')+'</td><td>لنا: '+cash(s.ours)+'<br>علينا: '+cash(s.theirs)+(s.issueCount?'<br><span class="hint">يحتاج مراجعة</span>':'')+'</td><td>'+html(employee?.name||'—')+'<br>'+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source||'')+'</td><td><span class="hint">'+html(c.workflow_status||'new_request')+'</span><br>'+button+'</td><td>'+clientTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td><td>'+partnerTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td></tr>';
  }).join('')||'<tr><td colspan="18">لا توجد عمليات</td></tr>';
 }
-function render(){if(!snapshot)return;hydrate();renderDashboard();renderProviders();renderProvider();renderCases();renderFollowups();}
+function render(){if(!snapshot)return;hydrate();renderDashboard();renderProviders();renderProvider();renderCases();renderFollowups();if(el('crm')?.classList.contains('active')&&typeof window.renderCRM==='function')window.renderCRM();}
 function dialog(){if(el('financeActionModal'))return;document.body.insertAdjacentHTML('beforeend','<div id="financeActionModal" class="modalBg"><div class="modal"><div class="modalHead"><h3 id="financeActionTitle"></h3><button class="close" onclick="closeModal(\'financeActionModal\')">×</button></div><div id="financeActionBody"></div><div id="financeActionError" class="hint" style="color:#b42318;margin:10px 0" role="alert"></div><button id="financeActionSave" class="btn primary" style="width:100%" onclick="pawFinanceSaveAction()">حفظ وتحديث الحسابات</button></div></div>');}
 // Form intake is a separate, deliberately minimal flow: do not resubmit
 // the entire case and accidentally overwrite information from customer forms.

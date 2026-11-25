@@ -1207,6 +1207,7 @@ window.sourceLabel = function(src){
     window.crmOpenProfile=async function(caseId){
       const g=crmCustomerCases(caseId);if(!g.anchor)return;
       const F=window.PawFinanceCore, phone=F.validPhone(g.anchor.client_phone);
+      const t=(ar,en)=>window.PawI18n?.t(ar,en)??ar;
       const rows=g.rows.slice().sort((a,b)=>String(b.service_date||'').localeCompare(String(a.service_date||''))||Number(b.id)-Number(a.id));
       const active=rows.filter(c=>c.workflow_status!=='cancelled');
       let bg=document.getElementById('crmProfileModal');
@@ -1216,61 +1217,66 @@ window.sourceLabel = function(src){
         document.body.appendChild(bg);
       }
       const body=document.getElementById('crmProfileBody');
-      const token=String(caseId)+'-'+Date.now();body.dataset.request=token;
+      const token=String(caseId)+'-'+Date.now();body.dataset.request=token;body.dataset.caseId=String(caseId);
       body.replaceChildren();
       function node(tag,text,cls,parent=body){const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);if(cls)e.className=cls;parent.appendChild(e);return e;}
       function button(label,fn,parent){const b=node('button',label,'btn soft',parent);b.type='button';b.onclick=fn;return b;}
       const head=node('section',undefined,'card');head.style.cssText='border-top:4px solid #f6c94a;margin:0 0 12px';
-      node('h2',g.anchor.client_name||'بدون اسم','',head);
-      node('p',(phone?'+'+phone:'رقم غير صالح — سجل مستقل للمراجعة')+(g.anchor.location?' • '+g.anchor.location:''),'hint',head);
+      node('h2',g.anchor.client_name||t('بدون اسم'),'',head);
+      node('p',(phone?'+'+phone:t('رقم غير صالح — سجل مستقل للمراجعة'))+(g.anchor.location?' • '+g.anchor.location:''),'hint',head);
       const aliases=[...new Set(rows.map(c=>String(c.client_name||'').trim()).filter(Boolean))];
-      if(aliases.length>1)node('p','أسماء مسجلة على نفس الرقم: '+aliases.join(' / ')+' — تحتاج مراجعة إذا كان الرقم مشتركاً.','hint',head);
+      if(aliases.length>1)node('p',t('أسماء مسجلة على نفس الرقم: ','Names recorded for this number: ')+aliases.join(' / ')+t(' — تحتاج مراجعة إذا كان الرقم مشتركاً.',' — review if the number is shared.'),'hint',head);
       try{
         const model=F.project({cases:active,providers:db.providers||[]}),sum=model.summary;
         const k=node('div',undefined,'miniGrid',head);
-        for(const [label,value] of [['العمليات غير الملغاة',active.length],['قيمة الخدمات والنقل',F.format(sum.total)+' د.ك'],['مدفوعات العميل المسجلة',F.format(sum.paid)+' د.ك'],['المتبقي المعروف',F.format(sum.unpaid)+' د.ك'],['عمولات PawApp المستحقة',F.format(sum.paw)+' د.ك'],['عمولات PawApp المحصلة',F.format(sum.pawCollected)+' د.ك']]){
-          const tile=node('div',undefined,'mini',k);node('span',label,'',tile);node('b',value,'',tile);
+        for(const [label,value] of [['العمليات غير الملغاة',active.length],['قيمة الخدمات والنقل',F.format(sum.total)+' '+t('د.ك','KWD')],['مدفوعات العميل المسجلة',F.format(sum.paid)+' '+t('د.ك','KWD')],['المتبقي المعروف',F.format(sum.unpaid)+' '+t('د.ك','KWD')],['عمولات PawApp المستحقة',F.format(sum.paw)+' '+t('د.ك','KWD')],['عمولات PawApp المحصلة',F.format(sum.pawCollected)+' '+t('د.ك','KWD')]]){
+          const tile=node('div',undefined,'mini',k);node('span',t(label),'',tile);node('b',value,'',tile);
         }
         if(sum.unknownCount||sum.issueCount)node('p','تنبيه: '+sum.issueCount+' بند يحتاج مراجعة مالية، و'+sum.unknownCount+' بند نقل غير مؤكد السداد. الأرقام ليست صافي ربح ولا إيصالاً بنكياً.','hint',head);
-      }catch(e){node('p','تعذر احتساب الإجماليات؛ راجعي العمليات الفردية.','hint',head);}
+      }catch(e){node('p',t('تعذر احتساب الإجماليات؛ راجعي العمليات الفردية.'),'hint',head);}
       const action=node('div',undefined,'actions',head);
-      if(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))button('تعديل بيانات العميل',()=>{closeModal('crmProfileModal');window.crmEditCustomer(caseId);},action);
-      const petBox=node('section',undefined,'card');node('h3','الحيوانات المسجلة / Registered pets','',petBox);
-      const petBody=node('div','جارٍ قراءة سجل الحيوانات...','hint',petBox);
-      const history=node('section',undefined,'card');node('h3','سجل العمليات / Booking history','',history);
+      if(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))button(t('تعديل بيانات العميل'),()=>{closeModal('crmProfileModal');window.crmEditCustomer(caseId);},action);
+      const petBox=node('section',undefined,'card');node('h3',t('الحيوانات المسجلة / Registered pets'),'',petBox);
+      const petBody=node('div',t('جارٍ قراءة سجل الحيوانات...'),'hint',petBox);
+      const history=node('section',undefined,'card');node('h3',t('سجل العمليات / Booking history'),'',history);
       for(const c of rows){
         const item=node('div',undefined,'card',history);item.style.cssText='box-shadow:none;margin:8px 0;padding:10px';
-        node('b','PAW-'+String(c.id).padStart(4,'0')+' • '+(c.service_name||c.requested_service||'خدمة غير محددة'),'',item);
-        node('div',[c.service_date||'بدون تاريخ',byProvider(c.providerId||c.provider_id)?.name||'غير محدد',c.workflow_status==='cancelled'?'ملغاة':(c.workflow_status||'غير محدد')].join(' • '),'hint',item);
-        node('div','قيمة الخدمة: '+Number(c.total_amount||0).toFixed(3)+' د.ك | النقل: '+Number(c.transport_total_amount||0).toFixed(3)+' د.ك','hint',item);
+        node('b','PAW-'+String(c.id).padStart(4,'0')+' • '+(c.service_name||c.requested_service||t('خدمة غير محددة')),'',item);
+        node('div',[c.service_date||t('بدون تاريخ'),byProvider(c.providerId||c.provider_id)?.name||t('غير محدد'),c.workflow_status==='cancelled'?t('ملغاة'):(c.workflow_status||t('غير محدد'))].join(' • '),'hint',item);
+        node('div',t('قيمة الخدمة: ','Service value: ')+Number(c.total_amount||0).toFixed(3)+' '+t('د.ك','KWD')+t(' | النقل: ',' | Transport: ')+Number(c.transport_total_amount||0).toFixed(3)+' '+t('د.ك','KWD'),'hint',item);
         if(c.pet_type||c.breed)node('div','بيانات الحيوان في العملية (غير مؤكدة): '+[c.pet_type,c.breed].filter(Boolean).join(' • '),'hint',item);
         if(c.notes)node('p',c.notes,'hint',item);
-        button('فتح العملية',()=>{closeModal('crmProfileModal');window.crmJumpToCase(c.id);},item);
+        button(t('فتح العملية'),()=>{closeModal('crmProfileModal');window.crmJumpToCase(c.id);},item);
       }
-      const src=node('section',undefined,'card');node('h3','مصادر الطلبات / Recorded sources','',src);
-      const sources=new Map();for(const c of active){const raw=String(c.source||'').trim().toLowerCase().replace(/[ _-]+/g,'');const labels={tiktok:'TikTok',instagram:'Instagram',facebook:'Facebook',whatsapp:'WhatsApp',snapchat:'Snapchat',historicalexcel:'Excel — غير محدد',bookingform:'نموذج حجز',bookingformtest:'نموذج TEST',petinformationform:'نموذج بيانات',referral:'توصية',existingcustomer:'عميل سابق',google:'Google','استشارههاتفيه':'استشارة هاتفية'};const label=labels[raw]||'غير محدد';sources.set(label,(sources.get(label)||0)+1);}
-      for(const [label,n] of [...sources].sort((a,b)=>b[1]-a[1]))node('p',label+' — '+n+' عملية','hint',src);
-      node('p','المصادر المسجلة داخلياً فقط؛ لا توجد بيانات إعلانية متصلة.','hint',src);
-      const follow=node('section',undefined,'card');node('h3','المتابعات / Follow-ups','',follow);
+      const src=node('section',undefined,'card');node('h3',t('مصادر الطلبات / Recorded sources'),'',src);
+      const sources=new Map();for(const c of active){const raw=String(c.source||'').trim().toLowerCase().replace(/[ _-]+/g,'');const labels={tiktok:'TikTok',instagram:'Instagram',facebook:'Facebook',whatsapp:'WhatsApp',snapchat:'Snapchat',historicalexcel:'Excel — غير محدد',bookingform:'نموذج حجز',bookingformtest:'نموذج TEST',petinformationform:'نموذج بيانات',referral:'توصية',existingcustomer:'عميل سابق',google:'Google','استشارههاتفيه':'استشارة هاتفية'};const label=labels[raw]||t('غير محدد');sources.set(label,(sources.get(label)||0)+1);}
+      for(const [label,n] of [...sources].sort((a,b)=>b[1]-a[1]))node('p',t(label)+' — '+n+' '+t('عملية','booking(s)'),'hint',src);
+      node('p',t('المصادر المسجلة داخلياً فقط؛ لا توجد بيانات إعلانية متصلة.'),'hint',src);
+      const follow=node('section',undefined,'card');node('h3',t('المتابعات / Follow-ups'),'',follow);
       const ids=new Set(rows.map(c=>String(c.id)));
       const fs=(db.followups||[]).filter(x=>ids.has(String(x.case_id))).sort((a,b)=>String(b.followup_at||'').localeCompare(String(a.followup_at||'')));
-      if(!fs.length)node('p','لا توجد متابعات مسجلة.','hint',follow);
-      for(const x of fs)node('p',['PAW-'+String(x.case_id).padStart(4,'0'),x.followup_at||'بدون تاريخ',x.status||'غير محدد',x.reason,x.notes].filter(Boolean).join(' • '),'hint',follow);
+      if(!fs.length)node('p',t('لا توجد متابعات مسجلة.'),'hint',follow);
+      for(const x of fs)node('p',['PAW-'+String(x.case_id).padStart(4,'0'),x.followup_at||t('بدون تاريخ'),x.status||t('غير محدد'),x.reason,x.notes].filter(Boolean).join(' • '),'hint',follow);
       bg.classList.add('show');
       try{
         let data=window.pawPetProfileData?.(phone,rows.map(c=>c.id));
         if(!data?.loaded&&phone){await window.pawPetRegistryRefresh?.();data=window.pawPetProfileData?.(phone,rows.map(c=>c.id));}
         if(body.dataset.request!==token)return;
         petBody.replaceChildren();
-        if(!phone){node('p','يلزم رقم صالح قبل مطابقة الحيوانات.','hint',petBody);return;}
-        if(!data?.loaded){node('p','سجل الحيوانات غير متاح حالياً، أعيدي فتح الملف بعد تحديث الصفحة.','hint',petBody);return;}
-        if(!data.pets.length)node('p','لا يوجد ملف حيوان مؤكد لهذا الرقم. بيانات الحجوزات القديمة ظاهرة في سجل العمليات، ولم يتم افتراض أو إنشاء حيوانات.','hint',petBody);
+        if(!phone){node('p',t('يلزم رقم صالح قبل مطابقة الحيوانات.'),'hint',petBody);return;}
+        if(!data?.loaded){node('p',t('سجل الحيوانات غير متاح حالياً، أعيدي فتح الملف بعد تحديث الصفحة.'),'hint',petBody);return;}
+        if(!data.pets.length)node('p',t('لا يوجد ملف حيوان مؤكد لهذا الرقم. بيانات الحجوزات القديمة ظاهرة في سجل العمليات، ولم يتم افتراض أو إنشاء حيوانات.'),'hint',petBody);
         for(const p of data.pets){
           const count=data.links.filter(l=>String(l.pet_id)===String(p.id)).length;
-          node('p',[p.pet_name||'بدون اسم',p.pet_type,p.breed,p.verified===false?'بانتظار التأكيد':'مسجل',count+' حجز مرتبط'].filter(Boolean).join(' • '),'',petBody);
+          node('p',[p.pet_name||t('بدون اسم'),p.pet_type,p.breed,p.verified===false?t('بانتظار التأكيد'):t('مسجل'),count+' '+t('حجز مرتبط','linked booking(s)')].filter(Boolean).join(' • '),'',petBody);
         }
-      }catch(e){if(body.dataset.request===token)petBody.textContent='تعذر قراءة سجل الحيوانات.';}
+      }catch(e){if(body.dataset.request===token)petBody.textContent=t('تعذر قراءة سجل الحيوانات.');}
     };
+
+    document.addEventListener('paw-language-change',()=>{
+      const modal=document.getElementById('crmProfileModal'), body=document.getElementById('crmProfileBody');
+      if(modal?.classList.contains('show')&&body?.dataset.caseId)window.crmOpenProfile(body.dataset.caseId);
+    });
 
     window.crmOpenHistory = function(key){
       const decoded=decodeURIComponent(key);

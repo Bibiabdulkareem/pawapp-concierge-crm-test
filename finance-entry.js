@@ -33,6 +33,7 @@
     }
     await window.loadData();
     await window.PawFinanceInstall();
+    await script('customer-phone-lookup.js?v=1');
     window.PAW_FINANCE_VERSION='3.4';
     overlay.remove();
     // Keep new form submissions reflected in staff counts without reloading during active editing.

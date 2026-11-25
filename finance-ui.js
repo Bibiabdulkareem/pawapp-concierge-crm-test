@@ -239,7 +239,7 @@ for(const c of snapshot.cases||[]){
 }
 let customerAudit=el('pawCustomerCountAudit');
 if(!customerAudit){customerAudit=document.createElement('div');customerAudit.id='pawCustomerCountAudit';customerAudit.className='hint';customerAudit.style.cssText='margin:8px 0;padding:10px;border:1px solid #dbe2ed;border-radius:12px';const customerCard=el('kCustomers')?.closest('.card');if(customerCard)customerCard.appendChild(customerAudit);}
-if(customerAudit)customerAudit.textContent='عملاء بأرقام صالحة مختلفة: '+identified.size+' | عمليات بلا رقم صالح: '+unidentified.size+' (للمراجعة، غير داخلة في عدد العملاء).';set('kClientPaidTotal',cash(s.paid));set('kClientUnpaidTotal',cash(s.unpaid));set('kOursFromProviders',cash(s.ours));set('kOweProviders',cash(s.theirs));
+if(customerAudit){const grid=el('kCustomers')?.closest('.cards');if(grid&&customerAudit.previousElementSibling!==grid)grid.after(customerAudit);customerAudit.textContent=t('عملاء بأرقام صالحة مختلفة: ','Customers with distinct valid phones: ')+identified.size+t(' | عمليات بلا رقم صالح: ',' | Bookings without a valid phone: ')+unidentified.size+t(' (للمراجعة، غير داخلة في عدد العملاء).',' (excluded from the customer count; review required).');}set('kClientPaidTotal',cash(s.paid));set('kClientUnpaidTotal',cash(s.unpaid));set('kOursFromProviders',cash(s.ours));set('kOweProviders',cash(s.theirs));
 let settlementsDashboard=el('pawSettlementsDashboard');
 if(!settlementsDashboard){settlementsDashboard=document.createElement('section');settlementsDashboard.id='pawSettlementsDashboard';settlementsDashboard.className='card';el('dashboard')?.appendChild(settlementsDashboard);}
 const settledTotal=periodSettlements.reduce((a,x)=>a+Number(x.amount||0),0);

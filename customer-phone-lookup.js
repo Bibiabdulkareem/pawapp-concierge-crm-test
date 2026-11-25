@@ -85,6 +85,6 @@
       const details=[matchedPhone||row.client_phone||row.intake_details?.staff_listed_phone||'بدون رقم',matchedArea||areasFor(row)[0]].filter(Boolean);
       return '<button type="button" class="card" style="width:100%;text-align:right;box-shadow:none;margin-bottom:7px" onclick="selectExistingCustomer('+Number(row.id)+')">'+
         '<b>'+esc(row.client_name||'اسم غير مسجل')+'</b><div class="hint">'+esc(details.join(' • '))+'</div></button>';
-    }).join(''):'<div class="hint">ما لقينا عميل مطابق.</div>';
+    }).join(''):'<div class="hint"><!--paw-i18n-->ما لقينا عميل مطابق.</div>';
   };
 })();

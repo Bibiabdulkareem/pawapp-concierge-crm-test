@@ -249,20 +249,20 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </head>
 <body><div id="pawTestBuild" style="position:fixed;top:0;left:0;z-index:999999;background:#143e75;color:white;font:600 12px Arial;padding:5px 9px;border-radius:0 0 8px 0">TEST</div>
 <div id="authGate" class="authGate">
-  <div class="authCard">
+  <div class="authCard"><div style="display:flex;justify-content:flex-end;margin-bottom:10px"><select data-paw-language aria-label="Language" style="max-width:112px;min-width:78px;padding:7px;border:1px solid #dbe2ed;border-radius:9px;background:white;color:#0c3b78;font-size:13px"><option value="ar">العربية</option><option value="en">English</option></select></div>
     <h1>PawApp Concierge</h1>
-    <p id="authSubtitle">تسجيل الدخول للموظفين</p>
+    <p id="authSubtitle"><!--paw-i18n-->تسجيل الدخول للموظفين</p>
     <div class="field">
-      <label>الإيميل</label>
+      <label><!--paw-i18n-->الإيميل</label>
       <input id="authEmail" type="email" autocomplete="email" placeholder="name@pawapp.net">
     </div>
     <div class="field" style="margin-top:10px">
-      <label>الباسورد</label>
+      <label><!--paw-i18n-->الباسورد</label>
       <input id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••">
     </div>
-    <button id="authPrimaryBtn" class="btn primary" type="button" style="width:100%;margin-top:14px" onclick="pawAuthSubmit()">دخول</button>
+    <button id="authPrimaryBtn" class="btn primary" type="button" style="width:100%;margin-top:14px" onclick="pawAuthSubmit()"><!--paw-i18n-->دخول</button>
     <div class="authSwitch">
-      <button id="authModeBtn" type="button" onclick="pawAuthToggleMode()">أول مرة؟ فعّلي الحساب</button>
+      <button id="authModeBtn" type="button" onclick="pawAuthToggleMode()"><!--paw-i18n-->أول مرة؟ فعّلي الحساب</button>
     </div>
     <div id="authMessage" class="authMsg"></div>
   </div>
@@ -270,28 +270,28 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div class="app">
 <header class="top">
 <img class="logo" alt="PawApp" src="data:image/jpeg;base64,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">
-<div class="brand"><b>PawApp Concierge</b><small>Operations System</small></div><div class="sp"></div><div id="authUserBar"><span id="authUserEmail"></span><button class="btn soft" type="button" onclick="pawOpenMyPassword()">كلمة المرور</button><button class="btn soft" type="button" onclick="pawAuthSignOut()">خروج</button></div>
+<div class="brand"><b>PawApp Concierge</b><small>Operations System</small></div><div class="sp"></div><div id="authUserBar"><select data-paw-language aria-label="Language" style="max-width:112px;min-width:78px;padding:7px;border:1px solid #dbe2ed;border-radius:9px;background:white;color:#0c3b78;font-size:13px"><option value="ar">العربية</option><option value="en">English</option></select><span id="authUserEmail"></span><button class="btn soft" type="button" onclick="pawOpenMyPassword()"><!--paw-i18n-->كلمة المرور</button><button class="btn soft" type="button" onclick="pawAuthSignOut()"><!--paw-i18n-->خروج</button></div>
 </header>
 
 <main class="main">
 <section id="dashboard" class="page active">
-<div class="title"><div><h1>لوحة التحكم</h1><p>نظرة عامة فقط — التفاصيل داخل الأقسام</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
+<div class="title"><div><h1><!--paw-i18n-->لوحة التحكم</h1><p><!--paw-i18n-->نظرة عامة فقط — التفاصيل داخل الأقسام</p></div><button class="btn yellow" onclick="openNewCase()"><!--paw-i18n-->+ عميل جديد</button></div>
 
 <div class="cards" style="grid-template-columns:repeat(2,1fr)">
-  <div class="card stat" style="cursor:pointer" onclick="showPage('cases')"><span>العمليات</span><b id="kOps" class="blue">0</b><small class="hint">عرض كل العمليات</small></div>
-  <div class="card stat" style="cursor:pointer" onclick="showPage('crm')"><span>العملاء</span><b id="kCustomers" class="green">0</b><small class="hint">عرض العملاء</small></div>
-  <div class="card stat" style="cursor:pointer" onclick="showPage('providers')"><span>الشركات / الفريلانسر</span><b id="kProviders">0</b><small class="hint">عرض الشركات</small></div>
-  <div class="card stat" style="cursor:pointer" onclick="showPage('followups')"><span>تحتاج متابعة</span><b id="kNeedsFollowup" class="red">0</b><small class="hint">عمليات ناقصة أو غير مسددة</small></div>
+  <div class="card stat" style="cursor:pointer" onclick="showPage('cases')"><span><!--paw-i18n-->العمليات</span><b id="kOps" class="blue">0</b><small class="hint"><!--paw-i18n-->عرض كل العمليات</small></div>
+  <div class="card stat" style="cursor:pointer" onclick="showPage('crm')"><span><!--paw-i18n-->العملاء</span><b id="kCustomers" class="green">0</b><small class="hint"><!--paw-i18n-->عرض العملاء</small></div>
+  <div class="card stat" style="cursor:pointer" onclick="showPage('providers')"><span><!--paw-i18n-->الشركات / الفريلانسر</span><b id="kProviders">0</b><small class="hint"><!--paw-i18n-->عرض الشركات</small></div>
+  <div class="card stat" style="cursor:pointer" onclick="showPage('followups')"><span><!--paw-i18n-->تحتاج متابعة</span><b id="kNeedsFollowup" class="red">0</b><small class="hint"><!--paw-i18n-->عمليات ناقصة أو غير مسددة</small></div>
 </div>
 
 <div class="cards" style="margin-top:10px;grid-template-columns:repeat(2,1fr)">
-  <div class="card stat"><span>تم دفعه من العملاء</span><b id="kClientPaidTotal" class="green">0.000 د.ك</b></div>
-  <div class="card stat"><span>غير مدفوع من العملاء</span><b id="kClientUnpaidTotal" class="red">0.000 د.ك</b></div>
-  <div class="card stat"><span>لنا عند الشركات</span><b id="kOursFromProviders">0.000 د.ك</b></div>
-  <div class="card stat"><span>للشركات عندنا</span><b id="kOweProviders">0.000 د.ك</b></div>
+  <div class="card stat"><span><!--paw-i18n-->تم دفعه من العملاء</span><b id="kClientPaidTotal" class="green"><!--paw-i18n-->0.000 د.ك</b></div>
+  <div class="card stat"><span><!--paw-i18n-->غير مدفوع من العملاء</span><b id="kClientUnpaidTotal" class="red"><!--paw-i18n-->0.000 د.ك</b></div>
+  <div class="card stat"><span><!--paw-i18n-->لنا عند الشركات</span><b id="kOursFromProviders"><!--paw-i18n-->0.000 د.ك</b></div>
+  <div class="card stat"><span><!--paw-i18n-->للشركات عندنا</span><b id="kOweProviders"><!--paw-i18n-->0.000 د.ك</b></div>
 </div>
 
-<div class="section"><h2>آخر العمليات</h2><button class="btn soft" onclick="showPage('cases')">عرض الكل</button></div>
+<div class="section"><h2><!--paw-i18n-->آخر العمليات</h2><button class="btn soft" onclick="showPage('cases')"><!--paw-i18n-->عرض الكل</button></div>
 <div id="dashboardRecentCards" class="providerGrid"></div>
 
 <div id="legacyDashboardMetrics" style="display:none">
@@ -301,121 +301,121 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
   <span id="kCompanies"></span><span id="kFreelancers"></span>
   <div id="financialFollowupSection"></div><div id="financialFollowups"></div><div id="dashboardProviders"></div>
   <div id="upcomingInstallments"></div><div id="clientDueSection"></div><div id="clientDueReminders"></div>
-  <select id="dashboardProviderFilter"><option value="all">الكل</option></select><select id="dashboardVendorStatusFilter"><option value="all">الكل</option></select>
+  <select id="dashboardProviderFilter"><option value="all"><!--paw-i18n-->الكل</option></select><select id="dashboardVendorStatusFilter"><option value="all"><!--paw-i18n-->الكل</option></select>
   <table><tbody id="recent"></tbody></table>
 </div>
 </section>
 
 <section id="newcase" class="page">
-<div style="margin:10px 0"><button class="btn soft" type="button" onclick="pawOpenImport('cases')">استيراد عملاء Excel</button></div>
-<div class="title"><div><h1>إضافة عميل / عملية</h1><p>4 خطوات بسيطة، والباقي يحسبه النظام تلقائيًا</p></div><button class="btn soft" onclick="showPage('dashboard')">رجوع</button></div>
+<div style="margin:10px 0"><button class="btn soft" type="button" onclick="pawOpenImport('cases')"><!--paw-i18n-->استيراد عملاء Excel</button></div>
+<div class="title"><div><h1><!--paw-i18n-->إضافة عميل / عملية</h1><p><!--paw-i18n-->4 خطوات بسيطة، والباقي يحسبه النظام تلقائيًا</p></div><button class="btn soft" onclick="showPage('dashboard')"><!--paw-i18n-->رجوع</button></div>
 
 <div class="card" style="box-shadow:none;margin-bottom:12px;background:#f8fafc">
-  <div class="section" style="margin:0 0 8px"><h2>عميل سابق؟</h2></div>
+  <div class="section" style="margin:0 0 8px"><h2><!--paw-i18n-->عميل سابق؟</h2></div>
   <div class="field">
-    <label>ابحثي برقم التلفون أو اسم العميل</label>
+    <label><!--paw-i18n-->ابحثي برقم التلفون أو اسم العميل</label>
     <div style="display:flex;gap:8px">
-      <input id="existingCustomerSearch" style="flex:1" placeholder="مثال: 99993407 أو Bibi">
-      <button class="btn soft" type="button" onclick="searchExistingCustomer()">بحث</button>
+      <input id="existingCustomerSearch" style="flex:1" placeholder="مثال: 99993407 أو Bibi" data-paw-i18n-attrs="placeholder">
+      <button class="btn soft" type="button" onclick="searchExistingCustomer()"><!--paw-i18n-->بحث</button>
     </div>
   </div>
   <div id="existingCustomerResults" style="margin-top:10px"></div>
 </div>
 
 <div class="card">
-  <div class="section" style="margin-top:0"><h2>1. العميل والحيوان</h2></div>
+  <div class="section" style="margin-top:0"><h2><!--paw-i18n-->1. العميل والحيوان</h2></div>
   <div class="grid2">
-    <div class="field"><label>اسم العميل *</label><input id="cClient" placeholder="مثال: نورة أحمد"></div>
-    <div class="field"><label>رقم العميل</label><input id="cPhone" inputmode="tel" placeholder="5xxxxxxx"></div>
+    <div class="field"><label><!--paw-i18n-->اسم العميل *</label><input id="cClient" placeholder="مثال: نورة أحمد" data-paw-i18n-attrs="placeholder"></div>
+    <div class="field"><label><!--paw-i18n-->رقم العميل</label><input id="cPhone" inputmode="tel" placeholder="5xxxxxxx"></div>
 <div id="smartExistingCustomerHint" class="field full" style="display:none" aria-live="polite"></div>
-    <div class="field"><label>المنطقة / الموقع</label><input id="cLocation" placeholder="مثال: حولي"></div>
-    <div class="field"><label>نوع الحيوان *</label><select id="cPetType"><option value="">اختاري</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>
-    <div class="field"><label>السلالة</label><input id="cBreed" placeholder="مثال: Pomeranian"></div>
-    <div class="field"><label>العمر</label><input id="cPetAge" placeholder="مثال: 4 سنوات"></div>
+    <div class="field"><label><!--paw-i18n-->المنطقة / الموقع</label><input id="cLocation" placeholder="مثال: حولي" data-paw-i18n-attrs="placeholder"></div>
+    <div class="field"><label><!--paw-i18n-->نوع الحيوان *</label><select id="cPetType"><option value=""><!--paw-i18n-->اختاري</option><option value="كلب"><!--paw-i18n-->كلب</option><option value="قط"><!--paw-i18n-->قط</option><option value="طائر"><!--paw-i18n-->طائر</option><option value="أرنب"><!--paw-i18n-->أرنب</option><option value="أخرى"><!--paw-i18n-->أخرى</option></select></div>
+    <div class="field"><label><!--paw-i18n-->السلالة</label><input id="cBreed" placeholder="مثال: Pomeranian" data-paw-i18n-attrs="placeholder"></div>
+    <div class="field"><label><!--paw-i18n-->العمر</label><input id="cPetAge" placeholder="مثال: 4 سنوات" data-paw-i18n-attrs="placeholder"></div>
   </div>
 
   <details style="margin-top:12px">
-    <summary class="btn soft" style="cursor:pointer;list-style:none;text-align:center">+ معلومات إضافية عن الحيوان</summary>
+    <summary class="btn soft" style="cursor:pointer;list-style:none;text-align:center"><!--paw-i18n-->+ معلومات إضافية عن الحيوان</summary>
     <div class="grid2" style="margin-top:10px">
-      <div class="field"><label>سهل التعامل؟</label><select id="cPetFriendly"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
-      <div class="field"><label>مطعّم؟</label><select id="cVaccinated"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
-      <div class="field"><label>Microchip؟</label><select id="cMicrochipped"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
-      <div class="field"><label>Pet ID؟</label><select id="cHasPetId"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
-      <div class="field full"><label>سبب الطلب / الحالة</label><textarea id="cReason" rows="2" placeholder="اختياري"></textarea></div>
+      <div class="field"><label><!--paw-i18n-->سهل التعامل؟</label><select id="cPetFriendly"><option value=""><!--paw-i18n-->غير محدد</option><option value="yes"><!--paw-i18n-->نعم</option><option value="no"><!--paw-i18n-->لا</option></select></div>
+      <div class="field"><label><!--paw-i18n-->مطعّم؟</label><select id="cVaccinated"><option value=""><!--paw-i18n-->غير محدد</option><option value="yes"><!--paw-i18n-->نعم</option><option value="no"><!--paw-i18n-->لا</option></select></div>
+      <div class="field"><label><!--paw-i18n-->Microchip؟</label><select id="cMicrochipped"><option value=""><!--paw-i18n-->غير محدد</option><option value="yes"><!--paw-i18n-->نعم</option><option value="no"><!--paw-i18n-->لا</option></select></div>
+      <div class="field"><label><!--paw-i18n-->Pet ID؟</label><select id="cHasPetId"><option value=""><!--paw-i18n-->غير محدد</option><option value="yes"><!--paw-i18n-->نعم</option><option value="no"><!--paw-i18n-->لا</option></select></div>
+      <div class="field full"><label><!--paw-i18n-->سبب الطلب / الحالة</label><textarea id="cReason" rows="2" placeholder="اختياري" data-paw-i18n-attrs="placeholder"></textarea></div>
     </div>
   </details>
 </div>
 
 <div class="card">
-  <div class="section" style="margin-top:0"><h2>2. الخدمة</h2></div>
+  <div class="section" style="margin-top:0"><h2><!--paw-i18n-->2. الخدمة</h2></div>
   <div class="grid2">
-    <div class="field"><label>الشركة / الفريلانسر *</label><select id="cProvider" onchange="providerChanged()"></select></div>
-    <div class="field"><label>الخدمة *</label><select id="cService"></select></div>
-    <div class="field"><label id="cAmountLabel">سعر الخدمة *</label><input id="cAmount" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcCase()"></div>
-    <div class="field"><label>طريقة حصة PawApp *</label><select id="cFeeType" onchange="toggleCasePricing()"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت</option></select></div>
-    <div class="field"><label id="cCommissionLabel">نسبة PawApp % *</label><input id="cCommission" type="number" min="0" step="0.001" oninput="calcCase()"></div>
-    <div class="field"><label>تاريخ العملية *</label><input id="cDate" type="date"></div>
+    <div class="field"><label><!--paw-i18n-->الشركة / الفريلانسر *</label><select id="cProvider" onchange="providerChanged()"></select></div>
+    <div class="field"><label><!--paw-i18n-->الخدمة *</label><select id="cService"></select></div>
+    <div class="field"><label id="cAmountLabel"><!--paw-i18n-->سعر الخدمة *</label><input id="cAmount" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcCase()"></div>
+    <div class="field"><label><!--paw-i18n-->طريقة حصة PawApp *</label><select id="cFeeType" onchange="toggleCasePricing()"><option value="percent"><!--paw-i18n-->نسبة %</option><option value="fixed"><!--paw-i18n-->مبلغ ثابت</option></select></div>
+    <div class="field"><label id="cCommissionLabel"><!--paw-i18n-->نسبة PawApp % *</label><input id="cCommission" type="number" min="0" step="0.001" oninput="calcCase()"></div>
+    <div class="field"><label><!--paw-i18n-->تاريخ العملية *</label><input id="cDate" type="date"></div>
   </div>
 
   <div class="calc" style="grid-template-columns:repeat(3,1fr)">
-    <div><span>إجمالي العميل</span><b id="calcTotal">0.000 د.ك</b></div>
-    <div><span>حصة PawApp</span><b id="calcPaw">0.000 د.ك</b></div>
-    <div><span>حصة الشركة / الفريلانسر</span><b id="calcDue">0.000 د.ك</b></div>
-    <b id="calcRemain" style="display:none">0.000 د.ك</b>
+    <div><span><!--paw-i18n-->إجمالي العميل</span><b id="calcTotal"><!--paw-i18n-->0.000 د.ك</b></div>
+    <div><span><!--paw-i18n-->حصة PawApp</span><b id="calcPaw"><!--paw-i18n-->0.000 د.ك</b></div>
+    <div><span><!--paw-i18n-->حصة الشركة / الفريلانسر</span><b id="calcDue"><!--paw-i18n-->0.000 د.ك</b></div>
+    <b id="calcRemain" style="display:none"><!--paw-i18n-->0.000 د.ك</b>
   </div>
 
   <div style="margin-top:14px;border-top:1px solid #e5e7eb;padding-top:14px">
     <div class="field">
-      <label>هل يحتاج Pickup / Drop-off؟</label>
+      <label><!--paw-i18n-->هل يحتاج Pickup / Drop-off؟</label>
       <select id="cTransportNeeded" onchange="toggleTransportAddon()">
-        <option value="no">لا</option>
-        <option value="yes">نعم</option>
+        <option value="no"><!--paw-i18n-->لا</option>
+        <option value="yes"><!--paw-i18n-->نعم</option>
       </select>
     </div>
 
     <div id="cTransportAddon" style="display:none;margin-top:10px">
       <div class="grid2">
-        <div class="field"><label>الخدمة</label><select id="cTransportDirection"><option value="">اختاري</option><option value="pickup">Pickup</option><option value="dropoff">Drop-off</option><option value="both">Pickup + Drop-off</option></select></div>
-        <div class="field"><label>شركة التوصيل / الفريلانسر</label><select id="cTransportProvider"></select></div>
-        <div class="field"><label>سعر خدمة Pickup / Drop-off</label><input id="cTransportTotal" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcTransportAddon()"></div>
-        <div class="field"><label>حصة PawApp من النقل</label><input id="cTransportPaw" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcTransportAddon()"></div>
-        <div class="field"><label>حصة شركة التوصيل</label><input id="cTransportProviderAmount" readonly></div>
-        <div class="field"><label>التاريخ والوقت</label><input id="cTransportAt" type="datetime-local"></div>
-        <div class="field"><label>مكان الاستلام</label><input id="cPickupLocation"></div>
-        <div class="field"><label>مكان التوصيل</label><input id="cDropoffLocation"></div>
+        <div class="field"><label><!--paw-i18n-->الخدمة</label><select id="cTransportDirection"><option value=""><!--paw-i18n-->اختاري</option><option value="pickup">Pickup</option><option value="dropoff">Drop-off</option><option value="both">Pickup + Drop-off</option></select></div>
+        <div class="field"><label><!--paw-i18n-->شركة التوصيل / الفريلانسر</label><select id="cTransportProvider"></select></div>
+        <div class="field"><label><!--paw-i18n-->سعر خدمة Pickup / Drop-off</label><input id="cTransportTotal" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcTransportAddon()"></div>
+        <div class="field"><label><!--paw-i18n-->حصة PawApp من النقل</label><input id="cTransportPaw" type="number" min="0" step="0.001" placeholder="0.000" oninput="calcTransportAddon()"></div>
+        <div class="field"><label><!--paw-i18n-->حصة شركة التوصيل</label><input id="cTransportProviderAmount" readonly></div>
+        <div class="field"><label><!--paw-i18n-->التاريخ والوقت</label><input id="cTransportAt" type="datetime-local"></div>
+        <div class="field"><label><!--paw-i18n-->مكان الاستلام</label><input id="cPickupLocation"></div>
+        <div class="field"><label><!--paw-i18n-->مكان التوصيل</label><input id="cDropoffLocation"></div>
       </div>
       <div class="calc" style="grid-template-columns:repeat(3,1fr);margin-top:10px">
-        <div><span>إجمالي النقل</span><b id="calcTransportTotal">0.000 د.ك</b></div>
-        <div><span>حصة PawApp من النقل</span><b id="calcTransportPaw">0.000 د.ك</b></div>
-        <div><span>حصة شركة التوصيل</span><b id="calcTransportProvider">0.000 د.ك</b></div>
+        <div><span><!--paw-i18n-->إجمالي النقل</span><b id="calcTransportTotal"><!--paw-i18n-->0.000 د.ك</b></div>
+        <div><span><!--paw-i18n-->حصة PawApp من النقل</span><b id="calcTransportPaw"><!--paw-i18n-->0.000 د.ك</b></div>
+        <div><span><!--paw-i18n-->حصة شركة التوصيل</span><b id="calcTransportProvider"><!--paw-i18n-->0.000 د.ك</b></div>
       </div>
     </div>
   </div>
 </div>
 
 <div class="card">
-  <div class="section" style="margin-top:0"><h2>3. الدفع</h2></div>
+  <div class="section" style="margin-top:0"><h2><!--paw-i18n-->3. الدفع</h2></div>
   <div class="grid2">
-    <div class="field"><label>هل العميل دفع؟ *</label><select id="cClientPaid" onchange="toggleNewPaymentFields()"><option value="unpaid">لا</option><option value="paid">نعم</option></select></div>
-    <div class="field" id="cPaidToWrap" style="display:none"><label>دفع لمن؟ *</label><select id="cPaidTo"><option value="pawapp">PawApp</option><option value="provider">الشركة / العيادة / الفريلانسر</option></select></div>
-    <div class="field" id="cDueDateWrap"><label>موعد متابعة السداد</label><input id="cClientDueDate" type="date"></div>
+    <div class="field"><label><!--paw-i18n-->هل العميل دفع؟ *</label><select id="cClientPaid" onchange="toggleNewPaymentFields()"><option value="unpaid"><!--paw-i18n-->لا</option><option value="paid"><!--paw-i18n-->نعم</option></select></div>
+    <div class="field" id="cPaidToWrap" style="display:none"><label><!--paw-i18n-->دفع لمن؟ *</label><select id="cPaidTo"><option value="pawapp">PawApp</option><option value="provider"><!--paw-i18n-->الشركة / العيادة / الفريلانسر</option></select></div>
+    <div class="field" id="cDueDateWrap"><label><!--paw-i18n-->موعد متابعة السداد</label><input id="cClientDueDate" type="date"></div>
   </div>
 </div>
 
 <div class="card">
-  <div class="section" style="margin-top:0"><h2>4. معلومات العملية</h2></div>
+  <div class="section" style="margin-top:0"><h2><!--paw-i18n-->4. معلومات العملية</h2></div>
   <div class="grid2">
-    <div class="field"><label>الموظف المسؤول *</label><select id="cStaff"></select></div>
-    <div class="field"><label>مصدر الطلب</label><select id="cSource"><option value="manual_test">إدخال داخلي</option><option value="whatsapp_quick">واتساب</option><option value="phone_call">مكالمة</option><option value="instagram">Instagram</option><option value="referral">تحويل / توصية</option></select></div>
-    <div class="field"><label>موعد العميل</label><input id="cAppointmentAt" type="datetime-local"><div class="hint">إذا فيه موعد، يظهر تلقائيًا في المتابعة.</div></div>
+    <div class="field"><label><!--paw-i18n-->الموظف المسؤول *</label><select id="cStaff"></select></div>
+    <div class="field"><label><!--paw-i18n-->مصدر الطلب</label><select id="cSource"><option value="manual_test"><!--paw-i18n-->إدخال داخلي</option><option value="whatsapp_quick"><!--paw-i18n-->واتساب</option><option value="phone_call"><!--paw-i18n-->مكالمة</option><option value="instagram">Instagram</option><option value="referral"><!--paw-i18n-->تحويل / توصية</option></select></div>
+    <div class="field"><label><!--paw-i18n-->موعد العميل</label><input id="cAppointmentAt" type="datetime-local"><div class="hint"><!--paw-i18n-->إذا فيه موعد، يظهر تلقائيًا في المتابعة.</div></div>
   </div>
 
   <details style="margin-top:12px">
-    <summary class="btn soft" style="cursor:pointer;list-style:none;text-align:center">+ تفاصيل إضافية</summary>
+    <summary class="btn soft" style="cursor:pointer;list-style:none;text-align:center"><!--paw-i18n-->+ تفاصيل إضافية</summary>
     <div class="grid2" style="margin-top:10px">
-      <div class="field"><label>طريقة دفع العميل</label><select id="cPayMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
-      <div class="field"><label>ملاحظة السداد</label><input id="cPaymentNote" placeholder="اختياري"></div>
-      <div class="field full"><label>ملاحظات</label><textarea id="cNotes" rows="3" placeholder="أي تفاصيل مهمة عن الحالة"></textarea></div>
+      <div class="field"><label><!--paw-i18n-->طريقة دفع العميل</label><select id="cPayMethod"><option value="رابط دفع"><!--paw-i18n-->رابط دفع</option><option>KNET</option><option value="كاش"><!--paw-i18n-->كاش</option><option value="كريدت كارد"><!--paw-i18n-->كريدت كارد</option><option value="تحويل"><!--paw-i18n-->تحويل</option><option value="دفع للعيادة/الشركة مباشرة"><!--paw-i18n-->دفع للعيادة/الشركة مباشرة</option></select></div>
+      <div class="field"><label><!--paw-i18n-->ملاحظة السداد</label><input id="cPaymentNote" placeholder="اختياري" data-paw-i18n-attrs="placeholder"></div>
+      <div class="field full"><label><!--paw-i18n-->ملاحظات</label><textarea id="cNotes" rows="3" placeholder="أي تفاصيل مهمة عن الحالة" data-paw-i18n-attrs="placeholder"></textarea></div>
     </div>
   </details>
 </div>
@@ -425,168 +425,168 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 <div id="installmentsWrap" style="display:none"></div>
 <div id="installmentScheduleWrap" style="display:none"><div id="installmentRows"></div></div>
 
-<button id="smartSaveCaseBtn" class="btn primary" type="button" style="width:100%;margin-top:13px" onclick="saveCase()">حفظ العملية</button>
-<p class="hint" style="margin-top:5px;text-align:center">النظام يفحص اسم العميل ورقمه والخدمة والحيوان والتاريخ قبل الحفظ، وينبه عند تشابه العمليات. كل خدمة جديدة تُحسب مستقلة.</p>
-<p class="hint" style="text-align:center">كل عملية تأخذ Case ID تلقائيًا.</p>
+<button id="smartSaveCaseBtn" class="btn primary" type="button" style="width:100%;margin-top:13px" onclick="saveCase()"><!--paw-i18n-->حفظ العملية</button>
+<p class="hint" style="margin-top:5px;text-align:center"><!--paw-i18n-->النظام يفحص اسم العميل ورقمه والخدمة والحيوان والتاريخ قبل الحفظ، وينبه عند تشابه العمليات. كل خدمة جديدة تُحسب مستقلة.</p>
+<p class="hint" style="text-align:center"><!--paw-i18n-->كل عملية تأخذ Case ID تلقائيًا.</p>
 </section>
 
 <section id="providers" class="page">
-<div class="card" style="padding:10px;margin:10px 0"><b>إضافة خدمات دفعة واحدة</b><p class="hint">نموذج Excel للخدمات والشركات والفريلانسر.</p><button class="btn soft" type="button" onclick="pawOpenImport('services')">استيراد الخدمات Excel</button></div>
-<div class="title"><div><h1>الشركات / الفريلانسر</h1><p>كل جهة وملخص حسابها — اضغطي التفاصيل لفتح CRM الشركة</p></div><button class="btn primary" onclick="openProvider()">+ إضافة شركة / فريلانسر</button></div>
+<div class="card" style="padding:10px;margin:10px 0"><b><!--paw-i18n-->إضافة خدمات دفعة واحدة</b><p class="hint"><!--paw-i18n-->نموذج Excel للخدمات والشركات والفريلانسر.</p><button class="btn soft" type="button" onclick="pawOpenImport('services')"><!--paw-i18n-->استيراد الخدمات Excel</button></div>
+<div class="title"><div><h1><!--paw-i18n-->الشركات / الفريلانسر</h1><p><!--paw-i18n-->كل جهة وملخص حسابها — اضغطي التفاصيل لفتح CRM الشركة</p></div><button class="btn primary" onclick="openProvider()"><!--paw-i18n-->+ إضافة شركة / فريلانسر</button></div>
 <div class="card" style="margin:12px 0;border:2px solid #d9e5f4">
-<div class="section" style="margin:0 0 10px"><h2>المستحقات الشهرية — الشركات والفريلانسر (TEST)</h2></div>
-<div class="grid2"><div class="field"><label>الشهر</label><input type="month" id="pawSettlementMonth" min="2026-10" value="2026-10" onchange="pawMonthlySettlementOverview()"></div><div class="field"><label>عرض</label><select id="pawSettlementDirection" onchange="pawMonthlySettlementOverview()"><option value="all">جميع المستحقات</option><option value="to_provider">باو أب تدفع للشركة</option><option value="to_pawapp">الشركة تدفع لباو أب</option></select></div></div>
-<div class="field" style="margin:12px 0"><label for="pawSettlementSource">مصدر العمليات في تسويات الشهر</label><select id="pawSettlementSource" onchange="pawMonthlySettlementOverview()"><option value="all">جميع المصادر</option><option value="pet_information_form">Pet Information — استكمال بيانات الحيوانات فقط</option><option value="other">باقي عمليات الكونسيرج (بدون Pet Information)</option></select><p class="hint">للعرض والتدقيق فقط، من غير تسجيل أو إقفال أي تسوية.</p></div>
-<p id="pawSettlementSummary" class="hint" style="margin:12px 0">اختاري الشهر لعرض المستحقات غير المسوّاة.</p><div id="pawSettlementRows" style="overflow:auto"></div>
-<p class="hint">يظهر المعلّق فقط؛ العمليات غير مؤكدة الدفع تُعرض للمراجعة منفصلة. شهور 7–9 مغلقة ولا تُفتح من هذه الشاشة.</p>
+<div class="section" style="margin:0 0 10px"><h2><!--paw-i18n-->المستحقات الشهرية — الشركات والفريلانسر (TEST)</h2></div>
+<div class="grid2"><div class="field"><label><!--paw-i18n-->الشهر</label><input type="month" id="pawSettlementMonth" min="2026-10" value="2026-10" onchange="pawMonthlySettlementOverview()"></div><div class="field"><label><!--paw-i18n-->عرض</label><select id="pawSettlementDirection" onchange="pawMonthlySettlementOverview()"><option value="all"><!--paw-i18n-->جميع المستحقات</option><option value="to_provider"><!--paw-i18n-->باو أب تدفع للشركة</option><option value="to_pawapp"><!--paw-i18n-->الشركة تدفع لباو أب</option></select></div></div>
+<div class="field" style="margin:12px 0"><label for="pawSettlementSource"><!--paw-i18n-->مصدر العمليات في تسويات الشهر</label><select id="pawSettlementSource" onchange="pawMonthlySettlementOverview()"><option value="all"><!--paw-i18n-->جميع المصادر</option><option value="pet_information_form"><!--paw-i18n-->Pet Information — استكمال بيانات الحيوانات فقط</option><option value="other"><!--paw-i18n-->باقي عمليات الكونسيرج (بدون Pet Information)</option></select><p class="hint"><!--paw-i18n-->للعرض والتدقيق فقط، من غير تسجيل أو إقفال أي تسوية.</p></div>
+<p id="pawSettlementSummary" class="hint" style="margin:12px 0"><!--paw-i18n-->اختاري الشهر لعرض المستحقات غير المسوّاة.</p><div id="pawSettlementRows" style="overflow:auto"></div>
+<p class="hint"><!--paw-i18n-->يظهر المعلّق فقط؛ العمليات غير مؤكدة الدفع تُعرض للمراجعة منفصلة. شهور 7–9 مغلقة ولا تُفتح من هذه الشاشة.</p>
 </div>
-<input id="providerSearch" class="search" placeholder="بحث باسم الشركة / الفريلانسر..." oninput="renderProviders()">
+<input id="providerSearch" class="search" placeholder="بحث باسم الشركة / الفريلانسر..." oninput="renderProviders()" data-paw-i18n-attrs="placeholder">
 <div id="providerList" class="providerGrid" style="margin-top:11px"></div>
 </section>
 
 <section id="providerdetail" class="page">
-<div class="title"><div><h1 id="providerDetailName">تفاصيل الشركة</h1><p id="providerDetailType">CRM وتحليل الشركة</p></div><button class="btn soft" onclick="showPage('providers')">رجوع للشركات</button></div>
+<div class="title"><div><h1 id="providerDetailName"><!--paw-i18n-->تفاصيل الشركة</h1><p id="providerDetailType"><!--paw-i18n-->CRM وتحليل الشركة</p></div><button class="btn soft" onclick="showPage('providers')"><!--paw-i18n-->رجوع للشركات</button></div>
 
 <div class="cards" style="grid-template-columns:repeat(2,1fr)">
-  <div class="card stat"><span>العملاء</span><b id="pdClients" class="blue">0</b></div>
-  <div class="card stat"><span>العمليات</span><b id="pdOps">0</b></div>
-  <div class="card stat"><span>مكتملة</span><b id="pdComplete" class="green">0</b></div>
-  <div class="card stat"><span>تحتاج متابعة</span><b id="pdPending" class="red">0</b></div>
+  <div class="card stat"><span><!--paw-i18n-->العملاء</span><b id="pdClients" class="blue">0</b></div>
+  <div class="card stat"><span><!--paw-i18n-->العمليات</span><b id="pdOps">0</b></div>
+  <div class="card stat"><span><!--paw-i18n-->مكتملة</span><b id="pdComplete" class="green">0</b></div>
+  <div class="card stat"><span><!--paw-i18n-->تحتاج متابعة</span><b id="pdPending" class="red">0</b></div>
 </div>
 
 <div class="cards" style="margin-top:10px;grid-template-columns:repeat(2,1fr)">
-  <div class="card stat"><span>إجمالي قيمة العمليات</span><b id="pdSales">0.000 د.ك</b></div>
-  <div class="card stat"><span>حصة PawApp</span><b id="pdPaw">0.000 د.ك</b></div>
-  <div class="card stat"><span>لنا عندهم</span><b id="pdOurs">0.000 د.ك</b></div>
-  <div class="card stat"><span>لهم عندنا</span><b id="pdTheirs">0.000 د.ك</b></div>
+  <div class="card stat"><span><!--paw-i18n-->إجمالي قيمة العمليات</span><b id="pdSales"><!--paw-i18n-->0.000 د.ك</b></div>
+  <div class="card stat"><span><!--paw-i18n-->حصة PawApp</span><b id="pdPaw"><!--paw-i18n-->0.000 د.ك</b></div>
+  <div class="card stat"><span><!--paw-i18n-->لنا عندهم</span><b id="pdOurs"><!--paw-i18n-->0.000 د.ك</b></div>
+  <div class="card stat"><span><!--paw-i18n-->لهم عندنا</span><b id="pdTheirs"><!--paw-i18n-->0.000 د.ك</b></div>
 </div>
 
-<div class="section"><h2>تحليل الخدمات</h2><button id="pdExportBtn" class="btn soft" type="button">تقرير CSV</button></div>
+<div class="section"><h2><!--paw-i18n-->تحليل الخدمات</h2><button id="pdExportBtn" class="btn soft" type="button"><!--paw-i18n-->تقرير CSV</button></div>
 <div id="pdServices" class="card"></div>
 
-<div class="section"><h2>العملاء والعمليات</h2></div>
+<div class="section"><h2><!--paw-i18n-->العملاء والعمليات</h2></div>
 <div id="pdClientList" class="providerGrid"></div>
 </section>
 
 <section id="reports" class="page">
-  <div class="title"><div><h1>التقارير — حسابات المحاسب</h1><p>اختاري الشهر فقط: تقرير جميع الشركات والفريلانسر، Concierge وPet Information معاً</p></div></div>
+  <div class="title"><div><h1><!--paw-i18n-->التقارير — حسابات المحاسب</h1><p><!--paw-i18n-->اختاري الشهر فقط: تقرير جميع الشركات والفريلانسر، Concierge وPet Information معاً</p></div></div>
   <div class="card" style="box-shadow:none">
     <div class="grid2" style="align-items:end">
-      <div class="field"><label for="pawAccountMonth">الشهر المحاسبي</label><input type="month" id="pawAccountMonth" min="2026-10" value="2026-10" onchange="pawAccountantRender()"></div>
-      <div class="field"><label>التقرير الكامل</label><div class="actions"><button class="btn primary" type="button" onclick="pawAccountantRender()">عرض تقرير الشهر</button><button class="btn soft" id="pawAccountExport" type="button" onclick="pawAccountantExportExcel()" disabled>تصدير Excel — جميع الشركات</button></div></div>
+      <div class="field"><label for="pawAccountMonth"><!--paw-i18n-->الشهر المحاسبي</label><input type="month" id="pawAccountMonth" min="2026-10" value="2026-10" onchange="pawAccountantRender()"></div>
+      <div class="field"><label><!--paw-i18n-->التقرير الكامل</label><div class="actions"><button class="btn primary" type="button" onclick="pawAccountantRender()"><!--paw-i18n-->عرض تقرير الشهر</button><button class="btn soft" id="pawAccountExport" type="button" onclick="pawAccountantExportExcel()" disabled><!--paw-i18n-->تصدير Excel — جميع الشركات</button></div></div>
     </div>
-    <p id="pawAccountStatus" class="hint">يحسب التقرير من سجلات المالية الحالية؛ مستحقات كل طرف تبقى مفتوحة إلى أن تُسجّل التسوية ويعتمدها المحاسب.</p>
+    <p id="pawAccountStatus" class="hint"><!--paw-i18n-->يحسب التقرير من سجلات المالية الحالية؛ مستحقات كل طرف تبقى مفتوحة إلى أن تُسجّل التسوية ويعتمدها المحاسب.</p>
   </div>
   <div id="pawAccountCards" class="cards" style="margin-top:12px;grid-template-columns:repeat(auto-fit,minmax(145px,1fr))"></div>
-  <div class="card" style="margin:14px 0"><h2>ملخص الشهر — كل الشركات والفريلانسر</h2>
-    <p class="hint">«لنا عليهم» تعني مبلغ يجب أن تستلمه باو أب. «لهم علينا» تعني مبلغ يجب أن تدفعه باو أب. الاعتماد لا يُسجّل قبل إثبات الدفع/التحصيل. للأدمن والمحاسب فقط.</p>
+  <div class="card" style="margin:14px 0"><h2><!--paw-i18n-->ملخص الشهر — كل الشركات والفريلانسر</h2>
+    <p class="hint"><!--paw-i18n-->«لنا عليهم» تعني مبلغ يجب أن تستلمه باو أب. «لهم علينا» تعني مبلغ يجب أن تدفعه باو أب. الاعتماد لا يُسجّل قبل إثبات الدفع/التحصيل. للأدمن والمحاسب فقط.</p>
     <p id="pawAccountStats" class="hint"></p>
     <div style="overflow-x:auto;width:100%"><table style="width:100%;min-width:1120px">
-      <thead><tr><th>الشركة / الفريلانسر</th><th>العمليات</th><th>إجمالي الخدمات د.ك</th><th>حصة PawApp</th><th>حصة الشركة</th><th>المحوّل للشركة</th><th>العمولة المحصّلة من الشركة</th><th>لنا عليهم</th><th>لهم علينا</th><th>حالة التسوية</th><th>إجراءات المحاسب</th></tr></thead>
+      <thead><tr><th><!--paw-i18n-->الشركة / الفريلانسر</th><th><!--paw-i18n-->العمليات</th><th><!--paw-i18n-->إجمالي الخدمات د.ك</th><th><!--paw-i18n-->حصة PawApp</th><th><!--paw-i18n-->حصة الشركة</th><th><!--paw-i18n-->المحوّل للشركة</th><th><!--paw-i18n-->العمولة المحصّلة من الشركة</th><th><!--paw-i18n-->لنا عليهم</th><th><!--paw-i18n-->لهم علينا</th><th><!--paw-i18n-->حالة التسوية</th><th><!--paw-i18n-->إجراءات المحاسب</th></tr></thead>
       <tbody id="pawAccountCompanies"></tbody>
     </table></div>
   </div>
-  <div class="card" style="margin:14px 0"><h2>عمليات تحتاج مراجعة قبل اعتماد الشهر</h2>
-    <p class="hint">الطلبات بدون سعر أو تاريخ غير مكتمل لا تُحوّل تلقائياً إلى إيرادات أو تسويات. حالات الإلغاء والتجربة منفصلة عن المبيعات.</p>
+  <div class="card" style="margin:14px 0"><h2><!--paw-i18n-->عمليات تحتاج مراجعة قبل اعتماد الشهر</h2>
+    <p class="hint"><!--paw-i18n-->الطلبات بدون سعر أو تاريخ غير مكتمل لا تُحوّل تلقائياً إلى إيرادات أو تسويات. حالات الإلغاء والتجربة منفصلة عن المبيعات.</p>
     <div id="pawAccountReview"></div>
   </div>
 </section>
 
 <section id="staff" class="page">
-<div class="title"><div><h1>الموظفون</h1><p>فريق PawApp اللي يستلم ويسجل طلبات العملاء</p></div><button class="btn primary" onclick="openStaff()">+ إضافة موظف</button></div>
+<div class="title"><div><h1><!--paw-i18n-->الموظفون</h1><p><!--paw-i18n-->فريق PawApp اللي يستلم ويسجل طلبات العملاء</p></div><button class="btn primary" onclick="openStaff()"><!--paw-i18n-->+ إضافة موظف</button></div>
 <div id="staffList" class="providerGrid"></div>
 </section>
 
 <section id="admin" class="page">
-<div class="card" id="testImportPanel" style="margin:14px 0;padding:15px;display:none"><h2>استيراد جماعي — TEST</h2><p class="hint">نزّلي نموذج Excel، انسخي بياناتج فيه، ثم ارفعي ملف XLSX أو CSV. للأدمن وموظف العمليات.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn soft" type="button" onclick="pawImportMode('services')">الخدمات ومقدمو الخدمة</button><button class="btn soft" type="button" onclick="pawImportMode('cases')">العملاء</button><button class="btn primary" type="button" onclick="pawDownloadTemplate()">تحميل القالب</button></div><div style="margin-top:10px"><label>شهر الملف التاريخي فقط (للملفات المختلطة اتركيه غير محدد): </label><select id="importMonth" onchange="pawSetImportMonth(this.value)"><option value="">غير محدد</option><option value="7">يوليو</option><option value="8">أغسطس</option><option value="9">سبتمبر</option><option value="10">أكتوبر</option></select></div><div style="margin-top:12px"><input id="importFile" type="file" accept=".xlsx,.xls,.csv,text/csv" style="width:100%"></div><button class="btn soft" type="button" onclick="pawPreviewWithFeedback()" style="margin-top:10px">معاينة الملف</button><div id="importStatus" class="hint" style="margin-top:10px">الخدمات: رفع جماعي بعد المعاينة. العملاء: معاينة ثم استيراد إلى TEST.</div><div id="importPreview" style="max-height:300px;overflow:auto;margin-top:8px"></div><button id="importCommit" class="btn primary" type="button" onclick="pawCommitImport()" disabled style="margin-top:10px;margin-bottom:100px;min-height:48px;max-width:100%;white-space:normal">اعتماد استيراد الخدمات إلى TEST</button></div>
+<div class="card" id="testImportPanel" style="margin:14px 0;padding:15px;display:none"><h2><!--paw-i18n-->استيراد جماعي — TEST</h2><p class="hint"><!--paw-i18n-->نزّلي نموذج Excel، انسخي بياناتج فيه، ثم ارفعي ملف XLSX أو CSV. للأدمن وموظف العمليات.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn soft" type="button" onclick="pawImportMode('services')"><!--paw-i18n-->الخدمات ومقدمو الخدمة</button><button class="btn soft" type="button" onclick="pawImportMode('cases')"><!--paw-i18n-->العملاء</button><button class="btn primary" type="button" onclick="pawDownloadTemplate()"><!--paw-i18n-->تحميل القالب</button></div><div style="margin-top:10px"><label><!--paw-i18n-->شهر الملف التاريخي فقط (للملفات المختلطة اتركيه غير محدد): </label><select id="importMonth" onchange="pawSetImportMonth(this.value)"><option value=""><!--paw-i18n-->غير محدد</option><option value="7"><!--paw-i18n-->يوليو</option><option value="8"><!--paw-i18n-->أغسطس</option><option value="9"><!--paw-i18n-->سبتمبر</option><option value="10"><!--paw-i18n-->أكتوبر</option></select></div><div style="margin-top:12px"><input id="importFile" type="file" accept=".xlsx,.xls,.csv,text/csv" style="width:100%"></div><button class="btn soft" type="button" onclick="pawPreviewWithFeedback()" style="margin-top:10px"><!--paw-i18n-->معاينة الملف</button><div id="importStatus" class="hint" style="margin-top:10px"><!--paw-i18n-->الخدمات: رفع جماعي بعد المعاينة. العملاء: معاينة ثم استيراد إلى TEST.</div><div id="importPreview" style="max-height:300px;overflow:auto;margin-top:8px"></div><button id="importCommit" class="btn primary" type="button" onclick="pawCommitImport()" disabled style="margin-top:10px;margin-bottom:100px;min-height:48px;max-width:100%;white-space:normal"><!--paw-i18n-->اعتماد استيراد الخدمات إلى TEST</button></div>
 <div class="title">
-  <div><h1>الإدارة</h1><p>الدخول والصلاحيات والنسخ الاحتياطي</p></div>
+  <div><h1><!--paw-i18n-->الإدارة</h1><p><!--paw-i18n-->الدخول والصلاحيات والنسخ الاحتياطي</p></div>
 </div>
 
-<div class="section" style="margin-top:0"><h2>دخول الموظفين</h2></div>
+<div class="section" style="margin-top:0"><h2><!--paw-i18n-->دخول الموظفين</h2></div>
 <div class="card" style="box-shadow:none">
   <b>Employee Access</b>
-  <div class="hint" style="margin-top:5px;line-height:1.7">الـAdmin ينشئ لكل موظف إيميل + باسورد مؤقت + صلاحية. الموظف يقدر يغير الباسورد بعدين من حسابه.</div>
+  <div class="hint" style="margin-top:5px;line-height:1.7"><!--paw-i18n-->الـAdmin ينشئ لكل موظف إيميل + باسورد مؤقت + صلاحية. الموظف يقدر يغير الباسورد بعدين من حسابه.</div>
 
   <div id="adminCreateUserBox" class="grid2" style="margin-top:12px">
-    <div class="field full"><label>اختاري الموظف المسجّل</label><select id="adminEmployeeSelect" onchange="pawAdminSelectEmployee(this.value)"><option value="">اختاري الموظف</option></select><div class="hint">حبيبة وهيبة موجودات بقائمة الموظفين؛ اختاري الاسم ثم حددي الإيميل والصلاحية والباسورد.</div></div>
-    <div class="field"><label>اسم الموظف</label><input id="adminEmployeeName" placeholder="اختاري الموظف أعلاه" readonly></div>
-    <div class="field"><label>الإيميل</label><input id="adminEmployeeEmail" type="email" placeholder="name@pawapp.net"></div>
-    <div class="field"><label>الباسورد المؤقت</label><input id="adminEmployeePassword" type="password" minlength="8" placeholder="8 أحرف أو أكثر"></div>
-    <div class="field"><label>الصلاحية</label><select id="adminEmployeeRole"><option value="operations">Operations</option><option value="accountant">Accountant - محاسب</option><option value="read_only">Read only</option><option value="admin">Admin</option></select></div>
-    <div class="field full"><button class="btn primary" id="adminCreateUserButton" type="button" onclick="pawAdminCreateEmployee()">حفظ الصلاحية وإنشاء حساب الدخول</button><div class="hint" style="margin-top:6px">الباسورد مؤقت. لا يظهر في قائمة الموظفين ولا يُخزّن فيها. تقدرين تعطينه للموظفة بطريقة آمنة، وتغيّره بعد أول دخول.</div></div>
+    <div class="field full"><label><!--paw-i18n-->اختاري الموظف المسجّل</label><select id="adminEmployeeSelect" onchange="pawAdminSelectEmployee(this.value)"><option value=""><!--paw-i18n-->اختاري الموظف</option></select><div class="hint"><!--paw-i18n-->حبيبة وهيبة موجودات بقائمة الموظفين؛ اختاري الاسم ثم حددي الإيميل والصلاحية والباسورد.</div></div>
+    <div class="field"><label><!--paw-i18n-->اسم الموظف</label><input id="adminEmployeeName" placeholder="اختاري الموظف أعلاه" readonly data-paw-i18n-attrs="placeholder"></div>
+    <div class="field"><label><!--paw-i18n-->الإيميل</label><input id="adminEmployeeEmail" type="email" placeholder="name@pawapp.net"></div>
+    <div class="field"><label><!--paw-i18n-->الباسورد المؤقت</label><input id="adminEmployeePassword" type="password" minlength="8" placeholder="8 أحرف أو أكثر" data-paw-i18n-attrs="placeholder"></div>
+    <div class="field"><label><!--paw-i18n-->الصلاحية</label><select id="adminEmployeeRole"><option value="operations">Operations</option><option value="accountant"><!--paw-i18n-->Accountant - محاسب</option><option value="read_only">Read only</option><option value="admin">Admin</option></select></div>
+    <div class="field full"><button class="btn primary" id="adminCreateUserButton" type="button" onclick="pawAdminCreateEmployee()"><!--paw-i18n-->حفظ الصلاحية وإنشاء حساب الدخول</button><div class="hint" style="margin-top:6px"><!--paw-i18n-->الباسورد مؤقت. لا يظهر في قائمة الموظفين ولا يُخزّن فيها. تقدرين تعطينه للموظفة بطريقة آمنة، وتغيّره بعد أول دخول.</div></div>
     <div id="adminCreateUserMessage" class="hint field full"></div>
   </div>
 
-  <div class="section" style="margin:14px 0 8px"><h2>الحسابات الحالية</h2></div>
+  <div class="section" style="margin:14px 0 8px"><h2><!--paw-i18n-->الحسابات الحالية</h2></div>
   <div id="adminAccessList"></div>
 </div>
 
-<div class="hint" style="margin:12px 0">تغيير كلمة المرور متاح لكل موظف بعد الدخول من زر «كلمة المرور» أعلى الشاشة.</div>
+<div class="hint" style="margin:12px 0"><!--paw-i18n-->تغيير كلمة المرور متاح لكل موظف بعد الدخول من زر «كلمة المرور» أعلى الشاشة.</div>
 
 <div class="section"><h2>Activity Log</h2></div>
 <div class="card" style="box-shadow:none">
-  <b>سجل التعديلات</b>
-  <div class="hint" style="margin-top:5px;line-height:1.7">يسجل منو سوّى التعديل، أي Case، شنو تغير، والوقت — خصوصًا الحالات والمدفوعات والتسويات والمرفقات.</div>
-  <input id="activitySearch" class="search" style="margin-top:10px" placeholder="بحث بالإيميل، Case ID أو نوع التعديل..." oninput="renderActivityLog()">
+  <b><!--paw-i18n-->سجل التعديلات</b>
+  <div class="hint" style="margin-top:5px;line-height:1.7"><!--paw-i18n-->يسجل منو سوّى التعديل، أي Case، شنو تغير، والوقت — خصوصًا الحالات والمدفوعات والتسويات والمرفقات.</div>
+  <input id="activitySearch" class="search" style="margin-top:10px" placeholder="بحث بالإيميل، Case ID أو نوع التعديل..." oninput="renderActivityLog()" data-paw-i18n-attrs="placeholder">
   <div id="activityLogList" style="margin-top:10px"></div>
 </div>
 
 <div class="section"><h2>Backup & Restore</h2></div>
 <div class="card" style="box-shadow:none">
-  <b>حماية الداتا</b>
-  <div class="hint" style="margin-top:5px;line-height:1.7">النسخ التلقائي على السيرفر مفعّل: أول تعديل على الداتا كل يوم ينشئ Snapshot قبل التغيير. والاسترجاع موجود في الخلفية ومحمي، وما راح نخليه زر مفتوح لأي موظف.</div>
+  <b><!--paw-i18n-->حماية الداتا</b>
+  <div class="hint" style="margin-top:5px;line-height:1.7"><!--paw-i18n-->النسخ التلقائي على السيرفر مفعّل: أول تعديل على الداتا كل يوم ينشئ Snapshot قبل التغيير. والاسترجاع موجود في الخلفية ومحمي، وما راح نخليه زر مفتوح لأي موظف.</div>
   <div class="miniGrid" style="margin-top:10px">
-    <div class="mini"><span>Server Snapshot</span><b class="green">مفعّل</b></div>
-    <div class="mini"><span>Restore</span><b>Admin فقط</b></div>
-    <div class="mini"><span>TEST Data</span><b>محفوظة</b></div>
+    <div class="mini"><span>Server Snapshot</span><b class="green"><!--paw-i18n-->مفعّل</b></div>
+    <div class="mini"><span>Restore</span><b><!--paw-i18n-->Admin فقط</b></div>
+    <div class="mini"><span>TEST Data</span><b><!--paw-i18n-->محفوظة</b></div>
   </div>
-  <button class="btn soft" type="button" style="width:100%;margin-top:10px" onclick="downloadTestBackup(event)">تحميل نسخة JSON على الجهاز</button>
+  <button class="btn soft" type="button" style="width:100%;margin-top:10px" onclick="downloadTestBackup(event)"><!--paw-i18n-->تحميل نسخة JSON على الجهاز</button>
   <div id="testBackupStatus" class="hint" style="margin-top:8px"></div>
 </div>
 </section>
 
 <section id="crm" class="page">
-<div class="card" style="padding:10px;margin:10px 0"><b>استيراد جماعي</b><p class="hint">حمّلي النموذج، عبّيه في Excel أو Numbers، ثم ارفعيه.</p><button class="btn soft" type="button" onclick="pawOpenImport('cases')">استيراد العملاء Excel</button></div>
-<div class="title"><div><h1>CRM العملاء والحيوانات</h1><p>أسماء العملاء، عدد حيوانات كل عميل، وسجل خدماته</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
-<input id="crmSearch" class="search" placeholder="بحث باسم العميل، رقم التلفون أو Case ID..." oninput="renderCRM()">
+<div class="card" style="padding:10px;margin:10px 0"><b><!--paw-i18n-->استيراد جماعي</b><p class="hint"><!--paw-i18n-->حمّلي النموذج، عبّيه في Excel أو Numbers، ثم ارفعيه.</p><button class="btn soft" type="button" onclick="pawOpenImport('cases')"><!--paw-i18n-->استيراد العملاء Excel</button></div>
+<div class="title"><div><h1><!--paw-i18n-->CRM العملاء والحيوانات</h1><p><!--paw-i18n-->أسماء العملاء، عدد حيوانات كل عميل، وسجل خدماته</p></div><button class="btn yellow" onclick="openNewCase()"><!--paw-i18n-->+ عميل جديد</button></div>
+<input id="crmSearch" class="search" placeholder="بحث باسم العميل، رقم التلفون أو Case ID..." oninput="renderCRM()" data-paw-i18n-attrs="placeholder">
 <div class="cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
-<div class="card stat"><span>العملاء</span><b id="crmCustomerCount" class="blue">0</b></div>
-<div class="card stat"><span>الحيوانات</span><b id="crmPetCount" class="green">0</b></div>
-<div class="card stat"><span>العمليات</span><b id="crmCaseCount">0</b></div>
+<div class="card stat"><span><!--paw-i18n-->العملاء</span><b id="crmCustomerCount" class="blue">0</b></div>
+<div class="card stat"><span><!--paw-i18n-->الحيوانات</span><b id="crmPetCount" class="green">0</b></div>
+<div class="card stat"><span><!--paw-i18n-->العمليات</span><b id="crmCaseCount">0</b></div>
 </div>
 <div id="crmCustomerList" class="providerGrid" style="margin-top:12px"></div>
 </section>
 
 <section id="followups" class="page">
 <div class="title">
-  <div><h1>المتابعة</h1><p>المالية والمواعيد أولاً. طلبات استكمال بيانات الحيوانات محفوظة في قسم مستقل أسفل الصفحة، بدون إضافتها لمهام الموظفة.</p></div>
+  <div><h1><!--paw-i18n-->المتابعة</h1><p><!--paw-i18n-->المالية والمواعيد أولاً. طلبات استكمال بيانات الحيوانات محفوظة في قسم مستقل أسفل الصفحة، بدون إضافتها لمهام الموظفة.</p></div>
 </div>
 
-<div class="section" style="margin-top:10px"><h2>1. أولوية أولى — الإجراءات المالية المطلوبة الآن <span class="status unpaid" style="font-size:14px">عدد الحالات: <span id="fuFinance">0</span></span></h2></div>
-<p class="hint" style="margin:4px 0 12px">الحالات اللي تحتاج مراجعة أو تحصيل تظهر هنا مباشرة، ومع كل حالة زر الإجراء. لا تحتاجين تدخلين على صفحة ثانية للعثور عليها.</p>
+<div class="section" style="margin-top:10px"><h2><!--paw-i18n-->1. أولوية أولى — الإجراءات المالية المطلوبة الآن <span class="status unpaid" style="font-size:14px"><!--paw-i18n-->عدد الحالات: <span id="fuFinance">0</span></span></h2></div>
+<p class="hint" style="margin:4px 0 12px"><!--paw-i18n-->الحالات اللي تحتاج مراجعة أو تحصيل تظهر هنا مباشرة، ومع كل حالة زر الإجراء. لا تحتاجين تدخلين على صفحة ثانية للعثور عليها.</p>
 <div id="followupFinanceList" class="providerGrid"></div>
-<div style="margin:12px 0 18px"><button class="btn soft" type="button" onclick="showPage('providers')">تسويات الشركات الشهرية (عرض منفصل)</button></div>
+<div style="margin:12px 0 18px"><button class="btn soft" type="button" onclick="showPage('providers')"><!--paw-i18n-->تسويات الشركات الشهرية (عرض منفصل)</button></div>
 
 <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
-  <div class="card stat"><span>مواعيد تحتاج متابعة</span><b id="fuAppointments" class="blue">0</b></div>
-  <div class="card stat"><span>بيانات مهمة ناقصة</span><b id="fuMissing">0</b></div>
-  <button class="card stat" type="button" onclick="pawOpenIncompleteForms()" aria-label="الانتقال إلى قائمة استكمال بيانات الحيوانات" style="width:100%;text-align:right;cursor:pointer;font:inherit;color:inherit;display:block;border:1px solid var(--line);background:#fff"><span>استكمال بيانات الحيوانات</span><b id="fuIntake">0</b><small class="hint">قائمة محفوظة للمراجعة — بدون متابعة موظفة</small></button>
+  <div class="card stat"><span><!--paw-i18n-->مواعيد تحتاج متابعة</span><b id="fuAppointments" class="blue">0</b></div>
+  <div class="card stat"><span><!--paw-i18n-->بيانات مهمة ناقصة</span><b id="fuMissing">0</b></div>
+  <button class="card stat" type="button" onclick="pawOpenIncompleteForms()" aria-label="الانتقال إلى قائمة استكمال بيانات الحيوانات" style="width:100%;text-align:right;cursor:pointer;font:inherit;color:inherit;display:block;border:1px solid var(--line);background:#fff" data-paw-i18n-attrs="aria-label"><span><!--paw-i18n-->استكمال بيانات الحيوانات</span><b id="fuIntake">0</b><small class="hint"><!--paw-i18n-->قائمة محفوظة للمراجعة — بدون متابعة موظفة</small></button>
 </div>
 
-<div class="section"><h2>2. المواعيد والتذكيرات المؤكدة</h2></div>
+<div class="section"><h2><!--paw-i18n-->2. المواعيد والتذكيرات المؤكدة</h2></div>
 <div id="followupAppointmentList" class="providerGrid"></div>
 
-<div class="section"><h2>3. البيانات الضرورية المطلوب استكمالها</h2></div>
+<div class="section"><h2><!--paw-i18n-->3. البيانات الضرورية المطلوب استكمالها</h2></div>
 <div id="followupMissingList" class="providerGrid"></div>
 
-<div class="section"><h2>4. استكمال بيانات الحيوانات — قائمة محفوظة للمراجعة</h2></div>
-<p class="hint" style="margin-bottom:10px">الطلبات الناقصة محفوظة هنا حتى لو انتقلت إلى العمليات. مو مهام متابعة للموظفة، ولا تنضاف لعدد المستحقات والمدفوعات. افتحي أي حالة وقت ما تحتاجين وتكمّلين بياناتها.</p>
+<div class="section"><h2><!--paw-i18n-->4. استكمال بيانات الحيوانات — قائمة محفوظة للمراجعة</h2></div>
+<p class="hint" style="margin-bottom:10px"><!--paw-i18n-->الطلبات الناقصة محفوظة هنا حتى لو انتقلت إلى العمليات. مو مهام متابعة للموظفة، ولا تنضاف لعدد المستحقات والمدفوعات. افتحي أي حالة وقت ما تحتاجين وتكمّلين بياناتها.</p>
 <details id="followupIntakeDetails" class="card" style="margin-bottom:12px;scroll-margin-top:20px">
-  <summary style="cursor:pointer;font-weight:700">عرض طلبات استكمال البيانات (<span id="fuIntakeSummary">0</span>)</summary>
+  <summary style="cursor:pointer;font-weight:700"><!--paw-i18n-->عرض طلبات استكمال البيانات (<span id="fuIntakeSummary">0</span>)</summary>
   <div style="margin-top:12px">
-    <label for="followupIntakeSearch" class="hint" style="display:block;margin-bottom:5px">ابحثي بالعميل أو رقم الهاتف أو رقم العملية</label>
-    <input id="followupIntakeSearch" class="search" type="search" autocomplete="off" placeholder="الاسم، الهاتف، أو PAW-0459" oninput="pawSearchIncompleteFormArchive()" />
+    <label for="followupIntakeSearch" class="hint" style="display:block;margin-bottom:5px"><!--paw-i18n-->ابحثي بالعميل أو رقم الهاتف أو رقم العملية</label>
+    <input id="followupIntakeSearch" class="search" type="search" autocomplete="off" placeholder="الاسم، الهاتف، أو PAW-0459" oninput="pawSearchIncompleteFormArchive()" / data-paw-i18n-attrs="placeholder">
     <p id="followupIntakeFound" class="hint" aria-live="polite" style="margin:9px 0"></p>
     <div id="followupIntakeList" class="providerGrid" style="margin-top:12px"></div>
   </div>
@@ -601,181 +601,181 @@ button,input,select,textarea{font:inherit}.app{max-width:1100px;margin:auto;min-
 </section>
 
 <section id="cases" class="page">
-<div id="testBulkCases" class="card" style="margin:10px 0;padding:12px;border:1px solid #e3e9f0;display:none" data-test-bulk-ui="cases"><b>تحديد العمليات</b><p style="font-size:12px;color:#6f8094;margin:6px 0">الحذف المتعدد قيد الربط بقاعدة TEST. لا يمكن الحذف قبل تفعيل النسخة الاحتياطية والتحقق من الصلاحيات.</p><label style="display:flex;gap:7px;align-items:center"><input type="checkbox" id="testSelectAllCases" onchange="document.querySelectorAll('#caseRows tr').forEach(function(tr){tr.classList.toggle('test-selected-row',document.getElementById('testSelectAllCases').checked)})"> تحديد الكل (الصفوف الظاهرة)</label><button class="btn" style="margin-top:8px;background:#eee;color:#777" disabled>حذف المحدد — بانتظار تفعيل الحذف الآمن</button></div>
+<div id="testBulkCases" class="card" style="margin:10px 0;padding:12px;border:1px solid #e3e9f0;display:none" data-test-bulk-ui="cases"><b><!--paw-i18n-->تحديد العمليات</b><p style="font-size:12px;color:#6f8094;margin:6px 0"><!--paw-i18n-->الحذف المتعدد قيد الربط بقاعدة TEST. لا يمكن الحذف قبل تفعيل النسخة الاحتياطية والتحقق من الصلاحيات.</p><label style="display:flex;gap:7px;align-items:center"><input type="checkbox" id="testSelectAllCases" onchange="document.querySelectorAll('#caseRows tr').forEach(function(tr){tr.classList.toggle('test-selected-row',document.getElementById('testSelectAllCases').checked)})"><!--paw-i18n--> تحديد الكل (الصفوف الظاهرة)</label><button class="btn" style="margin-top:8px;background:#eee;color:#777" disabled><!--paw-i18n-->حذف المحدد — بانتظار تفعيل الحذف الآمن</button></div>
 
-<div class="title"><div><h1>العمليات والعملاء</h1><p>كل الحالات المسجلة وحالة التسوية</p></div><button class="btn yellow" onclick="openNewCase()">+ عميل جديد</button></div>
+<div class="title"><div><h1><!--paw-i18n-->العمليات والعملاء</h1><p><!--paw-i18n-->كل الحالات المسجلة وحالة التسوية</p></div><button class="btn yellow" onclick="openNewCase()"><!--paw-i18n-->+ عميل جديد</button></div>
 <div class="case-filters">
-<input id="caseSearch" class="search" placeholder="بحث باسم العميل، الشركة، الموظف أو Case ID..." aria-label="بحث بالاسم أو رقم العملية أو الموظف" oninput="renderCases()">
-<div class="field" style="margin-top:10px"><label for="caseSourceFilter">مصدر الطلب</label><select id="caseSourceFilter" onchange="renderCases()"><option value="all">جميع المصادر</option><option value="booking">Concierge Booking — حجز خدمة</option><option value="pet_information_form">Pet Information — استكمال بيانات حيوان أليف</option><option value="other">مصادر أخرى</option></select></div>
+<input id="caseSearch" class="search" placeholder="بحث باسم العميل، الشركة، الموظف أو Case ID..." aria-label="بحث بالاسم أو رقم العملية أو الموظف" oninput="renderCases()" data-paw-i18n-attrs="placeholder,aria-label">
+<div class="field" style="margin-top:10px"><label for="caseSourceFilter"><!--paw-i18n-->مصدر الطلب</label><select id="caseSourceFilter" onchange="renderCases()"><option value="all"><!--paw-i18n-->جميع المصادر</option><option value="booking"><!--paw-i18n-->Concierge Booking — حجز خدمة</option><option value="pet_information_form"><!--paw-i18n-->Pet Information — استكمال بيانات حيوان أليف</option><option value="other"><!--paw-i18n-->مصادر أخرى</option></select></div>
 <div class="grid2" style="margin-top:10px">
-<div class="field"><label for="caseStatusFilter">فلتر الحالة</label><select id="caseStatusFilter" onchange="renderCases()"><option value="all">كل الحالات</option><option value="client_unpaid">العميل لم يسدد</option><option value="client_paid">العميل سدد</option><option value="vendor_unpaid">مستحق للشركة عند PawApp</option><option value="vendor_paid">لا يوجد مستحق للشركة عند PawApp</option></select></div>
-<div class="field"><label for="caseProviderFilter">فلتر الشركة / الفريلانسر</label><select id="caseProviderFilter" onchange="renderCases()"><option value="all">كل الشركات / الفريلانسر</option></select></div>
+<div class="field"><label for="caseStatusFilter"><!--paw-i18n-->فلتر الحالة</label><select id="caseStatusFilter" onchange="renderCases()"><option value="all"><!--paw-i18n-->كل الحالات</option><option value="client_unpaid"><!--paw-i18n-->العميل لم يسدد</option><option value="client_paid"><!--paw-i18n-->العميل سدد</option><option value="vendor_unpaid"><!--paw-i18n-->مستحق للشركة عند PawApp</option><option value="vendor_paid"><!--paw-i18n-->لا يوجد مستحق للشركة عند PawApp</option></select></div>
+<div class="field"><label for="caseProviderFilter"><!--paw-i18n-->فلتر الشركة / الفريلانسر</label><select id="caseProviderFilter" onchange="renderCases()"><option value="all"><!--paw-i18n-->كل الشركات / الفريلانسر</option></select></div>
 </div>
 </div>
-<div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th>العميل</th><th>الحيوان</th><th>السلالة</th><th>مطعّم</th><th>Microchip</th><th>الشركة / الفريلانسر</th><th>الخدمة</th><th>إجمالي العميل</th><th>حصة PawApp</th><th>مستحق الشركة / الفريلانسر</th><th>حالة العميل</th><th>موعد السداد</th><th>حالة الشركة / الفريلانسر</th><th>الموظف / المصدر</th><th>بيانات الحالة</th><th>إجراء العميل</th><th>إجراء الشركة / الفريلانسر</th></tr></thead><tbody id="caseRows"></tbody></table></div>
+<div class="table" style="margin-top:11px"><table><thead><tr><th>Case ID</th><th><!--paw-i18n-->العميل</th><th><!--paw-i18n-->الحيوان</th><th><!--paw-i18n-->السلالة</th><th><!--paw-i18n-->مطعّم</th><th>Microchip</th><th><!--paw-i18n-->الشركة / الفريلانسر</th><th><!--paw-i18n-->الخدمة</th><th><!--paw-i18n-->إجمالي العميل</th><th><!--paw-i18n-->حصة PawApp</th><th><!--paw-i18n-->مستحق الشركة / الفريلانسر</th><th><!--paw-i18n-->حالة العميل</th><th><!--paw-i18n-->موعد السداد</th><th><!--paw-i18n-->حالة الشركة / الفريلانسر</th><th><!--paw-i18n-->الموظف / المصدر</th><th><!--paw-i18n-->بيانات الحالة</th><th><!--paw-i18n-->إجراء العميل</th><th><!--paw-i18n-->إجراء الشركة / الفريلانسر</th></tr></thead><tbody id="caseRows"></tbody></table></div>
 </section>
 </main>
 
 <button class="fab" onclick="openNewCase()">+</button>
 <nav class="bottom">
-<button class="nav active" data-p="dashboard" onclick="showPage('dashboard')"><b>⌂</b>الرئيسية</button>
-<button class="nav" data-p="cases" onclick="showPage('cases')"><b>▤</b>العمليات</button>
-<button class="nav" data-p="crm" onclick="showPage('crm')"><b>♡</b>العملاء</button>
-<button class="nav" data-p="followups" onclick="showPage('followups')" style="position:relative"><b>⏰</b>المتابعة<span id="followupNavBadge" style="display:none;position:absolute;top:2px;left:50%;transform:translateX(-50%);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#c62828;color:#fff;font-size:10px;line-height:18px;font-weight:800">0</span></button>
-<button class="nav" data-p="providers" onclick="showPage('providers')"><b>♙</b>الشركات / الفريلانسر</button>
-<button class="nav" data-p="reports" onclick="showPage('reports');pawAccountantRender()"><b>▦</b>التقارير</button>
-<button class="nav" data-p="staff" onclick="showPage('staff')"><b>♟</b>الموظفون</button>
-<button class="nav" data-p="admin" onclick="showPage('admin')"><b>⚙</b>الإدارة</button>
-<button class="nav" data-p="newcase" onclick="openNewCase()"><b>＋</b>عميل جديد</button>
+<button class="nav active" data-p="dashboard" onclick="showPage('dashboard')"><b>⌂</b><!--paw-i18n-->الرئيسية</button>
+<button class="nav" data-p="cases" onclick="showPage('cases')"><b>▤</b><!--paw-i18n-->العمليات</button>
+<button class="nav" data-p="crm" onclick="showPage('crm')"><b>♡</b><!--paw-i18n-->العملاء</button>
+<button class="nav" data-p="followups" onclick="showPage('followups')" style="position:relative"><b>⏰</b><!--paw-i18n-->المتابعة<span id="followupNavBadge" style="display:none;position:absolute;top:2px;left:50%;transform:translateX(-50%);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#c62828;color:#fff;font-size:10px;line-height:18px;font-weight:800">0</span></button>
+<button class="nav" data-p="providers" onclick="showPage('providers')"><b>♙</b><!--paw-i18n-->الشركات / الفريلانسر</button>
+<button class="nav" data-p="reports" onclick="showPage('reports');pawAccountantRender()"><b>▦</b><!--paw-i18n-->التقارير</button>
+<button class="nav" data-p="staff" onclick="showPage('staff')"><b>♟</b><!--paw-i18n-->الموظفون</button>
+<button class="nav" data-p="admin" onclick="showPage('admin')"><b>⚙</b><!--paw-i18n-->الإدارة</button>
+<button class="nav" data-p="newcase" onclick="openNewCase()"><b>＋</b><!--paw-i18n-->عميل جديد</button>
 </nav>
 
 <div id="providerModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3>إضافة شركة / فريلانسر خدمة</h3><button class="close" onclick="closeModal('providerModal')">×</button></div>
+<div class="modalHead"><h3><!--paw-i18n-->إضافة شركة / فريلانسر خدمة</h3><button class="close" onclick="closeModal('providerModal')">×</button></div>
 <div class="grid2">
-<div class="field"><label>النوع</label><select id="pType" onchange="typeChanged()"><option value="company">Company</option><option value="freelancer">Freelancer</option></select></div>
-<div id="pCatWrap" class="field"><label>تصنيف الشركة</label><select id="pCategory"><option value="veterinary">Veterinary</option><option value="services">Services</option></select></div>
-<div class="field"><label>الاسم *</label><input id="pName" placeholder="اسم الشركة / الدكتور"></div>
-<div class="field"><label>رقم التواصل</label><input id="pPhone"></div>
-<div class="field"><label>طريقة حصة PawApp الافتراضية</label><select id="pFeeType" onchange="toggleProviderPricing()"><option value="percent">نسبة %</option><option value="fixed">سعر ثابت د.ك</option></select></div>
-<div class="field"><label id="pCommissionLabel">نسبة PawApp الافتراضية %</label><input id="pCommission" type="number" value="7" min="0" step="0.001"></div>
-<div class="field full"><div class="hint">احفظي الشركة / الفريلانسر أولاً، وبعدها أضيفي خدماته من زر «إدارة الخدمات» تحت الاسم.</div></div>
+<div class="field"><label><!--paw-i18n-->النوع</label><select id="pType" onchange="typeChanged()"><option value="company">Company</option><option value="freelancer">Freelancer</option></select></div>
+<div id="pCatWrap" class="field"><label><!--paw-i18n-->تصنيف الشركة</label><select id="pCategory"><option value="veterinary">Veterinary</option><option value="services">Services</option></select></div>
+<div class="field"><label><!--paw-i18n-->الاسم *</label><input id="pName" placeholder="اسم الشركة / الدكتور" data-paw-i18n-attrs="placeholder"></div>
+<div class="field"><label><!--paw-i18n-->رقم التواصل</label><input id="pPhone"></div>
+<div class="field"><label><!--paw-i18n-->طريقة حصة PawApp الافتراضية</label><select id="pFeeType" onchange="toggleProviderPricing()"><option value="percent"><!--paw-i18n-->نسبة %</option><option value="fixed"><!--paw-i18n-->سعر ثابت د.ك</option></select></div>
+<div class="field"><label id="pCommissionLabel"><!--paw-i18n-->نسبة PawApp الافتراضية %</label><input id="pCommission" type="number" value="7" min="0" step="0.001"></div>
+<div class="field full"><div class="hint"><!--paw-i18n-->احفظي الشركة / الفريلانسر أولاً، وبعدها أضيفي خدماته من زر «إدارة الخدمات» تحت الاسم.</div></div>
 </div>
-<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveProvider()">حفظ الشركة / الفريلانسر</button>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveProvider()"><!--paw-i18n-->حفظ الشركة / الفريلانسر</button>
 </div></div>
 
 <div id="serviceModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3 id="serviceModalTitle">إدارة الخدمات</h3><button class="close" onclick="closeModal('serviceModal')">×</button></div>
+<div class="modalHead"><h3 id="serviceModalTitle"><!--paw-i18n-->إدارة الخدمات</h3><button class="close" onclick="closeModal('serviceModal')">×</button></div>
 <input id="serviceProviderId" type="hidden">
 <div class="card" style="box-shadow:none;margin-bottom:12px">
-<div class="field"><label>إضافة خدمة جديدة</label><input id="serviceName" placeholder="مثال: كشف، أشعة، تطعيم، عملية"></div>
-<button class="btn primary" style="width:100%;margin-top:10px" onclick="addProviderService()">+ إضافة الخدمة</button>
+<div class="field"><label><!--paw-i18n-->إضافة خدمة جديدة</label><input id="serviceName" placeholder="مثال: كشف، أشعة، تطعيم، عملية" data-paw-i18n-attrs="placeholder"></div>
+<button class="btn primary" style="width:100%;margin-top:10px" onclick="addProviderService()"><!--paw-i18n-->+ إضافة الخدمة</button>
 </div>
-<div class="section" style="margin-top:10px"><h2>الخدمات الحالية</h2></div>
+<div class="section" style="margin-top:10px"><h2><!--paw-i18n-->الخدمات الحالية</h2></div>
 <div id="serviceList"></div>
 </div></div>
 
 <div id="staffModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3>إضافة موظف PawApp</h3><button class="close" onclick="closeModal('staffModal')">×</button></div>
-<div class="field"><label>اسم الموظف *</label><input id="staffName" placeholder="مثال: هبة"></div>
-<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveStaff()">حفظ الموظف</button>
+<div class="modalHead"><h3><!--paw-i18n-->إضافة موظف PawApp</h3><button class="close" onclick="closeModal('staffModal')">×</button></div>
+<div class="field"><label><!--paw-i18n-->اسم الموظف *</label><input id="staffName" placeholder="مثال: هبة" data-paw-i18n-attrs="placeholder"></div>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveStaff()"><!--paw-i18n-->حفظ الموظف</button>
 </div></div>
 
 <div id="completeCaseModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3>استكمال بيانات الحالة</h3><button class="close" onclick="closeModal('completeCaseModal')">×</button></div>
+<div class="modalHead"><h3><!--paw-i18n-->استكمال بيانات الحالة</h3><button class="close" onclick="closeModal('completeCaseModal')">×</button></div>
 <input id="editCaseId" type="hidden">
 <div id="workflowNowBox" class="card" style="box-shadow:none;margin:0 0 12px;background:#f8fafc">
-  <div class="hint">المرحلة الحالية</div>
+  <div class="hint"><!--paw-i18n-->المرحلة الحالية</div>
   <b id="workflowStageLabel">—</b>
   <div class="field" style="margin-top:10px">
-    <label>تغيير مرحلة الحالة</label>
+    <label><!--paw-i18n-->تغيير مرحلة الحالة</label>
     <select id="eWorkflowStatus" onchange="saveWorkflowStatus()">
-      <option value="new_request">New — جديد</option>
-      <option value="client_contacted">Client Contacted — تم التواصل مع العميل</option>
-      <option value="provider_confirmed">Doctor / Provider Confirmed — تم تأكيد الطبيب / مقدم الخدمة</option>
-      <option value="appointment_completed">Appointment Completed — تم الموعد / الخدمة</option>
-      <option value="payment_completed">Payment Completed — اكتمل الدفع والتسويات</option>
-      <option value="closed">Closed — مغلقة</option>
-      <option value="cancelled">Cancelled — ملغاة</option>
+      <option value="new_request"><!--paw-i18n-->New — جديد</option>
+      <option value="client_contacted"><!--paw-i18n-->Client Contacted — تم التواصل مع العميل</option>
+      <option value="provider_confirmed"><!--paw-i18n-->Doctor / Provider Confirmed — تم تأكيد الطبيب / مقدم الخدمة</option>
+      <option value="appointment_completed"><!--paw-i18n-->Appointment Completed — تم الموعد / الخدمة</option>
+      <option value="payment_completed"><!--paw-i18n-->Payment Completed — اكتمل الدفع والتسويات</option>
+      <option value="closed"><!--paw-i18n-->Closed — مغلقة</option>
+      <option value="cancelled"><!--paw-i18n-->Cancelled — ملغاة</option>
     </select>
   </div>
-  <div class="hint" style="margin-top:6px">المطلوب الآن</div>
+  <div class="hint" style="margin-top:6px"><!--paw-i18n-->المطلوب الآن</div>
   <b id="workflowTaskLabel">—</b>
-  <button id="workflowShowAllBtn" class="btn soft" type="button" style="width:100%;margin-top:10px;display:none" onclick="showAllCaseEditSections()">عرض كل بيانات العملية</button>
+  <button id="workflowShowAllBtn" class="btn soft" type="button" style="width:100%;margin-top:10px;display:none" onclick="showAllCaseEditSections()"><!--paw-i18n-->عرض كل بيانات العملية</button>
 </div>
-<div id="editClientSectionTitle" class="section" style="margin-top:0"><h2>بيانات العميل والحيوان</h2></div>
+<div id="editClientSectionTitle" class="section" style="margin-top:0"><h2><!--paw-i18n-->بيانات العميل والحيوان</h2></div>
 <div id="editClientSection" class="grid2">
-<div class="field"><label>اسم العميل</label><input id="eClientName" autocomplete="name" placeholder="اسم العميل الصحيح"></div>
-<div class="field full"><button type="button" class="btn soft" onclick="saveCaseCustomerNameOnly()">حفظ الاسم فقط — بدون تغيير المبالغ أو الدفع</button></div>
-<div class="field"><label>رقم العميل</label><input id="ePhone" inputmode="tel"></div>
-<div class="field"><label>المنطقة / الموقع</label><input id="eLocation"></div>
-<div class="field"><label>اسم الحيوان</label><input id="ePetName" placeholder="اكتبي اسم الحيوان إذا معروف"></div>
-<div class="field"><label>نوع الحيوان</label><select id="ePetType"><option value="">غير محدد</option><option>كلب</option><option>قط</option><option>طائر</option><option>أرنب</option><option>أخرى</option></select></div>
-<div class="field"><label>السلالة</label><input id="eBreed"></div>
-<div class="field"><label>العمر</label><input id="ePetAge"></div>
-<div class="field"><label>سهل التعامل؟</label><select id="ePetFriendly"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
-<div class="field"><label>مطعّم؟</label><select id="eVaccinated"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
-<div class="field"><label>Microchip؟</label><select id="eMicrochipped"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
-<div class="field"><label>Pet ID؟</label><select id="eHasPetId"><option value="">غير محدد</option><option value="yes">نعم</option><option value="no">لا</option></select></div>
-<div class="field full"><label>سبب الطلب / الحالة</label><textarea id="eReason" rows="2"></textarea></div>
-<div class="field full"><label>الموظف المسؤول</label><select id="eEmployee"><option value="">اختاري الموظف المسؤول</option></select></div>
+<div class="field"><label><!--paw-i18n-->اسم العميل</label><input id="eClientName" autocomplete="name" placeholder="اسم العميل الصحيح" data-paw-i18n-attrs="placeholder"></div>
+<div class="field full"><button type="button" class="btn soft" onclick="saveCaseCustomerNameOnly()"><!--paw-i18n-->حفظ الاسم فقط — بدون تغيير المبالغ أو الدفع</button></div>
+<div class="field"><label><!--paw-i18n-->رقم العميل</label><input id="ePhone" inputmode="tel"></div>
+<div class="field"><label><!--paw-i18n-->المنطقة / الموقع</label><input id="eLocation"></div>
+<div class="field"><label><!--paw-i18n-->اسم الحيوان</label><input id="ePetName" placeholder="اكتبي اسم الحيوان إذا معروف" data-paw-i18n-attrs="placeholder"></div>
+<div class="field"><label><!--paw-i18n-->نوع الحيوان</label><select id="ePetType"><option value=""><!--paw-i18n-->غير محدد</option><option value="كلب"><!--paw-i18n-->كلب</option><option value="قط"><!--paw-i18n-->قط</option><option value="طائر"><!--paw-i18n-->طائر</option><option value="أرنب"><!--paw-i18n-->أرنب</option><option value="أخرى"><!--paw-i18n-->أخرى</option></select></div>
+<div class="field"><label><!--paw-i18n-->السلالة</label><input id="eBreed"></div>
+<div class="field"><label><!--paw-i18n-->العمر</label><input id="ePetAge"></div>
+<div class="field"><label><!--paw-i18n-->سهل التعامل؟</label><select id="ePetFriendly"><option value=""><!--paw-i18n-->غير محدد</option><option value="yes"><!--paw-i18n-->نعم</option><option value="no"><!--paw-i18n-->لا</option></select></div>
+<div class="field"><label><!--paw-i18n-->مطعّم؟</label><select id="eVaccinated"><option value=""><!--paw-i18n-->غير محدد</option><option value="yes"><!--paw-i18n-->نعم</option><option value="no"><!--paw-i18n-->لا</option></select></div>
+<div class="field"><label><!--paw-i18n-->Microchip؟</label><select id="eMicrochipped"><option value=""><!--paw-i18n-->غير محدد</option><option value="yes"><!--paw-i18n-->نعم</option><option value="no"><!--paw-i18n-->لا</option></select></div>
+<div class="field"><label><!--paw-i18n-->Pet ID؟</label><select id="eHasPetId"><option value=""><!--paw-i18n-->غير محدد</option><option value="yes"><!--paw-i18n-->نعم</option><option value="no"><!--paw-i18n-->لا</option></select></div>
+<div class="field full"><label><!--paw-i18n-->سبب الطلب / الحالة</label><textarea id="eReason" rows="2"></textarea></div>
+<div class="field full"><label><!--paw-i18n-->الموظف المسؤول</label><select id="eEmployee"><option value=""><!--paw-i18n-->اختاري الموظف المسؤول</option></select></div>
 </div>
-<div id="editServiceSectionTitle" class="section"><h2>الخدمة والسعر</h2></div>
+<div id="editServiceSectionTitle" class="section"><h2><!--paw-i18n-->الخدمة والسعر</h2></div>
 <div id="editServiceSection" class="grid2">
-<div class="field"><label>الشركة / الفريلانسر</label><select id="eProvider" onchange="editProviderChanged()"></select></div>
-<div class="field"><label>الخدمة</label><select id="eService" onchange="toggleTransportFields('e')"></select></div>
+<div class="field"><label><!--paw-i18n-->الشركة / الفريلانسر</label><select id="eProvider" onchange="editProviderChanged()"></select></div>
+<div class="field"><label><!--paw-i18n-->الخدمة</label><select id="eService" onchange="toggleTransportFields('e')"></select></div>
 <div id="eTransportFields" class="field full" style="display:none">
   <div class="card" style="box-shadow:none;margin:0">
-    <b>بيانات Pickup / Drop-off</b>
+    <b><!--paw-i18n-->بيانات Pickup / Drop-off</b>
     <div class="grid2" style="margin-top:8px">
-      <div class="field"><label>نوع المشوار</label><select id="eTransportDirection"><option value="">اختاري</option><option value="pickup">Pickup</option><option value="dropoff">Drop-off</option><option value="both">Pickup + Drop-off</option></select></div>
-      <div class="field"><label>التاريخ والوقت</label><input id="eTransportAt" type="datetime-local"></div>
-      <div class="field"><label>مكان الاستلام</label><input id="ePickupLocation"></div>
-      <div class="field"><label>مكان التوصيل</label><input id="eDropoffLocation"></div>
+      <div class="field"><label><!--paw-i18n-->نوع المشوار</label><select id="eTransportDirection"><option value=""><!--paw-i18n-->اختاري</option><option value="pickup">Pickup</option><option value="dropoff">Drop-off</option><option value="both">Pickup + Drop-off</option></select></div>
+      <div class="field"><label><!--paw-i18n-->التاريخ والوقت</label><input id="eTransportAt" type="datetime-local"></div>
+      <div class="field"><label><!--paw-i18n-->مكان الاستلام</label><input id="ePickupLocation"></div>
+      <div class="field"><label><!--paw-i18n-->مكان التوصيل</label><input id="eDropoffLocation"></div>
     </div>
   </div>
 </div>
-<div class="field"><label>إجمالي ما يدفعه العميل (د.ك)</label><input id="eTotalAmount" type="number" min="0" step="0.001" oninput="calcEditCase()"></div>
-<div class="field"><label>طريقة حصة PawApp</label><select id="eFeeType" onchange="calcEditCase()"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت</option></select></div>
-<div class="field"><label id="eFeeValueLabel">نسبة PawApp %</label><input id="eFeeValue" type="number" min="0" step="0.001" oninput="calcEditCase()"></div>
-<div class="field"><label>مستحق الشركة / الفريلانسر</label><input id="eProviderAmount" readonly></div>
+<div class="field"><label><!--paw-i18n-->إجمالي ما يدفعه العميل (د.ك)</label><input id="eTotalAmount" type="number" min="0" step="0.001" oninput="calcEditCase()"></div>
+<div class="field"><label><!--paw-i18n-->طريقة حصة PawApp</label><select id="eFeeType" onchange="calcEditCase()"><option value="percent"><!--paw-i18n-->نسبة %</option><option value="fixed"><!--paw-i18n-->مبلغ ثابت</option></select></div>
+<div class="field"><label id="eFeeValueLabel"><!--paw-i18n-->نسبة PawApp %</label><input id="eFeeValue" type="number" min="0" step="0.001" oninput="calcEditCase()"></div>
+<div class="field"><label><!--paw-i18n-->مستحق الشركة / الفريلانسر</label><input id="eProviderAmount" readonly></div>
 </div>
-<div id="editPaymentSectionTitle" class="section"><h2>الدفع والمستحقات</h2></div>
+<div id="editPaymentSectionTitle" class="section"><h2><!--paw-i18n-->الدفع والمستحقات</h2></div>
 <div id="editPaymentSection" class="grid2">
-<div class="field"><label>العميل دفع؟</label><select id="eClientPaid" onchange="toggleEditPaymentFields()"><option value="unpaid">لا</option><option value="paid">نعم</option></select></div>
-<div class="field" id="ePaidToWrap" style="display:none"><label>العميل دفع لمن؟</label><select id="ePaidTo" onchange="toggleEditPaymentFields()"><option value="">اختاري جهة الدفع</option><option value="pawapp">PawApp</option><option value="provider">العيادة / الشركة / الفريلانسر مباشرة</option></select></div>
-<div class="field" id="eDueDateWrap"><label>موعد متابعة السداد</label><input id="eClientDueDate" type="date"><div class="hint">إذا لم يسدد، يظهر كتذكير للموظف.</div></div>
+<div class="field"><label><!--paw-i18n-->العميل دفع؟</label><select id="eClientPaid" onchange="toggleEditPaymentFields()"><option value="unpaid"><!--paw-i18n-->لا</option><option value="paid"><!--paw-i18n-->نعم</option></select></div>
+<div class="field" id="ePaidToWrap" style="display:none"><label><!--paw-i18n-->العميل دفع لمن؟</label><select id="ePaidTo" onchange="toggleEditPaymentFields()"><option value=""><!--paw-i18n-->اختاري جهة الدفع</option><option value="pawapp">PawApp</option><option value="provider"><!--paw-i18n-->العيادة / الشركة / الفريلانسر مباشرة</option></select></div>
+<div class="field" id="eDueDateWrap"><label><!--paw-i18n-->موعد متابعة السداد</label><input id="eClientDueDate" type="date"><div class="hint"><!--paw-i18n-->إذا لم يسدد، يظهر كتذكير للموظف.</div></div>
 
-<div class="field"><label>موعد العميل</label><input id="eAppointmentAt" type="datetime-local"><div class="hint">يظهر كرينمايندر للموظفة.</div></div>
-<div class="field"><label>طريقة الدفع</label><select id="ePaymentMethod"><option>رابط دفع</option><option>KNET</option><option>كاش</option><option>كريدت كارد</option><option>تحويل</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
-<div class="field" id="ePawappCollectedWrap" style="display:none"><label>تم استلام حصة PawApp من الشركة؟</label><select id="ePawappCollected" onchange="toggleEditPaymentFields()"><option value="no">لا</option><option value="yes">نعم</option></select></div>
+<div class="field"><label><!--paw-i18n-->موعد العميل</label><input id="eAppointmentAt" type="datetime-local"><div class="hint"><!--paw-i18n-->يظهر كرينمايندر للموظفة.</div></div>
+<div class="field"><label><!--paw-i18n-->طريقة الدفع</label><select id="ePaymentMethod"><option value="رابط دفع"><!--paw-i18n-->رابط دفع</option><option>KNET</option><option value="كاش"><!--paw-i18n-->كاش</option><option value="كريدت كارد"><!--paw-i18n-->كريدت كارد</option><option value="تحويل"><!--paw-i18n-->تحويل</option><option value="دفع للعيادة/الشركة مباشرة"><!--paw-i18n-->دفع للعيادة/الشركة مباشرة</option></select></div>
+<div class="field" id="ePawappCollectedWrap" style="display:none"><label><!--paw-i18n-->تم استلام حصة PawApp من الشركة؟</label><select id="ePawappCollected" onchange="toggleEditPaymentFields()"><option value="no"><!--paw-i18n-->لا</option><option value="yes"><!--paw-i18n-->نعم</option></select></div>
 <div class="field full"><div id="eFinancialSummary" class="card" style="box-shadow:none;margin:0;background:#f8fafc"></div></div>
 </div>
-<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCaseDetails()">حفظ كل التعديلات</button>
-<button id="deleteCurrentCaseBtn" class="btn danger" style="width:100%;margin-top:8px" type="button" onclick="deleteCaseFromOperations(document.getElementById('editCaseId').value)">حذف هذه العملية</button>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCaseDetails()"><!--paw-i18n-->حفظ كل التعديلات</button>
+<button id="deleteCurrentCaseBtn" class="btn danger" style="width:100%;margin-top:8px" type="button" onclick="deleteCaseFromOperations(document.getElementById('editCaseId').value)"><!--paw-i18n-->حذف هذه العملية</button>
 </div></div>
 
 <div id="clientPayModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3>تسجيل دفعة العميل</h3><button class="close" onclick="closeModal('clientPayModal')">×</button></div>
+<div class="modalHead"><h3><!--paw-i18n-->تسجيل دفعة العميل</h3><button class="close" onclick="closeModal('clientPayModal')">×</button></div>
 <input id="cpCase" type="hidden">
 <div class="grid2">
-<div class="field"><label>المبلغ المدفوع</label><input id="cpAmount" type="number" min="0" step="0.001"></div>
-<div class="field"><label>تاريخ الدفع</label><input id="cpDate" type="date"></div>
-<div class="field"><label>طريقة الدفع</label><select id="cpMethod"><option>كاش</option><option>KNET</option><option>كريدت كارد</option><option>تحويل</option><option>رابط دفع</option><option>دفع للعيادة/الشركة مباشرة</option></select></div>
-<div class="field"><label>ملاحظة</label><input id="cpNote" placeholder="اختياري"></div>
+<div class="field"><label><!--paw-i18n-->المبلغ المدفوع</label><input id="cpAmount" type="number" min="0" step="0.001"></div>
+<div class="field"><label><!--paw-i18n-->تاريخ الدفع</label><input id="cpDate" type="date"></div>
+<div class="field"><label><!--paw-i18n-->طريقة الدفع</label><select id="cpMethod"><option value="كاش"><!--paw-i18n-->كاش</option><option>KNET</option><option value="كريدت كارد"><!--paw-i18n-->كريدت كارد</option><option value="تحويل"><!--paw-i18n-->تحويل</option><option value="رابط دفع"><!--paw-i18n-->رابط دفع</option><option value="دفع للعيادة/الشركة مباشرة"><!--paw-i18n-->دفع للعيادة/الشركة مباشرة</option></select></div>
+<div class="field"><label><!--paw-i18n-->ملاحظة</label><input id="cpNote" placeholder="اختياري" data-paw-i18n-attrs="placeholder"></div>
 </div>
 <p class="hint" id="cpSummary"></p>
-<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveClientPayment()">حفظ دفعة العميل</button>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveClientPayment()"><!--paw-i18n-->حفظ دفعة العميل</button>
 </div></div>
 
 <div id="settleModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3>تسجيل دفعة للشركة / الفريلانسر</h3><button class="close" onclick="closeModal('settleModal')">×</button></div>
+<div class="modalHead"><h3><!--paw-i18n-->تسجيل دفعة للشركة / الفريلانسر</h3><button class="close" onclick="closeModal('settleModal')">×</button></div>
 <input id="sCase" type="hidden">
 <div class="grid2">
-<div class="field"><label>المبلغ المدفوع</label><input id="sAmount" type="number" min="0" step="0.001"></div>
-<div class="field"><label>تاريخ الدفع</label><input id="sDate" type="date"></div>
-<div class="field"><label>رقم التحويل / المرجع</label><input id="sRef" placeholder="اختياري"></div>
-<div class="field"><label>طريقة الدفع</label><select id="sMethod"><option>تحويل بنكي</option><option>KNET</option><option>نقدي</option><option>أخرى</option></select></div>
+<div class="field"><label><!--paw-i18n-->المبلغ المدفوع</label><input id="sAmount" type="number" min="0" step="0.001"></div>
+<div class="field"><label><!--paw-i18n-->تاريخ الدفع</label><input id="sDate" type="date"></div>
+<div class="field"><label><!--paw-i18n-->رقم التحويل / المرجع</label><input id="sRef" placeholder="اختياري" data-paw-i18n-attrs="placeholder"></div>
+<div class="field"><label><!--paw-i18n-->طريقة الدفع</label><select id="sMethod"><option value="تحويل بنكي"><!--paw-i18n-->تحويل بنكي</option><option>KNET</option><option value="نقدي"><!--paw-i18n-->نقدي</option><option value="أخرى"><!--paw-i18n-->أخرى</option></select></div>
 </div>
-<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveSettlement()">حفظ الدفعة</button>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveSettlement()"><!--paw-i18n-->حفظ الدفعة</button>
 </div></div>
 
 <div id="missingTaskModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3 id="missingTaskTitle">استكمال المطلوب</h3><button class="close" onclick="closeModal('missingTaskModal')">×</button></div>
+<div class="modalHead"><h3 id="missingTaskTitle"><!--paw-i18n-->استكمال المطلوب</h3><button class="close" onclick="closeModal('missingTaskModal')">×</button></div>
 <input id="missingTaskCaseId" type="hidden">
 <input id="missingTaskKey" type="hidden">
 <div class="card" style="box-shadow:none;margin-bottom:12px;background:#f8fafc">
-  <div class="hint">المطلوب الآن</div>
+  <div class="hint"><!--paw-i18n-->المطلوب الآن</div>
   <b id="missingTaskLabel">—</b>
 </div>
 <div id="missingTaskField"></div>
-<button class="btn primary" style="width:100%;margin-top:12px" type="button" onclick="saveMissingTask()">حفظ ومتابعة</button>
+<button class="btn primary" style="width:100%;margin-top:12px" type="button" onclick="saveMissingTask()"><!--paw-i18n-->حفظ ومتابعة</button>
 </div></div>
 
 <div id="appointmentReminderModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3>تأجيل تذكير الموعد</h3><button class="close" onclick="closeModal('appointmentReminderModal')">×</button></div>
+<div class="modalHead"><h3><!--paw-i18n-->تأجيل تذكير الموعد</h3><button class="close" onclick="closeModal('appointmentReminderModal')">×</button></div>
 <input id="appointmentReminderCaseId" type="hidden">
-<div class="field"><label>ذكّريني مرة ثانية بتاريخ ووقت</label><input id="appointmentReminderAt" type="datetime-local"></div>
-<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveAppointmentReminder()">حفظ التذكير</button>
+<div class="field"><label><!--paw-i18n-->ذكّريني مرة ثانية بتاريخ ووقت</label><input id="appointmentReminderAt" type="datetime-local"></div>
+<button class="btn primary" style="width:100%;margin-top:12px" onclick="saveAppointmentReminder()"><!--paw-i18n-->حفظ التذكير</button>
 </div></div>
 
 <div id="toast" class="toast"></div>
@@ -802,7 +802,9 @@ window.PawProviderAffiliations=(function(){
   return Object.freeze({clinic,doctors:Object.freeze(doctors.map(d=>Object.freeze(d))),clinicFor,clinicForName});
 })();
 </script>
-<script src="auth.js?v=pawapp-test-auth-20261027"></script>
+<script src="i18n-dictionary.js?v=1"></script>
+<script src="i18n.js?v=1"></script>
+<script src="auth.js?v=pawapp-test-auth-20261125-i18n"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="bulk-import.js?v=20261021-diagnostic7"></script>
 <script>
@@ -993,21 +995,21 @@ window.pawOpenMonthlyProvider=async function(providerId,month,source){
 
 document.addEventListener('click',e=>{if(e.target.closest('[data-p="providers"]'))setTimeout(()=>window.pawMonthlySettlementOverview(),150)});
 </script><div id="myPasswordModal" class="modalBg"><div class="modal">
-<div class="modalHead"><h3>تغيير كلمة المرور</h3><button class="close" type="button" onclick="pawCloseMyPassword()">×</button></div>
-<div class="field"><label>الباسورد الجديد (8 أحرف أو أكثر)</label><input id="myNewPassword" type="password" minlength="8" autocomplete="new-password"></div>
-<div class="field"><label>تأكيد الباسورد الجديد</label><input id="myConfirmPassword" type="password" minlength="8" autocomplete="new-password"></div>
-<button class="btn primary" type="button" onclick="pawChangeMyPassword()">حفظ الباسورد الجديد</button>
+<div class="modalHead"><h3><!--paw-i18n-->تغيير كلمة المرور</h3><button class="close" type="button" onclick="pawCloseMyPassword()">×</button></div>
+<div class="field"><label><!--paw-i18n-->الباسورد الجديد (8 أحرف أو أكثر)</label><input id="myNewPassword" type="password" minlength="8" autocomplete="new-password"></div>
+<div class="field"><label><!--paw-i18n-->تأكيد الباسورد الجديد</label><input id="myConfirmPassword" type="password" minlength="8" autocomplete="new-password"></div>
+<button class="btn primary" type="button" onclick="pawChangeMyPassword()"><!--paw-i18n-->حفظ الباسورد الجديد</button>
 <div id="myPasswordMessage" class="hint"></div>
 </div></div>
 <div id="pawAccountingSettleModal" class="modalBg"><div class="modal">
-  <div class="modalHead"><h3 id="pawAccountingSettleTitle">اعتماد تسوية الشهر</h3><button class="close" type="button" onclick="pawAccountantCloseSettlement()">×</button></div>
+  <div class="modalHead"><h3 id="pawAccountingSettleTitle"><!--paw-i18n-->اعتماد تسوية الشهر</h3><button class="close" type="button" onclick="pawAccountantCloseSettlement()">×</button></div>
   <p id="pawAccountingSettleHelp" class="hint"></p>
   <div class="grid2">
-    <div class="field"><label for="pawAccountingSettleMethod">طريقة الدفع أو التسوية</label><select id="pawAccountingSettleMethod"><option value="">اختاري</option><option value="bank_transfer">تحويل بنكي</option><option value="knet">KNET</option><option value="cash">كاش</option><option value="prior_settlement_confirmed">تسوية سابقة — تم الدفع</option><option value="other">أخرى</option></select></div>
-    <div class="field"><label for="pawAccountingSettleDate">تاريخ السداد الفعلي أو توثيق تسوية سابقة</label><input id="pawAccountingSettleDate" type="date"></div>
-    <div class="field"><label for="pawAccountingSettleRef">رقم المرجع / التحويل (اختياري)</label><input id="pawAccountingSettleRef" placeholder="اتركيه فارغاً إذا ما عندج رقم" autocomplete="off"></div>
+    <div class="field"><label for="pawAccountingSettleMethod"><!--paw-i18n-->طريقة الدفع أو التسوية</label><select id="pawAccountingSettleMethod"><option value=""><!--paw-i18n-->اختاري</option><option value="bank_transfer"><!--paw-i18n-->تحويل بنكي</option><option value="knet">KNET</option><option value="cash"><!--paw-i18n-->كاش</option><option value="prior_settlement_confirmed"><!--paw-i18n-->تسوية سابقة — تم الدفع</option><option value="other"><!--paw-i18n-->أخرى</option></select></div>
+    <div class="field"><label for="pawAccountingSettleDate"><!--paw-i18n-->تاريخ السداد الفعلي أو توثيق تسوية سابقة</label><input id="pawAccountingSettleDate" type="date"></div>
+    <div class="field"><label for="pawAccountingSettleRef"><!--paw-i18n-->رقم المرجع / التحويل (اختياري)</label><input id="pawAccountingSettleRef" placeholder="اتركيه فارغاً إذا ما عندج رقم" autocomplete="off" data-paw-i18n-attrs="placeholder"></div>
   </div>
-  <div class="actions" style="margin-top:12px"><button id="pawAccountingSettleSave" class="btn primary" type="button" onclick="pawAccountantConfirmSettlement()">تأكيد التسوية</button><button class="btn soft" type="button" onclick="pawAccountantCloseSettlement()">إلغاء</button></div>
+  <div class="actions" style="margin-top:12px"><button id="pawAccountingSettleSave" class="btn primary" type="button" onclick="pawAccountantConfirmSettlement()"><!--paw-i18n-->تأكيد التسوية</button><button class="btn soft" type="button" onclick="pawAccountantCloseSettlement()"><!--paw-i18n-->إلغاء</button></div>
 </div></div>
 <script src="accountant-report.js?v=20261104-v1"></script>
 <script src="accountant-report-v2.js?v=20261112-clinic-label-only"></script>

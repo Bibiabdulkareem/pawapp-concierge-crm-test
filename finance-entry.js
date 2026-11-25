@@ -31,6 +31,7 @@
       if(Date.now()-start>20000)throw new Error('تأخر تحميل النظام. أعيدي المحاولة.');
       await new Promise(resolve=>setTimeout(resolve,50));
     }
+    try{await script('marketing-ui.js?v=20261125-1');}catch(e){console.warn('Optional marketing module unavailable',e);}
     await window.loadData();
     await window.PawFinanceInstall();
     await script('customer-phone-lookup.js?v=3');

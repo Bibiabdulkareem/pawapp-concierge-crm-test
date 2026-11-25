@@ -46,6 +46,43 @@ function tally(snap,settlements,month){
  const ordered=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,"ar"));
  return {month,paid,groups:ordered,totals:F().summarize(paid),reviews,approved,cats,snap};
 }
+function reconcileMonth(snap,month,paid){
+ const lines=F().allLines(snap.cases||[]);
+ const dated=lines.filter(l=>!l.cancelled&&String(l.date||'').slice(0,7)===month);
+ const key=l=>l.caseId+':'+l.component;
+ const included=new Set(paid.map(key));
+ const excluded=dated.filter(l=>!included.has(key(l)));
+ const additional=paid.filter(l=>String(l.date||'').slice(0,7)!==month);
+ const reasons={unpaid:[],unknownRoute:[],unpriced:[],other:[]};
+ for(const l of excluded){
+  const k=l.total<=0n?'unpriced':!l.isPaid?'unpaid':!['pawapp','provider'].includes(l.route)?'unknownRoute':'other';
+  reasons[k].push(l);
+ }
+ const base=F().summarize(dated),removed=F().summarize(excluded),added=F().summarize(additional),result=F().summarize(paid);
+ return {base,removed,added,result,reasons:Object.fromEntries(Object.entries(reasons).map(([k,v])=>[k,F().summarize(v)])),matched:['total','paw','provider'].every(k=>base[k]-removed[k]+added[k]===result[k])};
+}
+function renderReconciliation(s){
+ const target=E("pawAccountCards");if(!target)return;
+ let host=E("pawAccountReconciliation");if(!host){host=document.createElement("section");host.id="pawAccountReconciliation";host.className="card";host.style.margin="12px 0";target.after(host);}
+ host.replaceChildren();
+ const add=(tag,value,parent=host)=>{const n=document.createElement(tag);n.textContent=String(value);parent.appendChild(n);return n;};
+ const r=reconcileMonth(s.snap,s.month,s.paid);
+ add("h3",t("مطابقة الداشبورد مع التقرير المحاسبي","Dashboard to accounting reconciliation"));
+ add("p",t("المقارنة لنفس شهر الخدمة دون فلاتر الشركة أو الخدمة. التقرير يشمل الخدمات المسددة ذات جهة دفع محددة، وفق قواعد التقرير الحالية. ليست مطابقة بنكية.","Comparison for the same service month, without provider or service filters. The report includes fully paid services with a specified payment recipient, under existing report rules. Not bank reconciliation.")).className="hint";
+ const wrap=add("div","");wrap.style.overflowX="auto";const table=add("table","",wrap);table.style.minWidth="520px";
+ const head=add("tr","",table);for(const v of [t("البند","Item"),t("بنود الخدمة والنقل","Service and transport items"),t("قيمة الخدمات","Service value"),t("حصة PawApp","PawApp share")])add("th",v,head);
+ const rows=[
+ [t("إجمالي الداشبورد للشهر","Dashboard month total"),r.base],
+ [t("ناقص: المستبعد من التقرير","Less: excluded from report"),r.removed],
+ [t("منها: غير مسددة بالكامل","Of which: not fully paid"),r.reasons.unpaid],
+ [t("منها: جهة الدفع غير محددة","Of which: unspecified payment recipient"),r.reasons.unknownRoute],
+ [t("منها: غير مسعرة","Of which: unpriced"),r.reasons.unpriced],
+ [t("منها: استثناءات أخرى","Of which: other exclusions"),r.reasons.other],
+ [t("زائد: استثناءات الفترة التاريخية","Add: historical period exceptions"),r.added],
+ [t("إجمالي التقرير","Accounting report total"),r.result]];
+ for(const [label,a] of rows){const tr=add("tr","",table);for(const v of [label,a.lineCount,fmt(a.total),fmt(a.paw)])add("td",v,tr);}
+ add("p",r.matched?t("القيمة والحصص متطابقة حسابياً بعد توضيح الاستثناءات. لا يعني ذلك اعتماد السجلات أو الدفع.","Amounts and shares reconcile after exclusions and additions. This does not approve records or payments."):t("فرق حسابي يحتاج مراجعة.","Arithmetic difference requires review.")).style.color=r.matched?"#166534":"#b42318";
+}
 function settlementLabel(g){
  const outstanding=g.summary.ours+g.summary.theirs;
  if(outstanding>0n)return t("تسوية مفتوحة");
@@ -56,12 +93,14 @@ function settlementLabel(g){
 function card(name,value){return '<div class="card stat" style="min-width:0"><span>'+t(name)+'</span><b style="font-size:clamp(14px,2vw,20px)">'+value+'</b></div>';}
 function renderView(s){
  const sum=s.totals;
- E("pawAccountStatus").textContent=t("شهر ","Month ")+s.month+t(" | عمليات مسددة فقط، Concierge وPet Information معاً. العمليات الأربع بلا تاريخ مدرجة في أكتوبر وفق شيت د. ميشيل، مع بقاء تاريخ خدمتها غير معروف."," | Paid bookings only, Concierge and Pet Information combined. The four undated records are included in October based on Dr. Michael’s sheet; their service date remains unknown.");
+ const undatedIncluded=new Set(s.paid.filter(l=>!l.date).map(l=>l.caseId)).size;
+ E("pawAccountStatus").textContent=t("شهر ","Month ")+s.month+t(" | عمليات مسددة فقط، Concierge وPet Information معاً. عمليات بلا تاريخ مدرجة وفق الاستثناء التاريخي: "," | Paid bookings only, Concierge and Pet Information combined. Undated bookings included under the historical exception: ")+undatedIncluded;
  E("pawAccountCards").innerHTML=[
  card("العمليات المدفوعة",sum.caseCount),card("إجمالي الخدمات",fmt(sum.total)),
  card("حصة باو أب",fmt(sum.paw)),card("حصة مقدمي الخدمات",fmt(sum.provider)),
  card("تحصيل العملاء المسجل",fmt(sum.paid)),card("تم دفعه لمقدمي الخدمات",fmt(sum.providerPaid)),
  card("لنا على الجهات",fmt(sum.ours)),card("للجهات علينا",fmt(sum.theirs))].join("");
+ renderReconciliation(s);
  E("pawAccountStats").textContent=t("هذا تقرير محاسبي للعمليات المدفوعة فقط. الطلبات بلا سعر أو بلا دفع، ومنها عبدالله عند سندباد، موجودة بالمتابعات لكنها غير محتسبة. لا يجوز اعتبار السجلات غير المتحققة تحصيلاً بنكياً.");
  const tbody=E("pawAccountCompanies");tbody.replaceChildren();
  for(const g of s.groups){
@@ -125,7 +164,7 @@ async function show(){
    if(n!==sequence)return;
    report=null;
    E("pawAccountStatus").textContent=t("تعذر فتح تقرير الشهر: ","Unable to open monthly report: ")+String(err.message||err);
-   E("pawAccountCompanies").replaceChildren();E("pawAccountCards").replaceChildren();
+   E("pawAccountCompanies").replaceChildren();E("pawAccountCards").replaceChildren();E("pawAccountReconciliation")?.remove();
  }
 }
 window.pawAccountantRender=show;

@@ -90,6 +90,14 @@ window.pawPetConfirmCase=async function(caseId){
  await load();
 };
 window.pawPetRegistryRefresh=load;
+window.pawPetProfileData=function(phone,caseIds){
+ const normalize=window.PawFinanceCore?.validPhone;
+ if(!normalize||!normalize(phone))return {loaded,pets:[],links:[]};
+ const key=normalize(phone),ids=new Set((caseIds||[]).map(String));
+ const own=pets.filter(p=>normalize(p.customer_phone)===key);
+ const allowed=new Set(own.map(p=>String(p.id)));
+ return {loaded,pets:own.map(p=>({id:p.id,pet_name:p.pet_name,pet_type:p.pet_type,breed:p.breed,verified:p.verified})),links:links.filter(l=>ids.has(String(l.case_id))&&allowed.has(String(l.pet_id))).map(l=>({case_id:l.case_id,pet_id:l.pet_id}))};
+};
 window.pawPetLinkNewCase=async function(caseId){
  if(!loaded)await load();
  const phone=digits($('cPhone')?.value),selected=$('pawPetBookingSelect')?.value||'',name=$('pawPetBookingName')?.value.trim()||'';

@@ -4,7 +4,8 @@
 const E=id=>document.getElementById(id);
 const F=()=>window.PawFinanceCore;
 const money=n=>F().format(n==null?0n:n);
-const fmt=n=>money(n)+" د.ك";
+const t=(ar,en)=>window.PawI18n?.t(ar,en)??ar;
+const fmt=n=>money(n)+' '+t('د.ك','DK');
 const number=n=>Number(n||0);
 const code=id=>"PAW-"+String(id).padStart(4,"0");
 const sourceName=c=>c.source==="pet_information_form"?"Pet Information":"Concierge";
@@ -47,21 +48,21 @@ function tally(snap,settlements,month){
 }
 function settlementLabel(g){
  const outstanding=g.summary.ours+g.summary.theirs;
- if(outstanding>0n)return "تسوية مفتوحة";
- if(g.approved.length)return "إقفال الشهر معتمد";
- if(g.lines.some(l=>l.isPaid))return "مقفلة — تم دفع حصص الجهة بالكامل";
- return "لا توجد مستحقات";
+ if(outstanding>0n)return t("تسوية مفتوحة");
+ if(g.approved.length)return t("إقفال الشهر معتمد");
+ if(g.lines.some(l=>l.isPaid))return t("مقفلة — تم دفع حصص الجهة بالكامل");
+ return t("لا توجد مستحقات");
 }
-function card(name,value){return '<div class="card stat" style="min-width:0"><span>'+name+'</span><b style="font-size:clamp(14px,2vw,20px)">'+value+'</b></div>';}
+function card(name,value){return '<div class="card stat" style="min-width:0"><span>'+t(name)+'</span><b style="font-size:clamp(14px,2vw,20px)">'+value+'</b></div>';}
 function renderView(s){
  const sum=s.totals;
- E("pawAccountStatus").textContent="شهر "+s.month+" | عمليات مسددة فقط، Concierge وPet Information معاً. العمليات الأربع بلا تاريخ مدرجة في أكتوبر وفق شيت د. ميشيل، مع بقاء تاريخ خدمتها غير معروف.";
+ E("pawAccountStatus").textContent=t("شهر ","Month ")+s.month+t(" | عمليات مسددة فقط، Concierge وPet Information معاً. العمليات الأربع بلا تاريخ مدرجة في أكتوبر وفق شيت د. ميشيل، مع بقاء تاريخ خدمتها غير معروف."," | Paid bookings only, Concierge and Pet Information combined. The four undated records are included in October based on Dr. Michael’s sheet; their service date remains unknown.");
  E("pawAccountCards").innerHTML=[
  card("العمليات المدفوعة",sum.caseCount),card("إجمالي الخدمات",fmt(sum.total)),
  card("حصة باو أب",fmt(sum.paw)),card("حصة مقدمي الخدمات",fmt(sum.provider)),
  card("تحصيل العملاء المسجل",fmt(sum.paid)),card("تم دفعه لمقدمي الخدمات",fmt(sum.providerPaid)),
  card("لنا على الجهات",fmt(sum.ours)),card("للجهات علينا",fmt(sum.theirs))].join("");
- E("pawAccountStats").textContent="هذا تقرير محاسبي للعمليات المدفوعة فقط. الطلبات بلا سعر أو بلا دفع، ومنها عبدالله عند سندباد، موجودة بالمتابعات لكنها غير محتسبة. لا يجوز اعتبار السجلات غير المتحققة تحصيلاً بنكياً.";
+ E("pawAccountStats").textContent=t("هذا تقرير محاسبي للعمليات المدفوعة فقط. الطلبات بلا سعر أو بلا دفع، ومنها عبدالله عند سندباد، موجودة بالمتابعات لكنها غير محتسبة. لا يجوز اعتبار السجلات غير المتحققة تحصيلاً بنكياً.");
  const tbody=E("pawAccountCompanies");tbody.replaceChildren();
  for(const g of s.groups){
   const tr=document.createElement("tr");
@@ -71,31 +72,31 @@ function renderView(s){
   const nameCell=tr.firstElementChild;
   const clinic=clinicOf(g.id);
   if(nameCell&&clinic){
-    const tag=document.createElement("span");tag.className="paw-clinic-label";tag.textContent="تابع لعيادة "+clinic.replace('عيادة ','');
+    const tag=document.createElement("span");tag.className="paw-clinic-label";tag.textContent=t("تابع لعيادة ","Affiliated clinic: ")+clinic.replace('عيادة ','');
     nameCell.appendChild(tag);
   }
-  let td=document.createElement("td");td.textContent=settlementLabel(g)+(g.review?" • مراجعة بيانات الخدمة":"");tr.appendChild(td);
+  let td=document.createElement("td");td.textContent=settlementLabel(g)+(g.review?" • "+t("مراجعة بيانات الخدمة"):"");tr.appendChild(td);
   td=document.createElement("td");
   const due=g.summary.ours+g.summary.theirs;
   if(accountant()&&!g.review&&g.id!=="missing"&&due>0n&&!g.approved.length){
     for(const [direction,amount] of [["pawapp_to_provider",g.summary.theirs],["provider_to_pawapp",g.summary.ours]]){
       if(amount<=0n)continue;
-      const b=document.createElement("button");b.type="button";b.className="btn primary";b.style.margin="2px";b.textContent="اعتماد "+fmt(amount);
+      const b=document.createElement("button");b.type="button";b.className="btn primary";b.style.margin="2px";b.textContent=t("اعتماد ","Approve ")+fmt(amount);
       b.addEventListener("click",()=>openApproval(g,direction,amount));td.appendChild(b);
     }
   }
   if(g.id!=="missing"){
-    const btn=document.createElement("button");btn.type="button";btn.className="btn soft";btn.style.margin="2px";btn.textContent="تفاصيل";
+    const btn=document.createElement("button");btn.type="button";btn.className="btn soft";btn.style.margin="2px";btn.textContent=t("تفاصيل");
     btn.addEventListener("click",()=>window.pawOpenMonthlyProvider?.(g.id,s.month,"all"));td.appendChild(btn);
   }
   tr.appendChild(td);tbody.appendChild(tr);
  }
  const review=E("pawAccountReview");review.replaceChildren();
- if(!s.reviews.length){review.textContent="لا توجد ملاحظات على العمليات المدفوعة في هذا الشهر.";return;}
+ if(!s.reviews.length){review.textContent=t("لا توجد ملاحظات على العمليات المدفوعة في هذا الشهر.");return;}
  const wrap=document.createElement("div");wrap.style.overflowX="auto";
  const table=document.createElement("table");table.style.minWidth="640px";
  const header=document.createElement("tr");
- for(const t of ["العملية","العميل","الجهة","الملاحظة"]){const th=document.createElement("th");th.textContent=t;header.appendChild(th);}
+ for(const t of ["العملية","العميل","الجهة","الملاحظة"]){const th=document.createElement("th");th.textContent=window.PawI18n?.t(t)??t;header.appendChild(th);}
  const thead=document.createElement("thead");thead.appendChild(header);table.appendChild(thead);
  const body=document.createElement("tbody");
  for(const item of s.reviews){const tr=document.createElement("tr");for(const value of item){const td=document.createElement("td");td.textContent=String(value);tr.appendChild(td);}body.appendChild(tr);}
@@ -114,7 +115,7 @@ async function show(){
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))return;
  const n=++sequence;
  E("pawAccountExport").disabled=true;
- E("pawAccountStatus").textContent="جاري احتساب العمليات المدفوعة وتسويات جميع الجهات...";
+ E("pawAccountStatus").textContent=t("جاري احتساب العمليات المدفوعة وتسويات جميع الجهات...");
  try{
    const [snap,periods]=await fresh();
    if(n!==sequence)return;
@@ -123,11 +124,12 @@ async function show(){
  }catch(err){
    if(n!==sequence)return;
    report=null;
-   E("pawAccountStatus").textContent="تعذر فتح تقرير الشهر: "+String(err.message||err);
+   E("pawAccountStatus").textContent=t("تعذر فتح تقرير الشهر: ","Unable to open monthly report: ")+String(err.message||err);
    E("pawAccountCompanies").replaceChildren();E("pawAccountCards").replaceChildren();
  }
 }
 window.pawAccountantRender=show;
+document.addEventListener("paw-language-change",()=>{if(report&&E("reports")?.classList.contains("active")&&!document.querySelector(".modalBg.show"))renderView(report);});
 function safe(v){if(typeof v==="number")return v;const s=String(v??"");return /^\s*[=+@-]/.test(s)?"'"+s:s;}
 function excelSheet(rows){return XLSX.utils.aoa_to_sheet(rows.map(row=>row.map(safe)));}
 window.pawAccountantExportExcel=function(){
@@ -135,28 +137,28 @@ window.pawAccountantExportExcel=function(){
  if(!s||s.month!==E("pawAccountMonth").value)return alert("اعرضي الشهر أولاً");
  if(!window.XLSX)return alert("مكتبة تصدير Excel غير متاحة");
  const nums=g=>[g.summary.caseCount,...["total","paw","provider","paid","providerPaid","commissionReceived","ours","theirs"].map(k=>number(money(g.summary[k])))];
- const head=["الجهة","العيادة التابعة لها","عدد العمليات المدفوعة","إجمالي الخدمات (د.ك)","حصة باو أب (د.ك)","حصة مقدم الخدمة (د.ك)","تحصيل العملاء المسجل (د.ك)","المحوّل لمقدم الخدمة (د.ك)","عمولة محصلة من الجهة (د.ك)","لباو أب على الشركة (د.ك)","للشركة على باو أب (د.ك)","حالة الاعتماد"];
- const summary=[["تقرير محاسب PawApp",s.month],["عمليات مسددة فقط. الحالات المكررة والتجريبية والملغاة غير محتسبة. السجلات بلا تاريخ خدمة مُدرجة حسب فترة الشيت المعلنة."],head,
-  ...s.groups.map(g=>[g.name,clinicOf(g.id)||"—",...nums(g),settlementLabel(g)+(g.review?" • مراجعة بيانات الخدمة":"")]),
-  ["الإجمالي","",...nums({summary:s.totals}),""]];
- const details=[["العملية","شهر المحاسبة","تاريخ الخدمة الفعلي","مصدر العملية","مقدم الخدمة","العيادة التابعة لها","العميل","رقم الهاتف","الخدمة","المكون","الإجمالي د.ك","حصة باو أب د.ك","حصة الجهة د.ك","سداد العميل المسجل د.ك","استلم من العميل","المدفوع لمقدم الخدمة د.ك","عمولة محصلة د.ك","لنا على الجهة د.ك","للجهة علينا د.ك","ملاحظة"],
+ const head=["الجهة","العيادة التابعة لها","عدد العمليات المدفوعة","إجمالي الخدمات (د.ك)","حصة باو أب (د.ك)","حصة مقدم الخدمة (د.ك)","تحصيل العملاء المسجل (د.ك)","المحوّل لمقدم الخدمة (د.ك)","عمولة محصلة من الجهة (د.ك)","لباو أب على الشركة (د.ك)","للشركة على باو أب (د.ك)","حالة الاعتماد"].map(x=>t(x));
+ const summary=[[t("تقرير محاسب PawApp"),s.month],[t("عمليات مسددة فقط. الحالات المكررة والتجريبية والملغاة غير محتسبة. السجلات بلا تاريخ خدمة مُدرجة حسب فترة الشيت المعلنة.")],head,
+  ...s.groups.map(g=>[g.name,clinicOf(g.id)||"—",...nums(g),settlementLabel(g)+(g.review?" • "+t("مراجعة بيانات الخدمة"):"")]),
+  [t("الإجمالي"),"",...nums({summary:s.totals}),""]];
+ const details=[["العملية","شهر المحاسبة","تاريخ الخدمة الفعلي","مصدر العملية","مقدم الخدمة","العيادة التابعة لها","العميل","رقم الهاتف","الخدمة","المكون","الإجمالي د.ك","حصة باو أب د.ك","حصة الجهة د.ك","سداد العميل المسجل د.ك","استلم من العميل","المدفوع لمقدم الخدمة د.ك","عمولة محصلة د.ك","لنا على الجهة د.ك","للجهة علينا د.ك","ملاحظة"].map(x=>t(x)),
  ...s.paid.map(l=>{
    const c=l.raw||{};
    return [code(l.caseId),s.month,c.service_date||"غير معروف — شهر المحاسبة من شيت د. ميشيل",sourceName(c),s.cats.get(l.providerId)||"غير محدد",clinicOf(l.providerId)||"—",l.client,l.phone,l.service,l.component,...["total","paw","provider","paid"].map(k=>number(money(l[k]))),l.route==="pawapp"?"باو أب":"الجهة",...["providerPaid","commissionReceived","ours","theirs"].map(k=>number(money(l[k]))),c.service_date?"":"التاريخ الفعلي غير معروف، ليس تاريخ 31 أكتوبر"]})
  ];
- const checks=[["العملية","العميل","الجهة","ملاحظة"],...s.reviews];
- const approvals=[["الجهة","العيادة التابعة لها","الاتجاه","من","إلى","المبلغ د.ك","المرجع","تاريخ الدفع","حالة الاعتماد"],...s.approved.map(x=>[s.cats.get(String(x.provider_id))||"غير محدد",clinicOf(x.provider_id)||"—",x.direction,x.period_from,x.period_to,number(x.amount),x.reference,x.paid_at,x.status])];
+ const checks=[["العملية","العميل","الجهة","ملاحظة"].map(x=>t(x)),...s.reviews];
+ const approvals=[["الجهة","العيادة التابعة لها","الاتجاه","من","إلى","المبلغ د.ك","المرجع","تاريخ الدفع","حالة الاعتماد"].map(x=>t(x)),...s.approved.map(x=>[s.cats.get(String(x.provider_id))||"غير محدد",clinicOf(x.provider_id)||"—",x.direction,x.period_from,x.period_to,number(x.amount),x.reference,x.paid_at,x.status])];
  const wb=XLSX.utils.book_new();
  for(const [name,rows] of [["ملخص الشركات",summary],["العمليات المدفوعة",details],["مراجعة المحاسب",checks],["التسويات المعتمدة",approvals]]){
-    const ws=excelSheet(rows);ws["!cols"]=Array.from({length:Math.max(...rows.map(r=>r.length))},()=>({wch:24}));XLSX.utils.book_append_sheet(wb,ws,name);
+    const ws=excelSheet(rows);ws["!cols"]=Array.from({length:Math.max(...rows.map(r=>r.length))},()=>({wch:24}));XLSX.utils.book_append_sheet(wb,ws,t(name));
  }
  XLSX.writeFile(wb,"PawApp-Accounting-"+s.month+".xlsx",{compression:true});
 };
 function openApproval(g,direction,amount){
  if(!accountant()||g.review||amount<=0n||!report)return;
  approval={provider:g.id,direction,amount,month:report.month,from:report.month+"-01",to:monthEnd(report.month)};
- E("pawAccountingSettleTitle").textContent=(direction==="pawapp_to_provider"?"تحويل باو أب إلى ":"تحصيل باو أب من ")+g.name+" — "+fmt(amount);
- E("pawAccountingSettleHelp").textContent="اعتمدي التسوية فقط بعد التأكد أن المبلغ دُفع أو حُصّل فعلاً. رقم المرجع اختياري؛ إذا ما عندج رقم، تُسجّل التسوية كتأكيد داخلي من حساب المحاسب، وليس كإيصال بنكي.";
+ E("pawAccountingSettleTitle").textContent=(direction==="pawapp_to_provider"?t("تحويل باو أب إلى ","PawApp transfer to "):t("تحصيل باو أب من ","PawApp collection from "))+g.name+" — "+fmt(amount);
+ E("pawAccountingSettleHelp").textContent=t("اعتمدي التسوية فقط بعد التأكد أن المبلغ دُفع أو حُصّل فعلاً. رقم المرجع اختياري؛ إذا ما عندج رقم، تُسجّل التسوية كتأكيد داخلي من حساب المحاسب، وليس كإيصال بنكي.");
  E("pawAccountingSettleRef").value="";E("pawAccountingSettleDate").value="";E("pawAccountingSettleMethod").value="";
  E("pawAccountingSettleModal").classList.add("show");
 }

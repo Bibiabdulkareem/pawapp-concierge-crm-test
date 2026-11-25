@@ -161,7 +161,7 @@ function renderView(s){
  if(!s.reviews.length){review.textContent='ما في بنود مراجعة ضمن هذا الشهر.';}
  else {
   const t=document.createElement('table');t.style.minWidth='600px';
-  t.innerHTML='<thead><tr><th>العملية</th><th>العميل</th><th>الشركة</th><th>الملاحظة</th></tr></thead>';
+  t.innerHTML='<thead><tr><th><!--paw-i18n-->العملية</th><th><!--paw-i18n-->العميل</th><th><!--paw-i18n-->الشركة</th><th><!--paw-i18n-->الملاحظة</th></tr></thead>';
   const body=document.createElement('tbody');
   for(const x of s.reviews){
    const tr=document.createElement('tr');

@@ -20,7 +20,8 @@ function quote(amount,type,fee,basis){
  if(total>999999999999n||paw>total)throw Error('Fee exceeds total');return{total,paw,provider:total-paw};
 }
 function phone(v){let s=String(v||'').normalize('NFKC').replace(/[\u0660-\u0669]/g,d=>String(d.charCodeAt(0)-0x0660)).replace(/[\u06f0-\u06f9]/g,d=>String(d.charCodeAt(0)-0x06f0)).replace(/[^\d+]/g,'').replace(/^\+/,'').replace(/^00/,'');if(s.length===8)s='965'+s;return s;}
-function customerKey(c){return c.customer_id?'id:'+c.customer_id:phone(c.client_phone)?'phone:'+phone(c.client_phone):'case:'+c.id;}
+function validPhone(v){const p=phone(v);return /^\d{9,15}$/.test(p)?p:'';}
+function customerKey(c){const p=validPhone(c.client_phone);return p?'phone:'+p:c.customer_id?'id:'+c.customer_id:'case:'+c.id;}
 const keys=['total','paw','provider','paid','unpaid','providerPaid','commissionReceived','ours','theirs','pawCollected'];
 function line(c,component){
  const t=component==='transport',pre=t?'transport_':'',issues=[];
@@ -62,5 +63,5 @@ function summarize(lines){const amounts=Object.fromEntries(keys.map(k=>[k,0n]));
 function project(snapshot){const lines=allLines(snapshot.cases||[]);return{lines,summary:summarize(lines),providers:(snapshot.providers||[]).map(p=>({...p,lines:lines.filter(l=>l.providerId===String(p.id)),summary:summarize(lines.filter(l=>l.providerId===String(p.id)))}))};}
 function cell(v){let s=String(v??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
 function csv(lines,providerName){const s=summarize(lines);const header=['Case ID','Date','Component','Company','Client','Phone','Service','Fee type','Fee value','Total KD','PawApp share KD','Provider share KD','Client paid KD','Client unpaid KD','Paid to','Paid to provider KD','Commission received KD','Due to PawApp KD','Due to provider KD','Settlement status','Review'];const rows=lines.map(l=>['PAW-'+l.caseId.padStart(4,'0'),l.date,l.component==='transport'?'Transport / نقل':'Main service / خدمة',providerName,l.client,l.phone,l.service,l.feeType,l.feeValue,...['total','paw','provider','paid','unpaid'].map(k=>format(l[k])),l.route==='pawapp'?'PawApp':l.route==='provider'?'Provider': 'Unknown',...['providerPaid','commissionReceived'].map(k=>format(l[k])),format(l.date>='2026-07-01'&&l.date<'2026-10-01'?0n:l.ours),format(l.date>='2026-07-01'&&l.date<'2026-10-01'?0n:l.theirs),l.date>='2026-07-01'&&l.date<'2026-10-01'?'Closed externally':l.issues.length?'Review required':l.ours>0n||l.theirs>0n?'Pending':'No balance',l.issues.join(';')]);rows.push(['TOTAL','','','','','','','','',...['total','paw','provider','paid'].map(k=>format(s[k])),s.unknownCount?'Unknown + '+format(s.unpaid):format(s.unpaid),'',...['providerPaid','commissionReceived','ours','theirs'].map(k=>format(s[k])),'',s.ready?'CHECKED':'REVIEW REQUIRED']);return '\ufeff'+[header,...rows].map(r=>r.map(cell).join(',')).join('\r\n');}
-return{minor,format,quote,phone,customerKey,line,allLines,summarize,project,csv};
+return{minor,format,quote,phone,validPhone,customerKey,line,allLines,summarize,project,csv};
 });

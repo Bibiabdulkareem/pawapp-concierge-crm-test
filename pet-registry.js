@@ -121,7 +121,7 @@ window.pawPetLinkNewCase=async function(caseId){
 function booking(){
  const input=$('cPhone');if(!input||$('pawPetBookingWrap'))return;
  const wrap=document.createElement('div');wrap.id='pawPetBookingWrap';wrap.className='field';
- wrap.innerHTML='<label><!--paw-i18n-->الحيوان المرتبط بالحجز</label><select id="pawPetBookingSelect"><option value=""><!--paw-i18n-->حيوان جديد أو غير مسجل</option></select><input id="pawPetBookingName" placeholder="اسم الحيوان الجديد (اختياري)" style="margin-top:6px"><div class="hint"><!--paw-i18n-->اختاري الحيوان السابق أو اكتبي اسم حيوان جديد. لن يتكرر العدد عند اختيار حيوان مسجل.</div>';
+ wrap.innerHTML='<label><!--paw-i18n-->الحيوان المرتبط بالحجز</label><select id="pawPetBookingSelect"><option value=""><!--paw-i18n-->حيوان جديد أو غير مسجل</option></select><input id="pawPetBookingName" placeholder="اسم الحيوان الجديد (اختياري)" data-paw-i18n-attrs="placeholder" style="margin-top:6px"><div class="hint"><!--paw-i18n-->اختاري الحيوان السابق أو اكتبي اسم حيوان جديد. لن يتكرر العدد عند اختيار حيوان مسجل.</div>';
  input.parentElement.insertAdjacentElement('afterend',wrap);
  const update=()=>{
   const phone=digits(input.value),sel=$('pawPetBookingSelect'),prev=sel.value;

@@ -4,11 +4,12 @@
   if(window.__pawFinanceBoot)return;
   window.__pawFinanceBoot=true;
   const base=new URL('.',document.currentScript.src);
+  const t=(ar,en)=>window.PawI18n?.t(ar,en)??ar;
   const overlay=document.createElement('div');
   overlay.id='financeBootStatus';
   overlay.setAttribute('role','status');
   overlay.style.cssText='position:fixed;inset:0;z-index:20000;background:#f7f9fc;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;direction:rtl;font:600 18px system-ui';
-  overlay.textContent='جاري تحميل حسابات TEST…';
+  overlay.dir=window.PawI18n?.language==='en'?'ltr':'rtl';overlay.textContent=t('جاري تحميل حسابات TEST…');
   document.body.appendChild(overlay);
   async function script(path){
     await new Promise((resolve,reject)=>{
@@ -31,10 +32,10 @@
       if(Date.now()-start>20000)throw new Error('تأخر تحميل النظام. أعيدي المحاولة.');
       await new Promise(resolve=>setTimeout(resolve,50));
     }
-    try{await script('marketing-ui.js?v=20261125-1');}catch(e){console.warn('Optional marketing module unavailable',e);}
+    try{await script('marketing-ui.js?v=20261125-i18n');}catch(e){console.warn('Optional marketing module unavailable',e);}
     await window.loadData();
     await window.PawFinanceInstall();
-    await script('customer-phone-lookup.js?v=3');
+    await script('customer-phone-lookup.js?v=20261125-i18n');
     window.PAW_FINANCE_VERSION='3.4';
     overlay.remove();
     // Keep new form submissions reflected in staff counts without reloading during active editing.
@@ -55,10 +56,10 @@
     setInterval(refreshTestIntake,60000);
   }catch(error){
     console.error('TEST finance initialization failed',error);
-    overlay.textContent='تعذر فتح الحسابات المحدثة. '+String(error?.message||'');
+    overlay.textContent=t('تعذر فتح الحسابات المحدثة.')+' '+String(error?.message||'');
     const button=document.createElement('button');
     button.className='btn primary';
-    button.textContent='إعادة تحميل TEST';
+    button.textContent=t('إعادة تحميل TEST');
     button.style.margin='16px';
     button.onclick=()=>location.reload();
     overlay.appendChild(button);

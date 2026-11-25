@@ -589,7 +589,7 @@ function renderCases(){
   return '<tr><td>'+caseCode(c.id)+'</td><td>'+html(c.client_name)+'</td><td>'+html(c.pet_type||'—')+'</td><td>'+html(c.breed||'—')+'</td><td>'+yesNo(c.vaccinated)+'</td><td>'+yesNo(c.microchipped)+'</td><td>'+ls.map(l=>html(providerName(l.providerId))).join('<br>')+'</td><td>'+ls.map(l=>html(l.service)).join('<br>')+'</td>'+['total','paw','provider'].map(k=>'<td>'+cash(s[k])+'</td>').join('')+'<td><span class="status '+(isUnpricedIntake?'partial':s.unpaid>0n||s.unknownCount?'unpaid':'paid')+'">'+paidText+'</span></td><td>'+html(c.client_due_date||'—')+'</td><td>لنا: '+cash(s.ours)+'<br>علينا: '+cash(s.theirs)+(s.issueCount?'<br><span class="hint">يحتاج مراجعة</span>':'')+'</td><td>'+html(employee?.name||'—')+'<br>'+html(typeof sourceLabel==='function'?sourceLabel(c.source):c.source||'')+'</td><td><span class="hint">'+html(c.workflow_status||'new_request')+'</span><br>'+button+'</td><td>'+clientTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td><td>'+partnerTasks.map(l=>'<div class="hint">'+html(l.service)+'</div>'+actionButton(l)).join('')+'</td></tr>';
  }).join('')||'<tr><td colspan="18">لا توجد عمليات</td></tr>';
 }
-function render(){if(!snapshot)return;hydrate();renderDashboard();renderProviders();renderProvider();renderCases();renderFollowups();if(el('crm')?.classList.contains('active')&&typeof window.renderCRM==='function')window.renderCRM();}
+function render(){if(!snapshot)return;hydrate();renderDashboard();renderProviders();renderProvider();renderCases();renderFollowups();if(el('crm')?.classList.contains('active')&&typeof window.renderCRM==='function')window.renderCRM();try{window.PawMarketingRender?.(snapshot,model);}catch(e){console.warn('Marketing render unavailable',e);}}
 function dialog(){if(el('financeActionModal'))return;document.body.insertAdjacentHTML('beforeend','<div id="financeActionModal" class="modalBg"><div class="modal"><div class="modalHead"><h3 id="financeActionTitle"></h3><button class="close" onclick="closeModal(\'financeActionModal\')">×</button></div><div id="financeActionBody"></div><div id="financeActionError" class="hint" style="color:#b42318;margin:10px 0" role="alert"></div><button id="financeActionSave" class="btn primary" style="width:100%" onclick="pawFinanceSaveAction()">حفظ وتحديث الحسابات</button></div></div>');}
 // Form intake is a separate, deliberately minimal flow: do not resubmit
 // the entire case and accidentally overwrite information from customer forms.
@@ -848,7 +848,7 @@ window.openProviderCRM=async function(id){
  renderProvider();
 };window.providerCases=window.openProviderCRM;
 window.showPage=async function(id){if(id==='admin'&&!window.pawIsAdmin()){toast('Admin only');return;}await legacyShowPage(id);
- if(['dashboard','providers','followups','cases','providerdetail'].includes(id)){
+ if(['dashboard','providers','followups','cases','providerdetail','marketing'].includes(id)){
    try{await refresh();}catch(e){console.warn('Finance snapshot refresh failed',e);toast('تعذر تحديث الحسابات — جربي تحديث الصفحة');}
  }
  if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();

@@ -6,11 +6,12 @@
   if(!search||!results)return;
 
   const label=search.closest('.field')?.querySelector('label');
-  if(label){
-    label.textContent='ابحثي ببداية رقم التلفون أو الاسم، أو باسم المنطقة';
-    label.htmlFor=search.id;
+  function localizeLookup(){
+    const t=(ar,en)=>window.PawI18n?.t(ar,en)??ar;
+    if(label){label.textContent=t('ابحثي ببداية رقم التلفون أو الاسم، أو باسم المنطقة');label.htmlFor=search.id;}
+    search.placeholder=t('مثال: 98، Bi، السالمية');
   }
-  search.placeholder='مثال: 98، Bi، السالمية';
+  localizeLookup();document.addEventListener('paw-language-change',localizeLookup);
 
   function normalizeText(value){
     return String(value??'').normalize('NFKC').toLowerCase()

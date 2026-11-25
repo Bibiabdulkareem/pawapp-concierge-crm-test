@@ -43,10 +43,7 @@
   }
   function areaMatches(value,query){
     const words=areaWords(value);
-    return words.some((_,start)=>query.every((word,index)=>{
-      const candidate=words[start+index];
-      return index===query.length-1?candidate?.startsWith(word):candidate===word;
-    }));
+    return query.length>0&&words.some((_,start)=>query.every((word,index)=>words[start+index]===word));
   }
   function areasFor(row){
     return [row.intake_details?.staff_listed_area,row.location].filter(Boolean);

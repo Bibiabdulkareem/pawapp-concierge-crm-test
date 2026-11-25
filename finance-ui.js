@@ -121,7 +121,7 @@ function requestFor(key,payload){const signature=JSON.stringify(payload);const o
 async function rpc(name,args={}){if(!name.startsWith('test_finance_'))throw Error('TEST finance calls only');const {data,error}=await window.PAWAPP_AUTH.client.rpc(name,args);if(error)throw Error(error.message||'تعذر حفظ العملية');return data;}
 function message(error){const text=String(error?.message||error);const rules=[['Case changed','الحالة تعدلت من جهاز آخر. أغلقيها وافتحيها من جديد قبل الحفظ.'],['Paid service price/provider','الخدمة فيها دفعات مسجلة؛ لا نغيّر سعرها أو مقدمها بدون تصحيح موثق.'],['Paid transport price/provider','النقل فيه دفعات مسجلة؛ لا نغيّر سعره أو الشركة بدون تصحيح موثق.'],['Cannot change received payment','المبلغ مسجل كمستلم. لا يمكن تحويله إلى غير مدفوع بدون تصحيح موثق.'],['Cannot change a paid transaction recipient','لا يمكن تغيير مستلم دفعة مسجلة بدون مراجعة.'],['Cannot clear recorded commission','العمولة مستلمة ومسجلة؛ لا يمكن مسح استلامها.'],['Choose payment recipient','اختاري جهة استلام دفعة العميل.'],['No permission','ما عندج صلاحية لتعديل الحسابات.'],['Invalid amount','المبلغ غير صحيح أو أكبر من المتبقي.']];return rules.find(r=>text.includes(r[0]))?.[1]||text;}
 function hydrate(){if(!snapshot)return;db.staff=snapshot.employees||[];db.providers=(snapshot.providers||[]).map(p=>({...p,type:p.provider_type,feeType:p.default_fee_type||'percent',feeValue:Number(p.default_fee_value||0),services:(snapshot.services||[]).filter(s=>String(s.provider_id)===String(p.id)).map(s=>s.name)}));db.cases=snapshot.cases.map(c=>({...c,providerId:c.provider_id,service:c.service_name,amount:Number(c.total_amount),staff:db.staff.find(e=>String(e.id)===String(c.employee_id))?.name||'',providerPaid:Number(c.main_provider_paid||0),clientPaidAmount:Number(c.main_paid_recorded||0),schedule:[]}));db.followups=snapshot.followups||[];}
-async function refresh(){const previous=loading;const job=(async()=>{if(previous){try{await previous}catch(e){}}const next=await rpc('test_finance_snapshot');const projected=F.project(next);await loadSeptemberReviews();await loadPeriodSettlements();await loadRecordedPayments();snapshot=next;model=projected;hydrate();render();return next;})();loading=job;try{return await job}finally{if(loading===job)loading=null}}
+async function refresh(){const previous=loading;const job=(async()=>{if(previous){try{await previous}catch(e){}}const next=await rpc('test_finance_snapshot');const projected=F.project(next);await loadSeptemberReviews();await loadPeriodSettlements();await loadRecordedPayments();await loadMonthlyTargets();snapshot=next;model=projected;hydrate();render();return next;})();loading=job;try{return await job}finally{if(loading===job)loading=null}}
 const legacyFollowups=window.renderAutomaticFollowups,legacyCases=window.renderCases,legacyOpen=window.openCaseDetails,legacyShowPage=window.showPage,legacyNewCase=window.openNewCase;
 function linesFor(id){return model?.lines.filter(l=>l.caseId===String(id))||[]}
 function findLine(id,component){return linesFor(id).find(l=>l.component===component)}
@@ -135,6 +135,56 @@ function metric(label,id,value,hint=''){return '<div class="card stat"><span>'+h
 function summaryCards(s,prefix){return metric('إجمالي الخدمات شامل النقل',prefix+'Total',cash(s.total))+metric('حصة PawApp المحسوبة',prefix+'Share',cash(s.paw),'الحصة لا تتغير عند تحصيلها')+metric('حصص مقدمي الخدمات',prefix+'ProviderShare',cash(s.provider))+metric('حصة PawApp المحصّلة',prefix+'Collected',cash(s.pawCollected))+metric('المدفوع من العملاء',prefix+'Paid',cash(s.paid))+metric('غير المدفوع من العملاء',prefix+'Unpaid',cash(s.unpaid),s.unknownCount?'بالإضافة إلى '+s.unknownCount+' خدمة نقل لم يتأكد سدادها':'')+metric('لنا عند الشركات',prefix+'Ours',cash(s.ours))+metric('للشركات عندنا',prefix+'Theirs',cash(s.theirs));}
 
 /* Home analytics V2: read-only projection of the existing finance model. */
+/* TEST monthly Concierge target: shared per calendar month; read-only finance projection. */
+let targetMonth='',targetRows=null,targetError=false,targetSaving=false;
+async function loadMonthlyTargets(){
+ try{
+  const q=await window.PAWAPP_AUTH.client.from('test_monthly_targets').select('month,amount').order('month');
+  if(q.error)throw q.error;
+  targetRows=new Map((q.data||[]).map(r=>[String(r.month).slice(0,7),F.minor(r.amount)]));targetError=false;
+ }catch(e){targetRows=null;targetError=true;console.warn('Monthly target unavailable',e?.message||e);}
+}
+function monthlyTargetStats(lines,month,today,goal){
+ const [y,m]=month.split('-').map(Number);
+ const last=new Date(Date.UTC(y,m,0)).getUTCDate(),end=month+'-'+String(last).padStart(2,'0');
+ const complete=new Set(['appointment_completed','payment_completed','closed']);
+ const rows=lines.filter(l=>!l.cancelled&&l.date>=month+'-01'&&l.date<=end&&l.date<=today&&complete.has(l.raw?.workflow_status)&&l.total>0n&&!l.issues.some(x=>['invalid_price','price_split_mismatch'].includes(x)));
+ const earned=rows.reduce((sum,l)=>sum+l.paw,0n);
+ const collected=rows.reduce((sum,l)=>sum+l.pawCollected,0n);
+ const remaining=goal>earned?goal-earned:0n;
+ const days=today<month+'-01'?last:today>end?0:last-Number(today.slice(8,10))+1;
+ const percent=Number(earned*1000n/goal)/10;
+ return {earned,collected,remaining,days,percent,daily:days>0?(remaining+BigInt(days)-1n)/BigInt(days):null};
+}
+function renderMonthlyTarget(){
+ const host=el('dashboard');if(!host||!model)return;
+ let panel=el('pawMonthlyTarget');
+ if(!panel){panel=document.createElement('section');panel.id='pawMonthlyTarget';panel.className='card';panel.style.cssText='margin:0 0 16px;padding:clamp(12px,2vw,22px);min-width:0';const title=host.querySelector('.title');if(!title)return;title.after(panel);}
+ const today=localDate();if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(targetMonth))targetMonth=today.slice(0,7);
+ const canEdit=window.PAWAPP_AUTH?.access?.role==='admin';
+ const heading='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 style="margin:0">'+html(t('الهدف الشهري للكونسيرج','Concierge monthly target'))+'</h2><label class="hint">'+html(t('الشهر','Month'))+' <input type="month" id="pawTargetMonth" value="'+html(targetMonth)+'" min="2000-01" max="2099-12" style="max-width:155px"></label></div>';
+ if(targetError||!targetRows){panel.innerHTML=heading+'<p class="hint">'+html(t('تعذر تحميل الأهداف الشهرية. حدّثي الصفحة للمحاولة مرة أخرى.','Monthly targets unavailable. Refresh to retry.'))+'</p>';el('pawTargetMonth').onchange=e=>{targetMonth=e.target.value;renderMonthlyTarget()};return;}
+ const configured=targetRows.has(targetMonth),goal=targetRows.get(targetMonth)??10000000n;
+ const x=monthlyTargetStats(model.lines,targetMonth,today,goal);
+ const pct=Math.min(100,x.percent);
+ const cell=(ar,en,value)=>'<div style="background:#f3f6fa;padding:12px;border-radius:10px;min-width:0"><div class="hint">'+html(t(ar,en))+'</div><b style="display:block;font-size:clamp(15px,2vw,22px);overflow-wrap:anywhere;margin-top:5px">'+html(value)+'</b></div>';
+ panel.innerHTML=heading+
+ '<div style="display:flex;justify-content:space-between;align-items:end;gap:10px;flex-wrap:wrap;margin-top:12px"><div><div class="hint">'+html(t('حصة PawApp للخدمات المكتملة','PawApp share of completed services'))+'</div><b style="font-size:clamp(22px,3vw,32px);color:#0c3b78">'+html(cash(x.earned))+'</b><span class="hint"> / '+html(cash(goal))+'</span></div><b style="font-size:22px;color:#166534">'+x.percent.toFixed(1)+'%</b></div>'+
+ '<div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'" style="height:12px;background:#e5edf8;border-radius:9px;overflow:hidden;margin:12px 0"><div style="height:100%;width:'+pct+'%;background:#16834f;border-radius:9px"></div></div>'+
+ '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">'+cell('المتبقي للهدف','Remaining to target',cash(x.remaining))+cell('الأيام المتاحة (تشمل اليوم)','Days available (including today)',String(x.days))+cell('المطلوب يومياً','Required daily',x.daily===null?'—':cash(x.daily))+cell('الحصة المحصلة حسب السجلات','Collected share per records',cash(x.collected))+'</div>'+
+ '<p class="hint">'+html(t('حسب تاريخ الخدمة المكتملة، يشمل حصة النقل، ويستبعد الملغاة والمستقبلية والأخطاء السعرية. لا يمثل صافي الربح أو التحصيل البنكي. لا يتأثر بفلاتر التحليل المالي أدناه.','By completed service date; includes transport share and excludes cancelled, future and pricing-error items. Not net profit or bank receipts. Independent of the analytics filters below.'))+'</p>'+
+ '<p class="hint">'+html(configured?t('الهدف محفوظ لهذا الشهر.','Saved target for this month.'):t('الهدف الافتراضي لهذا الشهر: 10,000 د.ك.','Default target for this month: 10,000 DK.'))+'</p>'+
+ (canEdit?'<div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap"><label class="hint" style="flex:1;min-width:130px">'+html(t('تعديل هدف الشهر','Edit monthly target'))+'<input id="pawTargetAmount" type="number" min="0.001" max="999999999.999" step="0.001" value="'+F.format(goal)+'" style="display:block;width:100%;box-sizing:border-box"></label><button id="pawTargetSave" class="btn primary" type="button"'+(targetSaving?' disabled':'')+'>'+html(t('حفظ الهدف','Save target'))+'</button></div><div id="pawTargetMessage" class="hint" role="status"></div>':'');
+ el('pawTargetMonth').onchange=e=>{targetMonth=e.target.value;renderMonthlyTarget()};
+ if(el('pawTargetSave'))el('pawTargetSave').onclick=async()=>{
+  if(targetSaving||window.PAWAPP_AUTH?.access?.role!=='admin')return;
+  const month=targetMonth,raw=v('pawTargetAmount');let amount;
+  try{if(!/^\d+(?:\.\d{1,3})?$/.test(raw))throw Error();amount=F.minor(raw);if(amount<=0n||amount>999999999999n)throw Error();}catch(e){set('pawTargetMessage',t('أدخلي هدفاً صحيحاً أكبر من صفر وبحد أقصى ثلاث منازل عشرية.','Enter a positive target with at most three decimal places.'));return;}
+  targetSaving=true;el('pawTargetSave').disabled=true;
+  try{const q=await window.PAWAPP_AUTH.client.from('test_monthly_targets').upsert({month:month+'-01',amount:F.format(amount),updated_at:new Date().toISOString()},{onConflict:'month'});if(q.error)throw q.error;await loadMonthlyTargets();renderMonthlyTarget();if(targetMonth===month)set('pawTargetMessage',t('تم حفظ الهدف لهذا الشهر.','Monthly target saved.'));}catch(e){set('pawTargetMessage',t('تعذر حفظ الهدف.','Unable to save target.'));}finally{targetSaving=false;if(el('pawTargetSave'))el('pawTargetSave').disabled=false;}
+ };
+}
+
 function renderHomeAnalytics(){
  const host=el('dashboard');if(!host||!model)return;
  let panel=el('pawHomeAnalytics');
@@ -231,7 +281,7 @@ function renderHomeAnalytics(){
  const open=[...el('haResults').querySelectorAll('details')].map(d=>d.open);el('haResults').innerHTML=out;[...el('haResults').querySelectorAll('details')].forEach((d,i)=>{if(open[i])d.open=true;});
 }
 
-function renderDashboard(){if(!model)return;const s=model.summary;try{renderHomeAnalytics()}catch(e){console.warn('Home analytics unavailable',e);}set('kOps',s.caseCount);set('kCustomers',new Set((snapshot.cases||[]).filter(c=>c.workflow_status!=='cancelled').map(c=>F.validPhone(c.client_phone)).filter(Boolean)).size);set('kProviders',model.providers.length);
+function renderDashboard(){if(!model)return;const s=model.summary;try{renderHomeAnalytics()}catch(e){console.warn('Home analytics unavailable',e);}try{renderMonthlyTarget()}catch(e){console.warn('Monthly target unavailable',e);}set('kOps',s.caseCount);set('kCustomers',new Set((snapshot.cases||[]).filter(c=>c.workflow_status!=='cancelled').map(c=>F.validPhone(c.client_phone)).filter(Boolean)).size);set('kProviders',model.providers.length);
 const identified=new Set(),unidentified=new Set();
 for(const c of snapshot.cases||[]){
  if(c.workflow_status==='cancelled')continue;
@@ -874,7 +924,7 @@ window.exportProviderReport=window.exportProviderFullReport;
 function csvCell(value){let s=String(value??'');if(/^[\\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name.replace(/[\\/]/g,'-');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 window.downloadTestBackup=async function(){try{const data=await rpc('test_finance_backup');download(JSON.stringify(data,null,2),'pawapp-test-finance-backup-'+localDate()+'.json','application/json');toast('تم تجهيز نسخة TEST الاحتياطية');}catch(e){alert(message(e))}};
-document.addEventListener('paw-language-change',()=>{try{if(model&&!document.querySelector('.modalBg.show')&&!el('newcase')?.classList.contains('active'))render();else renderHomeAnalytics();for(const id of ['calcTotal','calcPaw','calcDue','calcRemain','calcTransportTotal','calcTransportPaw','calcTransportProvider','financeGrandTotal']){const node=el(id);if(node&&/^\s*[\d,.]+\s*(?:د\.ك|DK|KWD)\s*$/.test(node.textContent))node.textContent=node.textContent.replace(/(?:د\.ك|DK|KWD)\s*$/,t('د.ك','DK'));}}catch(e){console.warn('Language refresh',e);}});
+document.addEventListener('paw-language-change',()=>{try{if(model&&!document.querySelector('.modalBg.show')&&!el('newcase')?.classList.contains('active'))render();else {renderHomeAnalytics();renderMonthlyTarget();}for(const id of ['calcTotal','calcPaw','calcDue','calcRemain','calcTransportTotal','calcTransportPaw','calcTransportProvider','financeGrandTotal']){const node=el(id);if(node&&/^\s*[\d,.]+\s*(?:د\.ك|DK|KWD)\s*$/.test(node.textContent))node.textContent=node.textContent.replace(/(?:د\.ك|DK|KWD)\s*$/,t('د.ك','DK'));}}catch(e){console.warn('Language refresh',e);}});
 window.renderDashboard=renderDashboard;window.renderProviders=renderProviders;window.renderCases=renderCases;window.renderAutomaticFollowups=renderFollowups;window.loadData=refresh;window.renderAll=function(){render();};
 window.pawFinanceRefresh=refresh;
 window.openProviderCRM=async function(id){

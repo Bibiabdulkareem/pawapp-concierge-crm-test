@@ -1033,9 +1033,15 @@ window.sourceLabel = function(src){
       const customerCount=document.getElementById('crmCustomerCount');
       const petCount=document.getElementById('crmPetCount');
       const caseCount=document.getElementById('crmCaseCount');
-      if(customerCount) customerCount.textContent=String(all.length);
+      if(customerCount){
+        const known=all.filter(g=>window.PawFinanceCore.validPhone(g.phone)).length;
+        customerCount.textContent=String(known);
+        let note=document.getElementById('crmIdentityNote');
+        if(!note){note=document.createElement('div');note.id='crmIdentityNote';note.className='hint';customerCount.parentElement.appendChild(note);}
+        note.textContent=(all.length-known)+' عمليات بدون رقم صالح، منفصلة للمراجعة وغير داخلة في عدد العملاء.';
+      }
       const petSummary=pawGroupedPets(db.cases);
-      if(petCount)petCount.textContent=String(petSummary.groups.length);
+      if(petCount)petCount.textContent=String(petSummary.groups.length)+' (تقديري)';
       groups.forEach((g,key)=>{
         g.pets=new Map();
         petSummary.groups.filter(p=>p.owner===key).forEach(p=>{
@@ -1061,7 +1067,7 @@ window.sourceLabel = function(src){
         return '<div class="card" style="box-shadow:none">'+
           '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">'+
             '<div><b style="font-size:16px">'+esc(g.name)+'</b><div class="hint">'+esc(g.phone||'بدون رقم')+(g.location?' • '+esc(g.location):'')+'</div></div>'+
-            '<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="status paid">'+pets.length+' حيوان</span><span class="status partial">'+g.cases.length+' عملية</span></div>'+
+            '<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="status paid">'+pets.length+' حيوان (تقديري)</span><span class="status partial">'+g.cases.length+' عملية</span></div>'+
           '</div>'+
           '<div style="margin-top:8px">'+(petHtml||'<span class="hint">لا توجد بيانات حيوان كاملة</span>')+'</div>'+
           '<div class="hint" style="margin-top:8px">آخر خدمة: '+esc((last&& (last.service||last.requested_service))||'غير محدد')+'</div>'+
@@ -1071,7 +1077,7 @@ window.sourceLabel = function(src){
           '<div style="margin-top:10px"><b>عمليات العميل:</b>'+caseList+'</div>'+
           '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">'+
             '<button class="btn primary" type="button" onclick="crmEditCustomer(\''+String(last?.id||'')+'\')">تعديلات</button>'+
-            '<button class="btn soft" type="button" onclick="crmOpenHistory(\''+encodeURIComponent(g.phone||g.name)+'\')">سجل العميل</button>'+
+            '<button class="btn soft" type="button" onclick="crmOpenProfile('+Number(last.id)+')">ملف العميل</button>'+
             ((['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))?'<button class="btn danger" type="button" onclick="crmDeleteCustomer(\''+String(last?.id||'')+'\')">حذف العميل</button>':'')+
           '</div>'+
         '</div>';
@@ -1079,16 +1085,12 @@ window.sourceLabel = function(src){
     };
 
     function crmCustomerCases(caseId){
-      const anchor=db.cases.find(function(v){return String(v.id)===String(caseId)});
-      if(!anchor) return {anchor:null,rows:[]};
-      const phone=String(anchor.client_phone||'').replace(/\s+/g,'');
-      const name=String(anchor.client_name||'').trim().toLowerCase();
-      const rows=db.cases.filter(function(x){
-        const xp=String(x.client_phone||'').replace(/[^0-9]/g,'').replace(/^965(?=[0-9]{8}$)/,'');
-        if(phone) return xp===phone;
-        return String(x.client_name||'').trim().toLowerCase()===name;
-      });
-      return {anchor:anchor,rows:rows};
+      const anchor=db.cases.find(v=>String(v.id)===String(caseId));
+      if(!anchor)return {anchor:null,rows:[]};
+      const F=window.PawFinanceCore;
+      const phone=F.validPhone(anchor.client_phone);
+      const rows=phone?db.cases.filter(x=>F.validPhone(x.client_phone)===phone):[anchor];
+      return {anchor,rows};
     }
 
     function ensureCrmCustomerModal(){
@@ -1200,6 +1202,74 @@ window.sourceLabel = function(src){
       if(search){search.value='PAW-'+String(id).padStart(4,'0');renderCases();}
       // Open the edit modal directly. Name can be changed and saved independently.
       if(typeof window.openCaseDetails==='function')window.openCaseDetails(id);
+    };
+
+    window.crmOpenProfile=async function(caseId){
+      const g=crmCustomerCases(caseId);if(!g.anchor)return;
+      const F=window.PawFinanceCore, phone=F.validPhone(g.anchor.client_phone);
+      const rows=g.rows.slice().sort((a,b)=>String(b.service_date||'').localeCompare(String(a.service_date||''))||Number(b.id)-Number(a.id));
+      const active=rows.filter(c=>c.workflow_status!=='cancelled');
+      let bg=document.getElementById('crmProfileModal');
+      if(!bg){
+        bg=document.createElement('div');bg.id='crmProfileModal';bg.className='modalBg';
+        bg.innerHTML='<div class="modal" style="width:min(960px,100%);max-height:90vh;overflow:auto"><div class="modalHead"><h3>ملف العميل / Customer Profile</h3><button type="button" class="close" aria-label="إغلاق" onclick="closeModal(\'crmProfileModal\')">×</button></div><div id="crmProfileBody"></div></div>';
+        document.body.appendChild(bg);
+      }
+      const body=document.getElementById('crmProfileBody');
+      const token=String(caseId)+'-'+Date.now();body.dataset.request=token;
+      body.replaceChildren();
+      function node(tag,text,cls,parent=body){const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);if(cls)e.className=cls;parent.appendChild(e);return e;}
+      function button(label,fn,parent){const b=node('button',label,'btn soft',parent);b.type='button';b.onclick=fn;return b;}
+      const head=node('section',undefined,'card');head.style.cssText='border-top:4px solid #f6c94a;margin:0 0 12px';
+      node('h2',g.anchor.client_name||'بدون اسم','',head);
+      node('p',(phone?'+'+phone:'رقم غير صالح — سجل مستقل للمراجعة')+(g.anchor.location?' • '+g.anchor.location:''),'hint',head);
+      const aliases=[...new Set(rows.map(c=>String(c.client_name||'').trim()).filter(Boolean))];
+      if(aliases.length>1)node('p','أسماء مسجلة على نفس الرقم: '+aliases.join(' / ')+' — تحتاج مراجعة إذا كان الرقم مشتركاً.','hint',head);
+      try{
+        const model=F.project({cases:active,providers:db.providers||[]}),sum=model.summary;
+        const k=node('div',undefined,'miniGrid',head);
+        for(const [label,value] of [['العمليات غير الملغاة',active.length],['قيمة الخدمات والنقل',F.format(sum.total)+' د.ك'],['مدفوعات العميل المسجلة',F.format(sum.paid)+' د.ك'],['المتبقي المعروف',F.format(sum.unpaid)+' د.ك'],['عمولات PawApp المستحقة',F.format(sum.paw)+' د.ك'],['عمولات PawApp المحصلة',F.format(sum.pawCollected)+' د.ك']]){
+          const tile=node('div',undefined,'mini',k);node('span',label,'',tile);node('b',value,'',tile);
+        }
+        if(sum.unknownCount||sum.issueCount)node('p','تنبيه: '+sum.issueCount+' بند يحتاج مراجعة مالية، و'+sum.unknownCount+' بند نقل غير مؤكد السداد. الأرقام ليست صافي ربح ولا إيصالاً بنكياً.','hint',head);
+      }catch(e){node('p','تعذر احتساب الإجماليات؛ راجعي العمليات الفردية.','hint',head);}
+      const action=node('div',undefined,'actions',head);
+      if(['admin','operations'].includes(window.PAWAPP_AUTH?.access?.role||''))button('تعديل بيانات العميل',()=>{closeModal('crmProfileModal');window.crmEditCustomer(caseId);},action);
+      const petBox=node('section',undefined,'card');node('h3','الحيوانات المسجلة / Registered pets','',petBox);
+      const petBody=node('div','جارٍ قراءة سجل الحيوانات...','hint',petBox);
+      const history=node('section',undefined,'card');node('h3','سجل العمليات / Booking history','',history);
+      for(const c of rows){
+        const item=node('div',undefined,'card',history);item.style.cssText='box-shadow:none;margin:8px 0;padding:10px';
+        node('b','PAW-'+String(c.id).padStart(4,'0')+' • '+(c.service_name||c.requested_service||'خدمة غير محددة'),'',item);
+        node('div',[c.service_date||'بدون تاريخ',byProvider(c.providerId||c.provider_id)?.name||'غير محدد',c.workflow_status==='cancelled'?'ملغاة':(c.workflow_status||'غير محدد')].join(' • '),'hint',item);
+        node('div','قيمة الخدمة: '+Number(c.total_amount||0).toFixed(3)+' د.ك | النقل: '+Number(c.transport_total_amount||0).toFixed(3)+' د.ك','hint',item);
+        if(c.pet_type||c.breed)node('div','بيانات الحيوان في العملية (غير مؤكدة): '+[c.pet_type,c.breed].filter(Boolean).join(' • '),'hint',item);
+        if(c.notes)node('p',c.notes,'hint',item);
+        button('فتح العملية',()=>{closeModal('crmProfileModal');window.crmJumpToCase(c.id);},item);
+      }
+      const src=node('section',undefined,'card');node('h3','مصادر الطلبات / Recorded sources','',src);
+      const sources=new Map();for(const c of active){const raw=String(c.source||'').trim().toLowerCase().replace(/[ _-]+/g,'');const labels={tiktok:'TikTok',instagram:'Instagram',facebook:'Facebook',whatsapp:'WhatsApp',snapchat:'Snapchat',historicalexcel:'Excel — غير محدد',bookingform:'نموذج حجز',bookingformtest:'نموذج TEST',petinformationform:'نموذج بيانات',referral:'توصية',existingcustomer:'عميل سابق',google:'Google','استشارههاتفيه':'استشارة هاتفية'};const label=labels[raw]||'غير محدد';sources.set(label,(sources.get(label)||0)+1);}
+      for(const [label,n] of [...sources].sort((a,b)=>b[1]-a[1]))node('p',label+' — '+n+' عملية','hint',src);
+      node('p','المصادر المسجلة داخلياً فقط؛ لا توجد بيانات إعلانية متصلة.','hint',src);
+      const follow=node('section',undefined,'card');node('h3','المتابعات / Follow-ups','',follow);
+      const ids=new Set(rows.map(c=>String(c.id)));
+      const fs=(db.followups||[]).filter(x=>ids.has(String(x.case_id))).sort((a,b)=>String(b.followup_at||'').localeCompare(String(a.followup_at||'')));
+      if(!fs.length)node('p','لا توجد متابعات مسجلة.','hint',follow);
+      for(const x of fs)node('p',['PAW-'+String(x.case_id).padStart(4,'0'),x.followup_at||'بدون تاريخ',x.status||'غير محدد',x.reason,x.notes].filter(Boolean).join(' • '),'hint',follow);
+      bg.classList.add('show');
+      try{
+        let data=window.pawPetProfileData?.(phone,rows.map(c=>c.id));
+        if(!data?.loaded&&phone){await window.pawPetRegistryRefresh?.();data=window.pawPetProfileData?.(phone,rows.map(c=>c.id));}
+        if(body.dataset.request!==token)return;
+        petBody.replaceChildren();
+        if(!phone){node('p','يلزم رقم صالح قبل مطابقة الحيوانات.','hint',petBody);return;}
+        if(!data?.loaded){node('p','سجل الحيوانات غير متاح حالياً، أعيدي فتح الملف بعد تحديث الصفحة.','hint',petBody);return;}
+        if(!data.pets.length)node('p','لا يوجد ملف حيوان مؤكد لهذا الرقم. بيانات الحجوزات القديمة ظاهرة في سجل العمليات، ولم يتم افتراض أو إنشاء حيوانات.','hint',petBody);
+        for(const p of data.pets){
+          const count=data.links.filter(l=>String(l.pet_id)===String(p.id)).length;
+          node('p',[p.pet_name||'بدون اسم',p.pet_type,p.breed,p.verified===false?'بانتظار التأكيد':'مسجل',count+' حجز مرتبط'].filter(Boolean).join(' • '),'',petBody);
+        }
+      }catch(e){if(body.dataset.request===token)petBody.textContent='تعذر قراءة سجل الحيوانات.';}
     };
 
     window.crmOpenHistory = function(key){

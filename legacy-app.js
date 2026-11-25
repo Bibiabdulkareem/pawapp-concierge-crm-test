@@ -151,13 +151,18 @@ function providerChanged(){
  document.getElementById('cFeeType').value=p.feeType||'percent';
  document.getElementById('cCommission').value=p.feeValue||0;toggleCasePricing();
 }
-function toggleCasePricing(){
- const t=document.getElementById('cFeeType').value;
- document.getElementById('cAmountLabel').textContent=t==='fixed'?'سعر مقدم الخدمة قبل رسوم PawApp (د.ك) *':'إجمالي ما يدفعه العميل (د.ك) *';
- document.getElementById('cCommissionLabel').textContent=t==='fixed'?'رسوم PawApp الثابتة (د.ك) *':'نسبة PawApp % *';
- calcCase();
+function localizePricingLabels(){
+ const tr=(ar,en)=>window.PawI18n?.t(ar,en)??ar;
+ const fee=document.getElementById('cFeeType')?.value;
+ const amount=document.getElementById('cAmountLabel'),commission=document.getElementById('cCommissionLabel');
+ if(amount)amount.textContent=fee==='fixed'?tr('سعر مقدم الخدمة قبل رسوم PawApp (د.ك) *','Provider price before PawApp fee (DK) *'):tr('إجمالي ما يدفعه العميل (د.ك) *','Total customer payment (DK) *');
+ if(commission)commission.textContent=fee==='fixed'?tr('رسوم PawApp الثابتة (د.ك) *','Fixed PawApp fee (DK) *'):tr('نسبة PawApp % *','PawApp percentage % *');
+ const pFee=document.getElementById('pFeeType')?.value,pCommission=document.getElementById('pCommissionLabel');
+ if(pCommission)pCommission.textContent=pFee==='fixed'?tr('رسوم PawApp الافتراضية الثابتة (د.ك)','Default fixed PawApp fee (DK)'):tr('نسبة PawApp الافتراضية %','Default PawApp percentage %');
 }
-function toggleProviderPricing(){const t=document.getElementById('pFeeType').value;document.getElementById('pCommissionLabel').textContent=t==='fixed'?'رسوم PawApp الافتراضية الثابتة (د.ك)':'نسبة PawApp الافتراضية %'}
+function toggleCasePricing(){localizePricingLabels();calcCase();}
+function toggleProviderPricing(){localizePricingLabels();}
+document.addEventListener('paw-language-change',localizePricingLabels);
 function calcCase(){
  const base=Number(document.getElementById('cAmount').value||0),v=Number(document.getElementById('cCommission').value||0),t=document.getElementById('cFeeType').value;
  let total,pw,du;if(t==='fixed'){du=base;pw=v;total=base+pw}else{total=base;pw=total*v/100;du=total-pw}

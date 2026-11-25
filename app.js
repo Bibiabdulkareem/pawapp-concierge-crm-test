@@ -1229,7 +1229,7 @@ window.sourceLabel = function(src){
       try{
         const model=F.project({cases:active,providers:db.providers||[]}),sum=model.summary;
         const k=node('div',undefined,'miniGrid',head);
-        for(const [label,value] of [['العمليات غير الملغاة',active.length],['قيمة الخدمات والنقل',F.format(sum.total)+' '+t('د.ك','KWD')],['مدفوعات العميل المسجلة',F.format(sum.paid)+' '+t('د.ك','KWD')],['المتبقي المعروف',F.format(sum.unpaid)+' '+t('د.ك','KWD')],['عمولات PawApp المستحقة',F.format(sum.paw)+' '+t('د.ك','KWD')],['عمولات PawApp المحصلة',F.format(sum.pawCollected)+' '+t('د.ك','KWD')]]){
+        for(const [label,value] of [['العمليات غير الملغاة',active.length],['قيمة الخدمات والنقل',F.format(sum.total)+' '+t('د.ك','DK')],['مدفوعات العميل المسجلة',F.format(sum.paid)+' '+t('د.ك','DK')],['المتبقي المعروف',F.format(sum.unpaid)+' '+t('د.ك','DK')],['عمولات PawApp المستحقة',F.format(sum.paw)+' '+t('د.ك','DK')],['عمولات PawApp المحصلة',F.format(sum.pawCollected)+' '+t('د.ك','DK')]]){
           const tile=node('div',undefined,'mini',k);node('span',t(label),'',tile);node('b',value,'',tile);
         }
         if(sum.unknownCount||sum.issueCount)node('p','تنبيه: '+sum.issueCount+' بند يحتاج مراجعة مالية، و'+sum.unknownCount+' بند نقل غير مؤكد السداد. الأرقام ليست صافي ربح ولا إيصالاً بنكياً.','hint',head);
@@ -1243,7 +1243,7 @@ window.sourceLabel = function(src){
         const item=node('div',undefined,'card',history);item.style.cssText='box-shadow:none;margin:8px 0;padding:10px';
         node('b','PAW-'+String(c.id).padStart(4,'0')+' • '+(c.service_name||c.requested_service||t('خدمة غير محددة')),'',item);
         node('div',[c.service_date||t('بدون تاريخ'),byProvider(c.providerId||c.provider_id)?.name||t('غير محدد'),c.workflow_status==='cancelled'?t('ملغاة'):(c.workflow_status||t('غير محدد'))].join(' • '),'hint',item);
-        node('div',t('قيمة الخدمة: ','Service value: ')+Number(c.total_amount||0).toFixed(3)+' '+t('د.ك','KWD')+t(' | النقل: ',' | Transport: ')+Number(c.transport_total_amount||0).toFixed(3)+' '+t('د.ك','KWD'),'hint',item);
+        node('div',t('قيمة الخدمة: ','Service value: ')+Number(c.total_amount||0).toFixed(3)+' '+t('د.ك','DK')+t(' | النقل: ',' | Transport: ')+Number(c.transport_total_amount||0).toFixed(3)+' '+t('د.ك','DK'),'hint',item);
         if(c.pet_type||c.breed)node('div','بيانات الحيوان في العملية (غير مؤكدة): '+[c.pet_type,c.breed].filter(Boolean).join(' • '),'hint',item);
         if(c.notes)node('p',c.notes,'hint',item);
         button(t('فتح العملية'),()=>{closeModal('crmProfileModal');window.crmJumpToCase(c.id);},item);
@@ -2033,7 +2033,7 @@ window.sourceLabel = function(src){
     };
 
     function workflowLabel(status){
-      return (WORKFLOW_META[status]||WORKFLOW_META.new_request).label;
+      return window.PawI18n?.t((WORKFLOW_META[status]||WORKFLOW_META.new_request).label)??(WORKFLOW_META[status]||WORKFLOW_META.new_request).label;
     }
 
     function workflowState(c){
@@ -2516,7 +2516,7 @@ window.sourceLabel = function(src){
         return '<div class="card provider">'+followupCaseHeader(c,'<span class="status unpaid">أولوية مالية</span>')+
           '<div style="margin-top:10px"><b>'+esc(item.label)+'</b><div class="hint">'+esc(item.detail)+'</div></div>'+
           '<div class="actions">'+action+'</div></div>';
-      }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في مستحقات تحتاج إجراء حاليًا.</div></div>';
+      }).join(''):'<div class="card"><b class="green"><!--paw-i18n-->تمام ✓</b><div class="hint">ما في مستحقات تحتاج إجراء حاليًا.</div></div>';
 
       appointmentBox.innerHTML=appointmentRows.length?appointmentRows.map(function(x){
         const c=x.c,item=x.items[0],now=Date.now();
@@ -2530,21 +2530,21 @@ window.sourceLabel = function(src){
             '<button class="btn soft" onclick="openAppointmentReminder(\''+c.id+'\')">تأجيل التذكير</button>'+
             '<button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')"><!--paw-i18n-->فتح العملية</button>'+
           '</div></div>';
-      }).join(''):'<div class="card"><div class="hint">ما في مواعيد أو ريميندر قادمة.</div></div>';
+      }).join(''):'<div class="card"><div class="hint"><!--paw-i18n-->ما في مواعيد أو ريميندر قادمة.</div></div>';
 
       missingBox.innerHTML=missingRows.length?missingRows.map(function(x){
         const c=x.c;
-        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial">بيانات ناقصة</span>')+
+        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial"><!--paw-i18n-->بيانات ناقصة</span>')+
           '<div style="margin-top:10px">'+x.items.map(function(r){return '<div class="kpi-line"><span>'+esc(r)+'</span></div>'}).join('')+'</div>'+
           '<div class="actions"><button class="btn primary" onclick="openMissingTask(\''+c.id+'\')"><!--paw-i18n-->استكمال المطلوب</button><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')"><!--paw-i18n-->فتح العملية</button></div></div>';
-      }).join(''):'<div class="card"><b class="green">تمام ✓</b><div class="hint">ما في بيانات أساسية ناقصة.</div></div>';
+      }).join(''):'<div class="card"><b class="green"><!--paw-i18n-->تمام ✓</b><div class="hint"><!--paw-i18n-->ما في بيانات أساسية ناقصة.</div></div>';
 
       intakeBox.innerHTML=intakeRows.length?intakeRows.map(function(x){
         const c=x.c;
-        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial">نموذج فقط — غير مسعّر</span>')+
-          '<div class="hint" style="margin-top:8px">طلب غير مكتمل: لا يوجد سعر معتمد ولا دفعة مسجلة. هذا ليس مستحقاً مالياً.</div>'+
-          '<div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')">فتح الطلب واستكماله</button></div></div>';
-      }).join(''):'<div class="card"><div class="hint">ما في طلبات نماذج غير مكتملة حالياً.</div></div>';
+        return '<div class="card provider">'+followupCaseHeader(c,'<span class="status partial"><!--paw-i18n-->نموذج فقط — غير مسعّر</span>')+
+          '<div class="hint" style="margin-top:8px"><!--paw-i18n-->طلب غير مكتمل: لا يوجد سعر معتمد ولا دفعة مسجلة. هذا ليس مستحقاً مالياً.</div>'+
+          '<div class="actions"><button class="btn soft" onclick="openCaseDetails(\''+c.id+'\')"><!--paw-i18n-->فتح الطلب واستكماله</button></div></div>';
+      }).join(''):'<div class="card"><div class="hint"><!--paw-i18n-->ما في طلبات نماذج غير مكتملة حالياً.</div></div>';
     };
 
 
@@ -2660,34 +2660,35 @@ window.sourceLabel = function(src){
     };
 
 
+    const activityT=(ar,en)=>window.PawI18n?.t(ar,en)??ar;
     function activityActionLabel(v){
-      return {
+      return activityT({
         case_created:'إنشاء عملية',
         case_updated:'تعديل العملية',
         client_payment_added:'تحصيل من العميل',
         vendor_payment_added:'دفع / تسوية الشركة',
         attachment_added:'إضافة مرفق',
         followup_added:'إضافة متابعة'
-      }[v]||v||'تعديل';
+      }[v]||v||'تعديل');
     }
 
     function activityDetailsText(row){
       const d=row.details||{};
       const parts=[];
-      if(d.workflow_from!==undefined||d.workflow_to!==undefined) parts.push('المرحلة: '+workflowLabel(d.workflow_from)+' ← '+workflowLabel(d.workflow_to));
-      if(d.total_from!==undefined||d.total_to!==undefined) parts.push('الإجمالي: '+Number(d.total_from||0).toFixed(3)+' ← '+Number(d.total_to||0).toFixed(3)+' د.ك');
-      if(d.finance_from||d.finance_to) parts.push('تعديل حصة PawApp / مستحق الشركة');
-      if(d.client_payment_from||d.client_payment_to) parts.push('تعديل حالة سداد العميل');
-      if(d.amount!==undefined) parts.push('المبلغ: '+Number(d.amount||0).toFixed(3)+' د.ك');
-      if(d.service_from!==undefined||d.service_to!==undefined) parts.push('الخدمة: '+String(d.service_from||'-')+' ← '+String(d.service_to||'-'));
-      if(d.provider_from!==undefined||d.provider_to!==undefined||d.provider_changed) parts.push('تغيير الشركة / مقدم الخدمة');
-      if(d.responsible_employee_from!==undefined||d.responsible_employee_to!==undefined) parts.push('تغيير الموظف المسؤول');
-      if(d.transport_updated) parts.push('تعديل Pickup / Drop-off');
-      if(d.appointment_updated) parts.push('تعديل الموعد');
-      if(d.client_or_pet_updated) parts.push('تعديل بيانات العميل / الحيوان');
-      if(d.file_name) parts.push('الملف: '+d.file_name);
-      if(d.client_name) parts.push('العميل: '+d.client_name);
-      return parts.join(' • ')||'تم تسجيل التعديل';
+      if(d.workflow_from!==undefined||d.workflow_to!==undefined) parts.push(activityT('المرحلة: ','Stage: ')+(window.PawI18n?.workflow(d.workflow_from)||workflowLabel(d.workflow_from)) +activityT(' ← ',' → ')+(window.PawI18n?.workflow(d.workflow_to)||workflowLabel(d.workflow_to)));
+      if(d.total_from!==undefined||d.total_to!==undefined) parts.push(activityT('الإجمالي: ','Total: ')+Number(d.total_from||0).toFixed(3) +activityT(' ← ',' → ')+Number(d.total_to||0).toFixed(3)+' '+activityT('د.ك','DK'));
+      if(d.finance_from||d.finance_to) parts.push(activityT('تعديل حصة PawApp / مستحق الشركة'));
+      if(d.client_payment_from||d.client_payment_to) parts.push(activityT('تعديل حالة سداد العميل'));
+      if(d.amount!==undefined) parts.push(activityT('المبلغ: ','Amount: ')+Number(d.amount||0).toFixed(3)+' '+activityT('د.ك','DK'));
+      if(d.service_from!==undefined||d.service_to!==undefined) parts.push(activityT('الخدمة: ','Service: ')+String(d.service_from||'-') +activityT(' ← ',' → ')+String(d.service_to||'-'));
+      if(d.provider_from!==undefined||d.provider_to!==undefined||d.provider_changed) parts.push(activityT('تغيير الشركة / مقدم الخدمة'));
+      if(d.responsible_employee_from!==undefined||d.responsible_employee_to!==undefined) parts.push(activityT('تغيير الموظف المسؤول'));
+      if(d.transport_updated) parts.push(activityT('تعديل Pickup / Drop-off'));
+      if(d.appointment_updated) parts.push(activityT('تعديل الموعد'));
+      if(d.client_or_pet_updated) parts.push(activityT('تعديل بيانات العميل / الحيوان'));
+      if(d.file_name) parts.push(activityT('الملف: ','File: ')+d.file_name);
+      if(d.client_name) parts.push(activityT('العميل: ','Customer: ')+d.client_name);
+      return parts.join(' • ')||activityT('تم تسجيل التعديل');
     }
 
     window.renderActivityLog=async function(){
@@ -2695,7 +2696,7 @@ window.sourceLabel = function(src){
       if(!box||!window.pawIsAdmin||!window.pawIsAdmin()) return;
       const q=(document.getElementById('activitySearch')?.value||'').trim().toLowerCase();
       try{
-        box.innerHTML='<div class="hint">جاري تحميل سجل التعديلات...</div>';
+        box.innerHTML='<div class="hint"><!--paw-i18n-->جاري تحميل سجل التعديلات...</div>';
         const client=window.PAWAPP_AUTH&&window.PAWAPP_AUTH.client;
         if(!client) throw new Error('لا توجد جلسة دخول');
         const res=await client.from('test_activity_log').select('*').order('created_at',{ascending:false}).limit(200);
@@ -2703,23 +2704,24 @@ window.sourceLabel = function(src){
         const rows=Array.isArray(res.data)?res.data:[];
         const filtered=rows.filter(function(x){
           const emp=(db.staff||[]).find(function(e){return String(e.id)===String(x.employee_id)});
-          const hay=[x.actor_email,emp&&emp.name,x.action,'PAW-'+String(x.case_id||'').padStart(4,'0'),activityDetailsText(x)].join(' ').toLowerCase();
+          const hay=[x.actor_email,emp&&emp.name,x.action,activityActionLabel(x.action),'PAW-'+String(x.case_id||'').padStart(4,'0'),activityDetailsText(x)].join(' ').toLowerCase();
           return !q||hay.includes(q);
         });
         box.innerHTML=filtered.length?filtered.map(function(x){
           const dt=new Date(x.created_at);
-          const when=Number.isFinite(dt.getTime())?dt.toLocaleString('ar-KW',{dateStyle:'medium',timeStyle:'short'}):String(x.created_at||'');
+          const when=Number.isFinite(dt.getTime())?dt.toLocaleString(window.PawI18n?.language==='en'?'en-KW':'ar-KW',{dateStyle:'medium',timeStyle:'short'}):String(x.created_at||'');
           const emp=(db.staff||[]).find(function(e){return String(e.id)===String(x.employee_id)});
-          const actor=x.actor_email||(emp&&emp.name)||'سجل قديم — الموظف غير متوفر';
+          const actor=x.actor_email||(emp&&emp.name)||activityT('سجل قديم — الموظف غير متوفر');
           return '<div class="card" style="box-shadow:none;margin-top:7px">'+
             '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+esc(activityActionLabel(x.action))+'</b><span class="status">PAW-'+String(x.case_id||'').padStart(4,'0')+'</span></div>'+
             '<div style="margin-top:6px">'+esc(activityDetailsText(x))+'</div>'+
-            '<div class="hint" style="margin-top:5px">بواسطة: '+esc(actor)+' • '+esc(when)+'</div>'+
+            '<div class="hint" style="margin-top:5px">'+activityT('بواسطة: ','By: ')+esc(actor)+' • '+esc(when)+'</div>'+
           '</div>';
-        }).join(''):'<div class="hint">ما في سجلات مطابقة.</div>';
-      }catch(e){console.error(e);box.innerHTML='<div class="hint">تعذر تحميل Activity Log.</div>'}
+        }).join(''):'<div class="hint"><!--paw-i18n-->ما في سجلات مطابقة.</div>';
+      }catch(e){console.error(e);box.innerHTML='<div class="hint"><!--paw-i18n-->تعذر تحميل Activity Log.</div>'}
     };
 
+    document.addEventListener('paw-language-change',()=>{if(document.getElementById('admin')?.classList.contains('active'))window.renderActivityLog();});
     const showPageBeforeActivityLog=window.showPage;
     window.showPage=async function(id){
       await showPageBeforeActivityLog(id);

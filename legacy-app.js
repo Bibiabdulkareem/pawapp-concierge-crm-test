@@ -3,9 +3,9 @@ const SUPABASE_KEY='sb_publishable__bDEEO_UuUc2AZmCNMhQHg_qzjmoSnL';
 const H={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};
 let db={providers:[],staff:[],cases:[]};
 
-function money(n){return (Number(n)||0).toFixed(3)+' د.ك'}
+function money(n){return (Number(n)||0).toFixed(3)+' '+(window.PawI18n?.t('د.ك','DK')??'د.ك')}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1700)}
+function toast(t){const e=document.getElementById('toast');e.textContent=window.PawI18n?.t(t)??t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1700)}
 function byProvider(id){return db.providers.find(p=>p.id===id)||{name:'غير محدد',services:[],feeType:'percent',feeValue:0}}
 function paw(c){return Number(c.pawapp_amount||0)}
 function due(c){return Number(c.provider_amount||0)}

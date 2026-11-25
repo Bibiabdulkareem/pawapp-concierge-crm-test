@@ -274,6 +274,18 @@ html[dir="ltr"] #authUserBar{justify-content:flex-end}
  #pawHomeAnalytics .ha-controls label{min-width:0!important}
  #pawHomeAnalytics .ha-controls input,#pawHomeAnalytics .ha-controls select{box-sizing:border-box;max-width:100%;min-width:0!important}
 }
+/* Keep CRM metrics compact; explanatory notes span the content width. */
+#crmSummaryCards{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:stretch}
+#crmSummaryCards>.card{grid-column:auto!important;min-width:0}
+#crmSummaryCards .stat b{overflow-wrap:anywhere}
+#crmSummaryCards .hint{font-size:11px;line-height:1.4}
+#pawPetCountNote,#pawCustomerCountAudit{width:100%;box-sizing:border-box;margin:8px 0 12px!important;line-height:1.5}
+@media(max-width:560px){
+ #crmSummaryCards{gap:6px}
+ #crmSummaryCards>.card{padding:10px 8px}
+ #crmSummaryCards .stat b{font-size:clamp(15px,4.4vw,20px)}
+ #crmSummaryCards .stat>span{font-size:11px}
+}
 </style>
 </head>
 <body><div id="pawTestBuild" style="position:fixed;top:0;left:0;z-index:999999;background:#143e75;color:white;font:600 12px Arial;padding:5px 9px;border-radius:0 0 8px 0">TEST</div>
@@ -579,7 +591,7 @@ html[dir="ltr"] #authUserBar{justify-content:flex-end}
 <div class="card" style="padding:10px;margin:10px 0"><b><!--paw-i18n-->استيراد جماعي</b><p class="hint"><!--paw-i18n-->حمّلي النموذج، عبّيه في Excel أو Numbers، ثم ارفعيه.</p><button class="btn soft" type="button" onclick="pawOpenImport('cases')"><!--paw-i18n-->استيراد العملاء Excel</button></div>
 <div class="title"><div><h1><!--paw-i18n-->CRM العملاء والحيوانات</h1><p><!--paw-i18n-->أسماء العملاء، عدد حيوانات كل عميل، وسجل خدماته</p></div><button class="btn yellow" onclick="openNewCase()"><!--paw-i18n-->+ عميل جديد</button></div>
 <input id="crmSearch" class="search" placeholder="بحث باسم العميل، رقم التلفون أو Case ID..." oninput="renderCRM()" data-paw-i18n-attrs="placeholder">
-<div class="cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
+<div id="crmSummaryCards" class="cards" style="margin-top:10px;grid-template-columns:repeat(3,minmax(0,1fr))">
 <div class="card stat"><span><!--paw-i18n-->العملاء</span><b id="crmCustomerCount" class="blue">0</b></div>
 <div class="card stat"><span><!--paw-i18n-->الحيوانات</span><b id="crmPetCount" class="green">0</b></div>
 <div class="card stat"><span><!--paw-i18n-->العمليات</span><b id="crmCaseCount">0</b></div>

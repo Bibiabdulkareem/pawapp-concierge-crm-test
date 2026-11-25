@@ -9,40 +9,47 @@
   let appLoaded = false;
 
   const el = id => document.getElementById(id);
+  const t=(ar,en)=>window.PawI18n?.t(ar,en)??ar;
+  let authBusy=false,authMessageRaw='',authMessageOk=false;
 
   function setMessage(message, ok = false) {
+    authMessageRaw=message||'';authMessageOk=ok;
     const box = el('authMessage');
     if (!box) return;
-    box.textContent = message || '';
+    box.textContent = t(authMessageRaw);
     box.className = 'authMsg ' + (message ? (ok ? 'authSuccess' : 'authError') : '');
   }
 
   function setBusy(busy) {
+    authBusy=!!busy;
     const btn = el('authPrimaryBtn');
     if (!btn) return;
-    btn.disabled = !!busy;
-    btn.textContent = busy ? 'جاري...' : (mode === 'login' ? 'دخول' : 'تفعيل الحساب');
+    btn.disabled = authBusy;
+    btn.textContent = t(authBusy ? 'جاري...' : (mode === 'login' ? 'دخول' : 'تفعيل الحساب'));
   }
 
-  function renderMode() {
+  function renderMode(preserveMessage=false) {
     const subtitle = el('authSubtitle');
     const btn = el('authPrimaryBtn');
     const switchBtn = el('authModeBtn');
     const password = el('authPassword');
 
     if (mode === 'login') {
-      if (subtitle) subtitle.textContent = 'تسجيل الدخول للموظفين';
-      if (btn) btn.textContent = 'دخول';
-      if (switchBtn) switchBtn.textContent = 'أول مرة؟ فعّلي الحساب';
+      if (subtitle) subtitle.textContent = t('تسجيل الدخول للموظفين');
+      if (btn) btn.textContent = t('دخول');
+      if (switchBtn) switchBtn.textContent = t('أول مرة؟ فعّلي الحساب');
       if (password) password.autocomplete = 'current-password';
     } else {
-      if (subtitle) subtitle.textContent = 'تفعيل حساب موظف تمت الموافقة عليه';
-      if (btn) btn.textContent = 'تفعيل الحساب';
-      if (switchBtn) switchBtn.textContent = 'عندي حساب بالفعل';
+      if (subtitle) subtitle.textContent = t('تفعيل حساب موظف تمت الموافقة عليه');
+      if (btn) btn.textContent = t('تفعيل الحساب');
+      if (switchBtn) switchBtn.textContent = t('عندي حساب بالفعل');
       if (password) password.autocomplete = 'new-password';
     }
-    setMessage('');
+    setBusy(authBusy);
+    if(preserveMessage)setMessage(authMessageRaw,authMessageOk);else setMessage('');
   }
+
+  document.addEventListener('paw-language-change',()=>renderMode(true));
 
   async function verifyAccess(user) {
     const { data, error } = await sb
@@ -162,6 +169,7 @@
     if (bar) bar.style.display = 'flex';
     if (email) email.textContent = access.email || session.user.email || '';
 
+    window.PawI18n?.activateUser(session.user.id);
     applyRoleUI(access);
     loadAppOnce();
   }
@@ -274,7 +282,7 @@
     const role = el('adminEmployeeRole')?.value || '';
     const message = el('adminCreateUserMessage');
     const button = el('adminCreateUserButton');
-    function status(value) { if (message) message.textContent = value; }
+    function status(value) { if (message) message.textContent = t(value); }
     if (!employeeId || !selected || !selected.textContent.trim()) return status('اختاري الموظف من القائمة أولاً.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return status('اكتبي إيميل صحيح للموظف.');
     if (!['operations','accountant','read_only','admin'].includes(role)) return status('الصلاحية غير صحيحة.');
@@ -372,23 +380,23 @@
     const message = el('myPasswordMessage');
 
     if (newPassword.length < 8) {
-      if (message) message.textContent='الباسورد الجديد لازم يكون 8 أحرف أو أكثر.';
+      if (message) message.textContent=t('الباسورد الجديد لازم يكون 8 أحرف أو أكثر.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      if (message) message.textContent='تأكيد الباسورد مو مطابق.';
+      if (message) message.textContent=t('تأكيد الباسورد مو مطابق.');
       return;
     }
 
     const { error } = await sb.auth.updateUser({ password: newPassword });
     if (error) {
-      if (message) message.textContent='تعذر تغيير الباسورد: '+error.message;
+      if (message) message.textContent=t('تعذر تغيير الباسورد: ','Unable to change password: ')+error.message;
       return;
     }
 
     if (el('myNewPassword')) el('myNewPassword').value='';
     if (el('myConfirmPassword')) el('myConfirmPassword').value='';
-    if (message) message.textContent='تم حفظ الباسورد الجديد بنجاح.';
+    if (message) message.textContent=t('تم حفظ الباسورد الجديد بنجاح.');
   };
 
   window.pawAuthSignOut = async function() {

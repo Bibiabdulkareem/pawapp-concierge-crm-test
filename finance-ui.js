@@ -746,7 +746,127 @@ function renderCalendar(){
  root.querySelectorAll('[data-cal-case]').forEach(b=>b.onclick=()=>{if(b.dataset.calEvent==='payment'&&mayWrite())window.pawFinanceOpen(b.dataset.calCase,'main');else window.openCaseDetails(b.dataset.calCase);});
 }
 
-function render(){if(!snapshot)return;hydrate();renderDashboard();renderProviders();renderProvider();renderCases();renderFollowups();try{renderCalendar();}catch(e){console.warn('Calendar rendering unavailable',e);}if(el('crm')?.classList.contains('active')&&typeof window.renderCRM==='function')window.renderCRM();try{window.PawMarketingRender?.(snapshot,model);}catch(e){console.warn('Marketing render unavailable',e);}}
+
+// TEST employee performance: attributed to the assigned employee, not the payment actor.
+const epDone=new Set(['appointment_completed','payment_completed','closed']);
+const epPalette=['#326bd7','#26a469','#e5b62c','#8754c0','#d45c8b','#438ca2'];
+let epTab='settings',epMode='month',epFrom='',epTo='',epEmployee='all',epProfile='';
+const epAdmin=()=>window.PAWAPP_AUTH?.access?.role==='admin'&&window.pawIsAdmin?.()===true;
+function epDate(value){return calStamp(value)?.day||'';}
+function epBetween(day,from,to){return !!day&&(!from||day>=from)&&(!to||day<=to);}
+function epPeriod(mode,today,latest=''){
+ const day=mode==='latest'?(latest||today):today;
+ if(mode==='all')return ['',''];
+ if(mode==='day')return [day,day];
+ if(mode==='week')return [calWeek(day),calShift(calWeek(day),6)];
+ return [day.slice(0,7)+'-01',calShift(calMonthShift(day,1),-1)];
+}
+function epMetrics(snap,fin,from,to,today){
+ const cases=snap?.cases||[],staff=snap?.employees||[],byCase=new Map(cases.map(c=>[String(c.id),c]));
+ const staffById=new Map(staff.map(e=>[String(e.id),e]));
+ const key=c=>staffById.has(String(c?.employee_id))?String(c.employee_id):'unassigned';
+ const newGroup=(id,name)=>({id,name,total:0,completed:0,pending:0,cancelled:0,customers:new Set(),fresh:new Set(),returning:new Set(),unknownPhone:0,fee:0n,collected:0n,outstanding:0n,review:0,followDone:0,followPending:0,followOverdue:0,undated:0});
+ const groups=new Map(staff.map(e=>[String(e.id),newGroup(String(e.id),e.name)]));
+ groups.set('unassigned',newGroup('unassigned',''));
+ const team=newGroup('all','');
+ const first=new Map(),unknownFirst=new Set(),included=new Map(),reviewed=new Set();
+ for(const c of cases){
+  if(c.workflow_status==='cancelled')continue;
+  const p=F.validPhone(c.client_phone),day=epDate(c.service_date);
+  if(p&&!day)unknownFirst.add(p);
+  if(p&&day&&(!first.has(p)||day<first.get(p)))first.set(p,day);
+ }
+ function forGroups(id,fn){fn(team);fn(groups.get(id)||groups.get('unassigned'));}
+ for(const c of cases){
+  const id=key(c),day=epDate(c.service_date);
+  if(!day){forGroups(id,g=>g.undated++);if(from||to)continue;}
+  else if(!epBetween(day,from,to))continue;
+  included.set(String(c.id),c);
+  const cancelled=c.workflow_status==='cancelled',done=epDone.has(c.workflow_status);
+  forGroups(id,g=>{
+   g.total++;if(cancelled){g.cancelled++;return;}if(done)g.completed++;else g.pending++;
+   const p=F.validPhone(c.client_phone);if(!p){g.unknownPhone++;return;}
+   g.customers.add(p);
+   if(unknownFirst.has(p)||!first.has(p)||!day)return;
+   if(first.get(p)<day)g.returning.add(p);
+   if(epBetween(first.get(p),from,to)&&first.get(p)===day)g.fresh.add(p);
+  });
+ }
+ for(const l of fin?.lines||[]){
+  const c=included.get(String(l.caseId));if(!c||l.cancelled||c.workflow_status==='cancelled')continue;
+  const id=key(c);
+  if(l.unknown||l.issues?.length){if(!reviewed.has(String(c.id))){reviewed.add(String(c.id));forGroups(id,g=>g.review++);}}
+  if(l.unpaid!=null&&l.unpaid>0n)forGroups(id,g=>g.outstanding+=l.unpaid);
+  if(!epDone.has(c.workflow_status)||!l.date||l.date>today||!(l.total>0n)||l.issues?.some(x=>['invalid_price','price_split_mismatch'].includes(x)))continue;
+  forGroups(id,g=>{g.fee+=l.paw;g.collected+=l.pawCollected;});
+ }
+ // Follow-up attribution uses the explicitly assigned follow-up employee, or the case owner.
+ for(const f of snap?.followups||[]){
+  const c=byCase.get(String(f.case_id)),day=epDate(f.followup_at);
+  if(!c||c.workflow_status==='cancelled'||f.status==='cancelled'||!day||!epBetween(day,from,to))continue;
+  if(f.status!=='done'&&c.workflow_status==='closed')continue;
+  const id=staffById.has(String(f.employee_id))?String(f.employee_id):key(c);
+  forGroups(id,g=>{if(f.status==='done')g.followDone++;else{g.followPending++;if(day<today||(day===today&&Number.isFinite(Date.parse(f.followup_at))&&Date.parse(f.followup_at)<Date.now()))g.followOverdue++;}});
+ }
+ // A customer who is new in this period is counted once, not also as returning.
+ for(const g of [team,...groups.values()])for(const p of g.fresh)g.returning.delete(p);
+ return {team,groups:[...groups.values()].sort((a,b)=>b.completed-a.completed||b.total-a.total||String(a.name).localeCompare(String(b.name)))};
+}
+function epInstall(){
+ const host=el('admin');if(!host||el('pawEmployeeTabs'))return;
+ const tabs=document.createElement('div');tabs.id='pawEmployeeTabs';tabs.className='ep-tabs';host.prepend(tabs);
+ const pane=document.createElement('section');pane.id='pawEmployeePerformance';pane.hidden=true;tabs.after(pane);
+ const style=document.createElement('style');style.id='pawEmployeeStyle';style.textContent=
+ '#admin.ep-performance> :not(#pawEmployeeTabs):not(#pawEmployeePerformance){display:none!important}#pawEmployeePerformance[hidden],#pawEmployeeTabs[hidden]{display:none!important}.ep-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.ep-button{border:1px solid #dce5f2;background:white;color:#17396d;border-radius:10px;padding:9px 14px;font:inherit;font-weight:700;cursor:pointer}.ep-button.active{background:#17396d;color:white;border-color:#17396d}#pawEmployeePerformance{min-width:0;color:#17345e}.ep-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:14px 0}.ep-head h1{color:#15396f;margin:0}.ep-head p{font-size:12px;color:#61728b;margin:5px 0}.ep-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:12px 0}.ep-filters label{display:grid;gap:5px;font-size:12px;color:#526785;flex:1;min-width:120px}.ep-filters input,.ep-filters select{width:100%;min-width:0;box-sizing:border-box}.ep-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.ep-kpi{border-radius:13px;padding:14px;min-width:0;overflow-wrap:anywhere}.ep-kpi small{display:block;font-size:12px;line-height:1.4}.ep-kpi strong{display:block;font-size:clamp(19px,3vw,29px);margin-top:7px}.ep-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;margin:12px 0;align-items:start}.ep-panel{background:#fff;border:1px solid #e0e7f0;border-radius:15px;padding:16px;min-width:0}.ep-panel h2{font-size:17px;margin:0 0 12px}.ep-bars{display:grid;gap:12px}.ep-barbtn{display:block;width:100%;text-align:start;border:0;background:none;color:#17345e;font:inherit;cursor:pointer;padding:4px 0}.ep-barlabel{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:5px;font-size:13px}.ep-track{height:10px;background:#edf1f6;border-radius:20px;overflow:hidden}.ep-fill{height:100%;border-radius:20px}.ep-detail-head{display:flex;align-items:center;gap:10px;margin:0 0 12px}.ep-avatar{border-radius:50%;width:42px;height:42px;display:grid;place-items:center;font-weight:800;background:#e6edff;color:#3159a5;flex:none}.ep-detail-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #edf0f5;font-size:13px}.ep-detail-row span{color:#5e708a}.ep-detail-row b{text-align:end;overflow-wrap:anywhere}.ep-tablewrap{overflow-x:auto}.ep-table{width:100%;border-collapse:collapse;min-width:700px}.ep-table th,.ep-table td{padding:10px;text-align:start;white-space:nowrap;border-bottom:1px solid #e5ebf3;font-size:12px}.ep-table th{color:#526785}.ep-table button{font:inherit;border:0;background:none;color:#2459af;font-weight:700;cursor:pointer;padding:0}.ep-note{font-size:12px;line-height:1.6;color:#61728b}.ep-empty{padding:18px;text-align:center;color:#61728b}.ep-progress{margin-top:12px}.ep-error{color:#a42c39}.ep-table tr.selected{background:#f0f5ff}@media(max-width:850px){.ep-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ep-layout{grid-template-columns:1fr}.ep-panel{padding:12px}.ep-kpi{padding:10px}.ep-filters label{min-width:110px}.ep-head h1{font-size:20px}}';
+ document.head.appendChild(style);
+}
+function renderEmployeePerformance(){
+ epInstall();const host=el('admin'),tabs=el('pawEmployeeTabs'),pane=el('pawEmployeePerformance');if(!host||!tabs||!pane)return;
+ if(!epAdmin()){tabs.hidden=true;pane.hidden=true;pane.replaceChildren();host.classList.remove('ep-performance');epTab='settings';return;}
+ tabs.hidden=false;
+ tabs.innerHTML='<button type="button" data-ep-tab="settings" class="ep-button '+(epTab==='settings'?'active':'')+'">'+html(t('إعدادات الإدارة','Administration settings'))+'</button><button type="button" data-ep-tab="performance" class="ep-button '+(epTab==='performance'?'active':'')+'">'+html(t('أداء الموظفات','Employee Performance'))+'</button>';
+ tabs.querySelectorAll('[data-ep-tab]').forEach(b=>b.onclick=()=>{epTab=b.dataset.epTab;renderEmployeePerformance();});
+ host.classList.toggle('ep-performance',epTab==='performance');pane.hidden=epTab!=='performance';
+ if(pane.hidden||!host.classList.contains('active')||!snapshot||!model){pane.replaceChildren();return;}
+ const today=localDate(),dates=(snapshot.cases||[]).map(c=>epDate(c.service_date)).filter(Boolean).sort(),latest=dates.at(-1)||'';
+ if(!epFrom&&!epTo&&epMode!=='all'&&epMode!=='custom'){epMode=dates.some(d=>d.slice(0,7)===today.slice(0,7))?'month':latest?'latest':'month';[epFrom,epTo]=epPeriod(epMode,today,latest);}
+ const stats=epMetrics(snapshot,model,epFrom,epTo,today),groups=stats.groups;
+ if(epEmployee!=='all'&&!groups.some(g=>g.id===epEmployee))epEmployee='all';
+ const scope=epEmployee==='all'?stats.team:groups.find(g=>g.id===epEmployee),rows=groups.filter(g=>(epEmployee==='all'||g.id===epEmployee)&&(g.id!=='unassigned'||g.total||g.followDone||g.followPending||g.undated));
+ const name=g=>g.id==='unassigned'?t('غير معيّن','Unassigned'):g.name||t('بدون اسم','Unnamed');
+ if(!rows.some(g=>g.id===epProfile))epProfile=rows.find(g=>g.total||g.followDone||g.followPending)?.id||rows[0]?.id||'';
+ const profile=rows.find(g=>g.id===epProfile);
+ const pct=g=>g.total?Math.round(g.completed/g.total*100):0;
+ const kpi=(label,value,bg,color)=>'<div class="ep-kpi" style="background:'+bg+';color:'+color+'"><small>'+html(label)+'</small><strong>'+html(value)+'</strong></div>';
+ const item=(label,value)=>'<div class="ep-detail-row"><span>'+html(label)+'</span><b>'+html(value)+'</b></div>';
+ const dateLabel=d=>d?calDate(d):'—';
+ const max=Math.max(1,...rows.map(g=>g.completed));
+ const chart=rows.map((g,i)=>'<button type="button" class="ep-barbtn" data-ep-profile="'+html(g.id)+'"><div class="ep-barlabel"><span>'+html(name(g))+'</span><b>'+g.completed+' '+html(t('عملية','cases'))+'</b></div><div class="ep-track"><div class="ep-fill" style="width:'+(g.completed/max*100)+'%;background:'+epPalette[i%epPalette.length]+'"></div></div></button>').join('');
+ const detail=profile?'<div class="ep-detail-head"><div class="ep-avatar">'+html(name(profile).slice(0,1))+'</div><div><b>'+html(name(profile))+'</b><div class="ep-note">'+html(t('ملف الأداء للفترة المحددة','Performance for selected period'))+'</div></div></div>'+
+ item(t('العملاء المختلفون (هاتف موحّد)','Distinct customers (normalized phone)'),profile.customers.size)+
+ item(t('إجمالي العمليات','Total cases'),profile.total)+item(t('العمليات المكتملة','Completed cases'),profile.completed)+item(t('قيد التنفيذ','In progress'),profile.pending)+item(t('العمليات الملغاة','Cancelled cases'),profile.cancelled)+
+ item(t('المتابعات المنجزة','Completed follow-ups'),profile.followDone)+item(t('المتابعات المتأخرة','Overdue follow-ups'),profile.followOverdue)+item(t('المتابعات المعلقة (تشمل المتأخرة)','Pending follow-ups (incl. overdue)'),profile.followPending)+
+ item(t('حصة PawApp من العمليات المكتملة','PawApp share from completed cases'),cash(profile.fee))+item(t('حصة PawApp المحصّلة','Collected PawApp share'),cash(profile.collected))+item(t('المبالغ المتبقية على العملاء','Outstanding client balances'),cash(profile.outstanding))+
+ item(t('عملاء جدد حسب أول خدمة مسجلة','New customers by first recorded service'),profile.fresh.size)+item(t('عملاء متكررون','Returning customers'),profile.returning.size)+item(t('عمليات بدون رقم صالح','Cases without valid phone'),profile.unknownPhone)+item(t('عمليات تحتاج مراجعة مالية','Cases requiring finance review'),profile.review)+
+ '<div class="ep-progress"><div class="ep-barlabel"><b>'+html(t('نسبة إنجاز العمليات','Completion rate'))+'</b><b style="color:#16834b">'+(profile.total?pct(profile)+'%':'—')+'</b></div><div class="ep-track"><div class="ep-fill" style="background:#26a469;width:'+pct(profile)+'%"></div></div></div>':'<div class="ep-empty">'+html(t('لا توجد بيانات موظفات في هذه الفترة.','No staff data for this period.'))+'</div>';
+ const modes=[['day',t('اليوم','Today')],['week',t('هذا الأسبوع','This week')],['month',t('هذا الشهر','This month')],['latest',t('آخر شهر فيه بيانات','Latest recorded month')],['all',t('كل الفترات','All time')],['custom',t('فترة مخصصة','Custom period')]];
+ const opts=(items,selected)=>items.map(([v,n])=>'<option value="'+html(v)+'" '+(v===selected?'selected':'')+'>'+html(n)+'</option>').join('');
+ pane.innerHTML='<div class="ep-head"><div><h1>'+html(t('أداء الموظفات','Employee Performance'))+'</h1><p>'+html(t('للإدارة فقط · بيانات TEST · توقيت الكويت','Admin only · TEST data · Kuwait time'))+'</p></div><button type="button" class="ep-button" id="epRefresh">'+html(t('تحديث','Refresh'))+'</button></div>'+
+ '<div class="ep-filters"><label>'+html(t('الفترة','Period'))+'<select id="epMode">'+opts(modes,epMode)+'</select></label><label>'+html(t('من','From'))+'<input type="date" id="epFrom" value="'+html(epFrom)+'"></label><label>'+html(t('إلى','To'))+'<input type="date" id="epTo" value="'+html(epTo)+'"></label><label>'+html(t('الموظفة','Employee'))+'<select id="epEmployee">'+opts([['all',t('جميع الموظفات','All staff')],...groups.map(g=>[g.id,name(g)])],epEmployee)+'</select></label></div>'+
+ '<p class="ep-note" id="epStatus">'+html((epFrom||epTo)?dateLabel(epFrom)+' – '+dateLabel(epTo):t('كل الفترات، بما فيها العمليات غير المؤرخة','All periods, including undated cases'))+' · '+html(t('تاريخ الخدمة أساس الفترة؛ حالة العملية الحالية هي المستخدمة.','Service date defines period; current case status is used.'))+'</p>'+
+ '<div class="ep-grid">'+kpi(t('إجمالي العمليات','Total cases'),scope.total,'#edf2ff','#244b9b')+kpi(t('العمليات المكتملة','Completed cases'),scope.completed,'#e8f6ed','#198249')+kpi(t('قيد التنفيذ','In progress'),scope.pending,'#fff5dc','#9a7317')+kpi(t('حصة PawApp المكتسبة','Earned PawApp share'),cash(scope.fee),'#f0eafa','#7951af')+'</div>'+
+ '<div class="ep-layout"><div class="ep-panel"><h2>'+html(t('مقارنة إنجاز العمليات','Completed cases comparison'))+'</h2><div class="ep-bars">'+(chart||'<div class="ep-empty">'+html(t('لا توجد عمليات','No cases'))+'</div>')+'</div><p class="ep-note">'+html(t('اضغطي على اسم الموظفة لعرض التفاصيل.','Select an employee to view details.'))+'</p></div><div class="ep-panel" id="epProfile"><h2>'+html(t('ملف أداء الموظفة','Employee profile'))+'</h2>'+detail+'</div></div>'+
+ '<div class="ep-panel"><h2>'+html(t('ملخص الفريق','Team summary'))+'</h2><div class="ep-tablewrap"><table class="ep-table"><thead><tr>'+[t('الموظفة','Employee'),t('العمليات','Cases'),t('مكتملة','Completed'),t('معلقة','Pending'),t('ملغاة','Cancelled'),t('الإنجاز','Completion'),t('حصة PawApp','PawApp share'),t('المحصّلة','Collected'),t('متابعات متأخرة','Overdue follow-ups')].map(x=>'<th>'+html(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(g=>'<tr class="'+(g.id===epProfile?'selected':'')+'"><td><button type="button" data-ep-profile="'+html(g.id)+'">'+html(name(g))+'</button></td><td>'+g.total+'</td><td>'+g.completed+'</td><td>'+g.pending+'</td><td>'+g.cancelled+'</td><td>'+(g.total?pct(g)+'%':'—')+'</td><td>'+html(cash(g.fee))+'</td><td>'+html(cash(g.collected))+'</td><td>'+g.followOverdue+'</td></tr>').join('')+'</tbody></table></div></div>'+
+ '<p class="ep-note">'+html(t('الإنجاز = المكتملة ÷ جميع العمليات بما فيها الملغاة. الحصة المكتسبة والمحصّلة من العمليات المكتملة ذات التسعير الصالح، وفق نموذج الحسابات الحالي؛ ليست صافي الربح أو إثبات تحصيل الموظفة بنفسها. العملاء محسوبون بالهاتف الصالح وقد يشتركون بين الموظفات. سرعة الإنجاز تحتاج سجل تواريخ المراحل.','Completion = completed ÷ all cases including cancelled. Earned and collected share uses completed, valid-priced cases and the existing finance model; not net profit or proof of who collected. Customers are deduplicated by valid phone and may overlap across staff. Completion speed requires stage timestamps.'))+' '+html(t('عمليات غير مؤرخة: ','Undated cases: ')+scope.undated+' · '+t('تحتاج مراجعة مالية: ','Finance review: ')+scope.review)+'</p>';
+ const bind=()=>{el('epFrom').value=epFrom;el('epTo').value=epTo;};
+ el('epMode').onchange=e=>{epMode=e.target.value;if(epMode!=='custom')[epFrom,epTo]=epPeriod(epMode,today,latest);renderEmployeePerformance();};
+ for(const id of ['epFrom','epTo'])el(id).onchange=()=>{const from=el('epFrom').value,to=el('epTo').value;if(from&&to&&from>to){el('epStatus').textContent=t('تاريخ البداية يجب أن يسبق النهاية.','Start date must not follow end date.');el('epStatus').className='ep-note ep-error';bind();return;}epMode='custom';epFrom=from;epTo=to;renderEmployeePerformance();};
+ el('epEmployee').onchange=e=>{epEmployee=e.target.value;epProfile='';renderEmployeePerformance();};
+ el('epRefresh').onclick=async()=>{try{await refresh();}catch(e){toast(t('تعذر تحديث الأداء','Could not refresh performance'));}};
+ pane.querySelectorAll('[data-ep-profile]').forEach(b=>b.onclick=()=>{epProfile=b.dataset.epProfile;renderEmployeePerformance();el('epProfile')?.scrollIntoView({block:'nearest',behavior:'smooth'});});
+}
+
+function render(){if(!snapshot)return;hydrate();renderDashboard();renderProviders();renderProvider();renderCases();renderFollowups();try{renderCalendar();}catch(e){console.warn('Calendar rendering unavailable',e);}try{renderEmployeePerformance();}catch(e){console.warn('Employee performance unavailable',e);}if(el('crm')?.classList.contains('active')&&typeof window.renderCRM==='function')window.renderCRM();try{window.PawMarketingRender?.(snapshot,model);}catch(e){console.warn('Marketing render unavailable',e);}}
 function dialog(){if(el('financeActionModal'))return;document.body.insertAdjacentHTML('beforeend','<div id="financeActionModal" class="modalBg"><div class="modal"><div class="modalHead"><h3 id="financeActionTitle"></h3><button class="close" onclick="closeModal(\'financeActionModal\')">×</button></div><div id="financeActionBody"></div><div id="financeActionError" class="hint" style="color:#b42318;margin:10px 0" role="alert"></div><button id="financeActionSave" class="btn primary" style="width:100%" onclick="pawFinanceSaveAction()"><!--paw-i18n-->حفظ وتحديث الحسابات</button></div></div>');}
 // Form intake is a separate, deliberately minimal flow: do not resubmit
 // the entire case and accidentally overwrite information from customer forms.
@@ -1044,10 +1164,10 @@ window.openProviderCRM=async function(id){
  renderProvider();
 };window.providerCases=window.openProviderCRM;
 window.showPage=async function(id){if(id==='admin'&&!window.pawIsAdmin()){toast('Admin only');return;}await legacyShowPage(id);
- if(['dashboard','providers','followups','cases','providerdetail','marketing','smartcalendar'].includes(id)){
+ if(['dashboard','providers','followups','cases','providerdetail','marketing','smartcalendar','admin'].includes(id)){
    try{await refresh();}catch(e){console.warn('Finance snapshot refresh failed',e);toast('تعذر تحديث الحسابات — جربي تحديث الصفحة');}
  }
- if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();
+ if(id==='admin')renderEmployeePerformance();if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();
 };
 setup();calInstall();await refresh();if(typeof fillProviders==='function')fillProviders();if(typeof fillStaff==='function')fillStaff();window.PAW_FINANCE_READY=true;window.PAW_FINANCE_VERSION='finance-v3';
 };

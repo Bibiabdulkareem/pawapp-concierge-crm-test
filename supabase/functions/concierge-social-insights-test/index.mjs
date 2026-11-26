@@ -94,6 +94,23 @@ async function campaigns(read, period) {
   };
 }
 
+async function whatsappMetrics() {
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (url !== 'https://fccvnotgsmxirhztveai.supabase.co' || !key) return { status: 'unavailable' };
+  try {
+    const metrics = await readJson(url + '/rest/v1/rpc/test_meta_whatsapp_metrics', {
+      apikey: key, Authorization: 'Bearer ' + key,
+    });
+    if (!['received', 'awaitingDelivery', 'delivered', 'failed'].every(
+      field => Number.isSafeInteger(metrics?.[field]) && metrics[field] >= 0
+    )) return { status: 'unavailable' };
+    return { status: 'available', ...metrics };
+  } catch {
+    return { status: 'unavailable' };
+  }
+}
+
 Deno.serve(async request => {
   if (request.method === 'OPTIONS') return response(null, 204);
   if (request.method !== 'POST') return response({ error: 'method_not_allowed' }, 405);
@@ -108,10 +125,11 @@ Deno.serve(async request => {
 
   const input = await request.json().catch(() => null);
   const period = adPeriods.has(input?.adPeriod) ? input.adPeriod : 'maximum';
-  const [ig, fb, ads] = await Promise.all([
+  const [ig, fb, ads, whatsapp] = await Promise.all([
     platformData('instagram', Deno.env.get('PAWAPP_TEST_META_INSTAGRAM_USER_TOKEN'), instagram),
     platformData('facebook', Deno.env.get('PAWAPP_TEST_META_FACEBOOK_PAGE_TOKEN'), facebook),
     platformData('metaAds', Deno.env.get('PAWAPP_TEST_META_ADS_USER_TOKEN'), read => campaigns(read, period)),
+    whatsappMetrics(),
   ]);
-  return response({ instagram: ig, facebook: fb, metaAds: ads });
+  return response({ instagram: ig, facebook: fb, metaAds: ads, whatsapp });
 });

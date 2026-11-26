@@ -750,7 +750,7 @@ function renderCalendar(){
 // TEST employee performance: attributed to the assigned employee, not the payment actor.
 const epDone=new Set(['appointment_completed','payment_completed','closed']);
 const epPalette=['#326bd7','#26a469','#e5b62c','#8754c0','#d45c8b','#438ca2'];
-let epTab='settings',epMode='month',epFrom='',epTo='',epEmployee='all',epProfile='';
+let epTab='performance',epMode='month',epFrom='',epTo='',epEmployee='all',epProfile='';
 const epAdmin=()=>window.PAWAPP_AUTH?.access?.role==='admin'&&window.pawIsAdmin?.()===true;
 function epDate(value){return calStamp(value)?.day||'';}
 function epBetween(day,from,to){return !!day&&(!from||day>=from)&&(!to||day<=to);}
@@ -813,16 +813,17 @@ function epMetrics(snap,fin,from,to,today){
  return {team,groups:[...groups.values()].sort((a,b)=>b.completed-a.completed||b.total-a.total||String(a.name).localeCompare(String(b.name)))};
 }
 function epInstall(){
- const host=el('admin');if(!host||el('pawEmployeeTabs'))return;
- const tabs=document.createElement('div');tabs.id='pawEmployeeTabs';tabs.className='ep-tabs';host.prepend(tabs);
- const pane=document.createElement('section');pane.id='pawEmployeePerformance';pane.hidden=true;tabs.after(pane);
+ const host=el('admin');if(!host)return;
+ let tabs=el('pawEmployeeTabs');if(!tabs){tabs=document.createElement('div');tabs.id='pawEmployeeTabs';tabs.className='ep-tabs';host.prepend(tabs);}
+ let pane=el('pawEmployeePerformance');if(!pane){pane=document.createElement('section');pane.id='pawEmployeePerformance';pane.hidden=true;tabs.after(pane);}
+ if(el('pawEmployeeStyle'))return;
  const style=document.createElement('style');style.id='pawEmployeeStyle';style.textContent=
  '#admin.ep-performance> :not(#pawEmployeeTabs):not(#pawEmployeePerformance){display:none!important}#pawEmployeePerformance[hidden],#pawEmployeeTabs[hidden]{display:none!important}.ep-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.ep-button{border:1px solid #dce5f2;background:white;color:#17396d;border-radius:10px;padding:9px 14px;font:inherit;font-weight:700;cursor:pointer}.ep-button.active{background:#17396d;color:white;border-color:#17396d}#pawEmployeePerformance{min-width:0;color:#17345e}.ep-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:14px 0}.ep-head h1{color:#15396f;margin:0}.ep-head p{font-size:12px;color:#61728b;margin:5px 0}.ep-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:12px 0}.ep-filters label{display:grid;gap:5px;font-size:12px;color:#526785;flex:1;min-width:120px}.ep-filters input,.ep-filters select{width:100%;min-width:0;box-sizing:border-box}.ep-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.ep-kpi{border-radius:13px;padding:14px;min-width:0;overflow-wrap:anywhere}.ep-kpi small{display:block;font-size:12px;line-height:1.4}.ep-kpi strong{display:block;font-size:clamp(19px,3vw,29px);margin-top:7px}.ep-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;margin:12px 0;align-items:start}.ep-panel{background:#fff;border:1px solid #e0e7f0;border-radius:15px;padding:16px;min-width:0}.ep-panel h2{font-size:17px;margin:0 0 12px}.ep-bars{display:grid;gap:12px}.ep-barbtn{display:block;width:100%;text-align:start;border:0;background:none;color:#17345e;font:inherit;cursor:pointer;padding:4px 0}.ep-barlabel{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:5px;font-size:13px}.ep-track{height:10px;background:#edf1f6;border-radius:20px;overflow:hidden}.ep-fill{height:100%;border-radius:20px}.ep-detail-head{display:flex;align-items:center;gap:10px;margin:0 0 12px}.ep-avatar{border-radius:50%;width:42px;height:42px;display:grid;place-items:center;font-weight:800;background:#e6edff;color:#3159a5;flex:none}.ep-detail-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #edf0f5;font-size:13px}.ep-detail-row span{color:#5e708a}.ep-detail-row b{text-align:end;overflow-wrap:anywhere}.ep-tablewrap{overflow-x:auto}.ep-table{width:100%;border-collapse:collapse;min-width:700px}.ep-table th,.ep-table td{padding:10px;text-align:start;white-space:nowrap;border-bottom:1px solid #e5ebf3;font-size:12px}.ep-table th{color:#526785}.ep-table button{font:inherit;border:0;background:none;color:#2459af;font-weight:700;cursor:pointer;padding:0}.ep-note{font-size:12px;line-height:1.6;color:#61728b}.ep-empty{padding:18px;text-align:center;color:#61728b}.ep-progress{margin-top:12px}.ep-error{color:#a42c39}.ep-table tr.selected{background:#f0f5ff}@media(max-width:850px){.ep-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ep-layout{grid-template-columns:1fr}.ep-panel{padding:12px}.ep-kpi{padding:10px}.ep-filters label{min-width:110px}.ep-head h1{font-size:20px}}';
  document.head.appendChild(style);
 }
 function renderEmployeePerformance(){
  epInstall();const host=el('admin'),tabs=el('pawEmployeeTabs'),pane=el('pawEmployeePerformance');if(!host||!tabs||!pane)return;
- if(!epAdmin()){tabs.hidden=true;pane.hidden=true;pane.replaceChildren();host.classList.remove('ep-performance');epTab='settings';return;}
+ if(!epAdmin()){tabs.hidden=true;pane.hidden=true;pane.replaceChildren();host.classList.remove('ep-performance');epTab='performance';return;}
  tabs.hidden=false;
  tabs.innerHTML='<button type="button" data-ep-tab="settings" class="ep-button '+(epTab==='settings'?'active':'')+'">'+html(t('إعدادات الإدارة','Administration settings'))+'</button><button type="button" data-ep-tab="performance" class="ep-button '+(epTab==='performance'?'active':'')+'">'+html(t('أداء الموظفات','Employee Performance'))+'</button>';
  tabs.querySelectorAll('[data-ep-tab]').forEach(b=>b.onclick=()=>{epTab=b.dataset.epTab;renderEmployeePerformance();});
@@ -866,6 +867,12 @@ function renderEmployeePerformance(){
  pane.querySelectorAll('[data-ep-profile]').forEach(b=>b.onclick=()=>{epProfile=b.dataset.epProfile;renderEmployeePerformance();el('epProfile')?.scrollIntoView({block:'nearest',behavior:'smooth'});});
 }
 
+window.pawEmployeePerformanceOpen=async function(){
+ if(!epAdmin())return;
+ epTab='performance';
+ if(!el('admin')?.classList.contains('active'))await window.showPage('admin');
+ else renderEmployeePerformance();
+};
 function render(){if(!snapshot)return;hydrate();renderDashboard();renderProviders();renderProvider();renderCases();renderFollowups();try{renderCalendar();}catch(e){console.warn('Calendar rendering unavailable',e);}try{renderEmployeePerformance();}catch(e){console.warn('Employee performance unavailable',e);}if(el('crm')?.classList.contains('active')&&typeof window.renderCRM==='function')window.renderCRM();try{window.PawMarketingRender?.(snapshot,model);}catch(e){console.warn('Marketing render unavailable',e);}}
 function dialog(){if(el('financeActionModal'))return;document.body.insertAdjacentHTML('beforeend','<div id="financeActionModal" class="modalBg"><div class="modal"><div class="modalHead"><h3 id="financeActionTitle"></h3><button class="close" onclick="closeModal(\'financeActionModal\')">×</button></div><div id="financeActionBody"></div><div id="financeActionError" class="hint" style="color:#b42318;margin:10px 0" role="alert"></div><button id="financeActionSave" class="btn primary" style="width:100%" onclick="pawFinanceSaveAction()"><!--paw-i18n-->حفظ وتحديث الحسابات</button></div></div>');}
 // Form intake is a separate, deliberately minimal flow: do not resubmit
@@ -1169,5 +1176,5 @@ window.showPage=async function(id){if(id==='admin'&&!window.pawIsAdmin()){toast(
  }
  if(id==='admin')renderEmployeePerformance();if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();
 };
-setup();calInstall();await refresh();if(typeof fillProviders==='function')fillProviders();if(typeof fillStaff==='function')fillStaff();window.PAW_FINANCE_READY=true;window.PAW_FINANCE_VERSION='finance-v3';
+setup();calInstall();epInstall();await refresh();if(typeof fillProviders==='function')fillProviders();if(typeof fillStaff==='function')fillStaff();window.PAW_FINANCE_READY=true;window.PAW_FINANCE_VERSION='finance-v3';
 };

@@ -5,7 +5,7 @@
     ['instagram', 'إنستغرام', 'Instagram', '#b24d89'],
     ['facebook', 'فيسبوك', 'Facebook', '#3478d4'],
     ['metaAds', 'إعلانات Meta', 'Meta Ads', '#2465ae'],
-    ['whatsapp', 'واتساب', 'WhatsApp', '#249366', 'نجح اختبار عينة', 'Sample received', 'باقي تجربة رسالة فعلية على رقم الاختبار.', 'A message to the test number still needs to be verified.'],
+    ['whatsapp', 'واتساب', 'WhatsApp', '#249366'],
     ['snapchat', 'سناب شات', 'Snapchat', '#d3a211', 'التطبيق جاهز', 'App registered', 'باقي تأكيد تبديل المفتاح ومعرّفي الشركة وحساب الإعلانات.', 'Confirm the replacement secret, Organization ID and Ad Account ID.'],
     ['tiktok', 'تيك توك', 'TikTok', '#5e5579', 'قيد المراجعة', 'In review', 'ناطرين رد تيك توك على طلب التطبيق.', 'Waiting for TikTok to review the application.'],
     ['youtube', 'يوتيوب', 'YouTube', '#ca5656', 'بانتظار بيانات الحساب', 'Account details needed', 'نحتاج رابط القناة أو Channel ID.', 'Provide the channel link or Channel ID.'],
@@ -57,6 +57,27 @@
         continue;
       }
       const platform = results?.[key];
+      if (key === 'whatsapp') {
+        add(tile, 'small', t('إحصائيات رقم الاختبار', 'Test number statistics'));
+        if (platform?.status === 'available') {
+          for (const [field, arLabel, enLabel] of [
+            ['received', 'الرسائل الواردة', 'Incoming messages'],
+            ['awaitingDelivery', 'بانتظار تأكيد التسليم', 'Awaiting delivery confirmation'],
+            ['delivered', 'تم تسليمها', 'Delivered'],
+            ['failed', 'تعذّر تسليمها', 'Delivery failed'],
+          ]) {
+            add(tile, 'small', t(arLabel, enLabel) + ' · ' + formatNumber.format(platform[field]));
+          }
+          const lastEvent = Date.parse(platform.lastEventAt);
+          add(tile, 'small', Number.isFinite(lastEvent)
+            ? t('آخر حدث مسجّل', 'Last recorded event') + ' · ' + formatTime.format(lastEvent)
+            : t('بانتظار أول حدث بعد تفعيل العدّاد.', 'Waiting for the first event since counting was enabled.'), 'hint');
+        } else {
+          add(tile, 'small', fetching ? t('جاري التحميل…', 'Loading…')
+            : t('تعذّر تحميل إحصائيات واتساب.', 'WhatsApp statistics could not be loaded.'), 'hint');
+        }
+        continue;
+      }
       if (key === 'metaAds') {
         const connected = platform?.status === 'connected';
         add(tile, 'small', connected ? t('متصل', 'Connected') : t('نجح اختبار القراءة', 'Read test passed'));
@@ -163,7 +184,7 @@
       results = data;
     } catch {
       failed = true;
-      if (results) results = { ...results, metaAds: null };
+      if (results) results = { ...results, metaAds: null, whatsapp: null };
     } finally {
       fetching = false;
       if (current()) render(current());

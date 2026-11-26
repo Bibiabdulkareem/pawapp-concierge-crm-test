@@ -32,8 +32,8 @@
       if(Date.now()-start>20000)throw new Error('تأخر تحميل النظام. أعيدي المحاولة.');
       await new Promise(resolve=>setTimeout(resolve,50));
     }
-    try{await script('social-platforms.js?v=1');}catch(e){console.warn('Optional platform insights unavailable',e);}
-    try{await script('marketing-ui.js?v=20261126-platforms');}catch(e){console.warn('Optional marketing module unavailable',e);}
+    try{await script('social-platforms.js?v=2');}catch(e){console.warn('Optional platform insights unavailable',e);}
+    try{await script('marketing-ui.js?v=20261126-meta-ads');}catch(e){console.warn('Optional marketing module unavailable',e);}
     await window.loadData();
     await window.PawFinanceInstall();
     await script('customer-phone-lookup.js?v=20261125-i18n3');

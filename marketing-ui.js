@@ -97,9 +97,11 @@ function render(){
  const tbody=el('tbody',undefined,'',table);for(const g of stats.groups){const row=el('tr',undefined,'',tbody);for(const v of [name(g.key),g.cases,g.phones.size,money(g.total),money(g.fee),money(g.collected)])el('td',v,'',row);}
  if(!stats.cases)el('p',tr('لا توجد نتائج للفترة المختارة.','No results for the selected period.'),'hint',b);
  el('p',tr('قد يظهر الرقم نفسه في عدة مصادر؛ لا تُجمع الأعداد المختلفة عبر المصادر. العمولات ليست صافي الربح.','The same phone can occur in multiple sources; distinct counts are not additive. Fees are not net profit.'),'hint',b);
+ if(!window.PawPlatformInsights || window.PAWAPP_AUTH?.access?.role!=='admin'){
  const ads=section(body,tr('إحصائيات الحملات المدفوعة','Paid campaign metrics'),tr('ستُعرض بعد تفعيل واجهات الإعلانات والتحقق من الإسناد. — تعني أن البيانات غير متاحة، وليس صفراً.','Available after ad API connections and verified attribution. A dash means unavailable, not zero.'));
  const ag=el('div',undefined,'pm-metrics',ads);
  for(const label of [tr('الوصول','Reach'),tr('الظهور','Impressions'),tr('التفاعل','Engagement'),tr('النقرات','Clicks'),tr('الإنفاق الإعلاني','Ad spend'),tr('العملاء المحتملون','Leads'),tr('الحجوزات المنسوبة للإعلانات','Attributed bookings'),tr('العائد الإعلاني','ROAS')])metric(ag,label,'—');
+ }
 }
 window.PawMarketingRender=function(snapshot,financeModel){data=snapshot;model=financeModel;ensure();if(root?.classList.contains('active'))render();};
 window.PawMarketingOpen=function(){render();};

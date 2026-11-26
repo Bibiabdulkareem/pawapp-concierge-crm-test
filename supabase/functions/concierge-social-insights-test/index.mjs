@@ -2,6 +2,7 @@ import verificationSnapshot from './verification-snapshot.json' with { type: 'js
 
 const origin = 'https://bibiabdulkareem.github.io';
 const graph = 'https://graph.facebook.com/v27.0';
+const adPeriods = new Set(['last_30d', 'last_90d', 'maximum']);
 const headers = {
   'Content-Type': 'application/json; charset=utf-8',
   'Cache-Control': 'no-store',
@@ -68,6 +69,31 @@ async function facebook(read) {
   return { daily: dailyValues(insights) };
 }
 
+async function campaigns(read, period) {
+  const query = new URLSearchParams({
+    level: 'campaign',
+    fields: 'campaign_name,account_currency,spend,impressions,clicks,date_start,date_stop',
+    date_preset: period,
+    limit: '25',
+  });
+  const insights = await read('act_1468094898365840/insights?' + query);
+  if (!Array.isArray(insights.data)) throw new Error('Invalid insights response');
+  const numeric = value => /^\d+(\.\d+)?$/.test(String(value)) && Number.isFinite(Number(value)) ? Number(value) : null;
+  return {
+    period,
+    hasMore: Boolean(insights.paging?.next),
+    campaigns: insights.data.map(row => ({
+      name: row.campaign_name,
+      currency: row.account_currency,
+      spend: numeric(row.spend),
+      impressions: numeric(row.impressions),
+      clicks: numeric(row.clicks),
+      from: row.date_start,
+      to: row.date_stop,
+    })),
+  };
+}
+
 Deno.serve(async request => {
   if (request.method === 'OPTIONS') return response(null, 204);
   if (request.method !== 'POST') return response({ error: 'method_not_allowed' }, 405);
@@ -80,9 +106,12 @@ Deno.serve(async request => {
     return response({ error: 'unauthorized' }, 401);
   }
 
-  const [ig, fb] = await Promise.all([
+  const input = await request.json().catch(() => null);
+  const period = adPeriods.has(input?.adPeriod) ? input.adPeriod : 'maximum';
+  const [ig, fb, ads] = await Promise.all([
     platformData('instagram', Deno.env.get('PAWAPP_TEST_META_INSTAGRAM_USER_TOKEN'), instagram),
     platformData('facebook', Deno.env.get('PAWAPP_TEST_META_FACEBOOK_PAGE_TOKEN'), facebook),
+    platformData('metaAds', Deno.env.get('PAWAPP_TEST_META_ADS_USER_TOKEN'), read => campaigns(read, period)),
   ]);
-  return response({ instagram: ig, facebook: fb });
+  return response({ instagram: ig, facebook: fb, metaAds: ads });
 });

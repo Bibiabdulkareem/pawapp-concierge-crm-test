@@ -906,7 +906,113 @@ window.pawEmployeePerformanceOpen=async function(){
  if(!el('admin')?.classList.contains('active'))await window.showPage('admin');
  else renderEmployeePerformance();
 };
-function render(){if(!snapshot)return;hydrate();renderDashboard();renderProviders();renderProvider();renderCases();renderFollowups();try{renderCalendar();}catch(e){console.warn('Calendar rendering unavailable',e);}try{renderEmployeePerformance();}catch(e){console.warn('Employee performance unavailable',e);}if(el('crm')?.classList.contains('active')&&typeof window.renderCRM==='function')window.renderCRM();try{window.PawMarketingRender?.(snapshot,model);}catch(e){console.warn('Marketing render unavailable',e);}}
+
+/* TEST Smart Reports — independent management report, no accounting writes. */
+let srTab='accounting',srMonth='',srLast=null;
+const srAllowed=()=>['admin','accountant'].includes(window.PAWAPP_AUTH?.access?.role);
+function srEnd(m){return calShift(calMonthShift(m+'-01',1),-1);}
+function srBuild(snap,fin,month,today,goals,employeeGoals){
+ const from=month+'-01',end=srEnd(month),to=end<today?end:today;
+ const done=new Set(['appointment_completed','payment_completed','closed']);
+ const inRange=l=>l.date>=from&&l.date<=to;
+ const rows=fin.lines.filter(l=>inRange(l)&&!l.cancelled&&done.has(l.raw?.workflow_status)&&l.total>0n&&!l.issues.some(x=>['invalid_price','price_split_mismatch'].includes(x)));
+ const total=F.summarize(rows),stats=epMetrics(snap,fin,from,to,today);
+ const goal=goals?(goals.get(month)??10000000n):null,target=goal!==null?monthlyTargetStats(fin.lines,month,today,goal):null;
+ const prevMonth=calMonthShift(from,-1).slice(0,7),prevEnd=srEnd(prevMonth),prevTo=to===end?prevEnd:calShift(prevMonth+'-01',Math.min(Number(today.slice(8,10)),Number(prevEnd.slice(8,10)))-1);
+ const prior=monthlyTargetStats(fin.lines,prevMonth,prevTo,1n).earned;
+ const growth=from<=today&&prior>0n?Number((total.paw-prior)*1000n/prior)/10:null;
+ const trend=Array.from({length:6},(_,i)=>{const m=calMonthShift(from,i-5).slice(0,7),x=monthlyTargetStats(fin.lines,m,today,1n);return{month:m,earned:x.earned,collected:x.collected};});
+ const providers=new Map((snap.providers||[]).map(p=>[String(p.id),p.name])),prov=new Map(),services=new Map();
+ for(const l of rows){const id=l.providerId||'missing';if(!prov.has(id))prov.set(id,{id,name:providers.get(id)||'',cases:new Set(),total:0n,paw:0n,collected:0n});const g=prov.get(id);g.cases.add(l.caseId);g.total+=l.total;g.paw+=l.paw;g.collected+=l.pawCollected;}
+ for(const l of fin.lines){if(l.component!=='main'||l.cancelled||!inRange(l))continue;const name=String(l.service||l.raw?.service_name||'').trim(),key=name.toLowerCase();if(!services.has(key))services.set(key,{name,cases:new Set(),completed:0});const g=services.get(key);g.cases.add(l.caseId);if(done.has(l.raw?.workflow_status))g.completed++;}
+ const staff=stats.groups.filter(g=>g.id!=='unassigned'||g.total||g.followPending||g.followDone).map(g=>({...g,goal:employeeGoals&&g.id!=='unassigned'?employeeGoals.get(g.id+'|'+month)??null:null}));
+ const issues=new Set(fin.lines.filter(l=>inRange(l)&&!l.cancelled&&l.issues.length).map(l=>l.caseId)).size,undated=(snap.cases||[]).filter(c=>!epDate(c.service_date)&&c.workflow_status!=='cancelled').length;
+ return{month,from,to,end,prevMonth,prevTo,total,stats:stats.team,goal,target,prior,growth,trend,providers:[...prov.values()].sort((a,b)=>a.paw>b.paw?-1:a.paw<b.paw?1:0),services:[...services.values()].sort((a,b)=>b.cases.size-a.cases.size),staff,issues,undated,unassigned:staff.find(g=>g.id==='unassigned'),excess:total.pawCollected>total.paw,remaining:total.paw>total.pawCollected?total.paw-total.pawCollected:0n,employeeGoalsAvailable:!!employeeGoals};
+}
+function srTables(r){
+ const unit=t('د.ك','DK'),amt=(a,b)=>t(a,b)+' ('+unit+')';
+ const staffHead=[t('الموظفة','Employee'),t('العمليات','Cases'),t('المكتملة','Completed'),amt('الحصة','Earned share'),amt('المحصلة','Collected share'),t('متابعات متأخرة','Overdue follow-ups')];
+ if(r.employeeGoalsAvailable)staffHead.push(amt('الهدف','Target'),t('نسبة الهدف','Target achievement'));
+ const staff=r.staff.map(g=>{const a=[g.name||t('غير معيّن','Unassigned'),g.total,g.completed,g.fee,g.collected,g.followOverdue];if(r.employeeGoalsAvailable)a.push(g.goal,g.goal>0n?epGoalStats(g.fee,g.goal).percent/100:null);return a;});
+ return [{name:t('المقارنة الشهرية','Monthly comparison'),header:[t('الشهر','Month'),amt('الحصة المكتسبة','Earned share'),amt('المحصلة','Collected share')],rows:r.trend.map(x=>[x.month,x.earned,x.collected])},
+ {name:t('مقدمو الخدمة','Providers'),header:[t('مقدم الخدمة','Provider'),t('عمليات مكتملة','Completed cases'),amt('قيمة الخدمات','Service value'),amt('حصة PawApp','Earned share'),amt('المحصلة','Collected')],rows:r.providers.map(g=>[g.name||t('غير محدد','Unspecified'),g.cases.size,g.total,g.paw,g.collected])},
+ {name:t('الخدمات الأكثر طلباً','Most requested services'),header:[t('الخدمة','Service'),t('طلبات غير ملغاة','Non-cancelled cases'),t('المكتملة','Completed')],rows:r.services.map(g=>[g.name||t('غير محددة','Unspecified'),g.cases.size,g.completed])},
+ {name:t('أداء الموظفات','Employee performance'),header:staffHead,rows:staff,pctCols:r.employeeGoalsAvailable?[7]:[]}];
+}
+function srSummary(r){
+ return [[t('الفترة من','Period from'),calDate(r.from)],[t('حتى','Through'),calDate(r.to)],[t('إجمالي قيمة الخدمات المكتملة','Completed service value'),r.total.total],[t('حصة PawApp المكتسبة','Earned PawApp share'),r.total.paw],[t('حصة PawApp المحصّلة','Collected PawApp share'),r.total.pawCollected],[t('الحصة المتبقية','Remaining share'),r.remaining],[t('الهدف الشهري','Monthly target'),r.goal],[t('نسبة الهدف','Target achievement'),r.target?r.target.percent/100:null,'pct'],[t('المتبقي للهدف','Target gap'),r.target?.remaining??null],[t('إجمالي العمليات','Cases'),r.stats.total],[t('مكتملة','Completed'),r.stats.completed],[t('قيد التنفيذ','In progress'),r.stats.pending],[t('ملغاة','Cancelled'),r.stats.cancelled],[t('عملاء جدد حسب أول خدمة مسجلة','New recorded customers'),r.stats.fresh.size],[t('عملاء متكررون','Returning customers'),r.stats.returning.size],[t('عمليات بدون هاتف صالح','Cases without valid phone'),r.stats.unknownPhone],[t('النمو مقابل الفترة السابقة المماثلة','Growth vs comparable prior period'),r.growth==null?null:r.growth/100,'pct'],[t('عمليات تحتاج مراجعة مالية','Cases requiring finance review'),r.issues],[t('عمليات غير مؤرخة (كل النظام)','Undated cases (all data)'),r.undated],[t('حصة عمليات غير معيّنة','Unassigned earned share'),r.unassigned?.fee??0n]];
+}
+function srMethod(){return t('تقرير إداري وليس دفتر تسويات أو صافي ربح. تاريخ الخدمة والحالة الحالية أساس الحساب. الحصة المكتسبة من العمليات المكتملة ذات التسعير الصالح. المحصّل وفق نموذج النظام وقد يشمل سجلات تاريخية وليس إثباتاً بنكياً. العمليات غير المؤرخة مستبعدة من الشهر. قد تتداخل أعداد مقدمي الخدمة بسبب النقل. العملاء حسب الهاتف الموحّد وأول خدمة مسجلة.','Management view, not a settlement ledger or net profit. Service date and current status define the period. Earned share uses completed, valid-priced lines. Collection follows the existing model and may include historical flags, not bank evidence. Undated cases are excluded. Provider counts may overlap due to transport. Customers use normalized phone and earliest recorded service.');}
+function srInsights(r){
+ const x=[],fmt=cash;
+ if(r.growth!==null)x.push(t('تغير الحصة مقارنة بالفترة السابقة المماثلة: ','Share change vs comparable prior period: ')+r.growth.toFixed(1)+'%');
+ if(r.target)x.push(r.target.remaining>0n?t('المبلغ اللازم لتحقيق الهدف: ','Remaining to reach goal: ')+fmt(r.target.remaining):t('تم تحقيق الهدف الشهري.','Monthly goal reached.'));
+ if(r.remaining>0n)x.push(t('حصة مكتسبة غير محصلة وفق النموذج: ','Earned share not collected per model: ')+fmt(r.remaining));
+ if(r.unassigned?.total)x.push(t('عمليات غير معيّنة لموظفة: ','Unassigned cases: ')+r.unassigned.total);
+ if(r.issues)x.push(t('عمليات تحتاج مراجعة مالية: ','Cases requiring finance review: ')+r.issues);
+ if(r.excess)x.push(t('المحصّل يتجاوز الحصة المكتسبة؛ يلزم مراجعة.','Collected exceeds earned share; review needed.'));
+ return x.length?x:[t('لا توجد مؤشرات إضافية.','No additional insights.')];
+}
+function srDisplay(v,pct=false){return v==null?'—':typeof v==='bigint'?cash(v):pct?(v*100).toFixed(1)+'%':String(v);}
+function srReportHtml(r){
+ const kpi=(name,v,bg,color)=>'<div class="sr-kpi" style="background:'+bg+';color:'+color+'"><span>'+html(name)+'</span><strong>'+html(srDisplay(v))+'</strong></div>';
+ const block=(name,b)=>'<section class="sr-block"><h2>'+html(name)+'</h2>'+b+'</section>';
+ const item=(name,v,p)=>'<div class="sr-item"><span>'+html(name)+'</span><b>'+html(srDisplay(v,p))+'</b></div>';
+ const max=r.trend.reduce((m,x)=>x.earned>m?x.earned:m,1n);
+ const chart='<div class="sr-chart">'+r.trend.map(x=>'<div class="sr-col"><span>'+html(F.format(x.earned))+'</span><div class="sr-barbox"><div class="sr-bar" style="height:'+Math.max(0,Number(x.earned*100n/max))+'%"></div></div><small>'+html(x.month)+'</small></div>').join('')+'</div>';
+ const tables=srTables(r).slice(1).map(x=>block(x.name,'<div class="sr-scroll"><table><thead><tr>'+x.header.map(y=>'<th>'+html(y)+'</th>').join('')+'</tr></thead><tbody>'+x.rows.map(row=>'<tr>'+row.map((v,i)=>'<td>'+html(srDisplay(v,x.pctCols?.includes(i)))+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>')).join('');
+ const summary=srSummary(r);
+ return '<div class="sr-title"><h1>PawApp | '+html(t('التقرير التنفيذي الذكي','Executive Smart Report'))+'</h1><p>'+html(t('TEST · تاريخ الخدمة · توقيت الكويت','TEST · service date · Kuwait time')+' · '+calDate(r.from)+' – '+calDate(r.to))+'</p></div>'+
+ '<div class="sr-grid">'+kpi(summary[2][0],r.total.total,'#edf2ff','#244b9b')+kpi(summary[3][0],r.total.paw,'#e8f6ed','#198249')+kpi(summary[4][0],r.total.pawCollected,'#f0eafa','#7951af')+kpi(summary[5][0],r.remaining,'#fff5dc','#9a7317')+'</div>'+
+ block(t('الهدف الشهري','Monthly goal'),r.target?'<div class="sr-target"><strong>'+html(r.target.percent.toFixed(1)+'%')+'</strong><span>'+html(cash(r.total.paw)+' / '+cash(r.goal))+'</span></div><div class="sr-track"><div style="width:'+Math.min(100,Math.max(0,r.target.percent))+'%"></div></div>'+item(t('المتبقي للهدف','Target gap'),r.target.remaining):html(t('تعذر تحميل الهدف الشهري','Monthly goal unavailable')))+
+ block(t('مقارنة الأشهر الستة — الحصة المكتسبة','Six-month comparison — earned share'),chart+'<p class="sr-note">'+html(t('الشهر الجاري حتى اليوم؛ النمو يقارن نفس عدد الأيام من الشهر السابق عندما يكون الشهر غير مكتمل.','Current month through today; growth compares matching elapsed days when the month is incomplete.'))+'</p>')+
+ '<div class="sr-two">'+block(t('ملخص العمليات والعملاء','Operations & customers'),summary.slice(9,17).map(x=>item(x[0],x[1],x[2]==='pct')).join(''))+block(t('ملاحظات ذكية','Smart insights'),'<ul class="sr-insights">'+srInsights(r).map(x=>'<li>'+html(x)+'</li>').join('')+'</ul>')+'</div>'+
+ tables+(!r.employeeGoalsAvailable?'<p class="sr-note">'+html(t('الأهداف الفردية متاحة للإدارة فقط؛ المحاسب يرى أداء الموظفات والحصص.','Individual targets are admin-only; the accountant sees employee performance and shares.'))+'</p>':'')+
+ '<p class="sr-note">'+html(srMethod()+' '+t('عمليات غير مؤرخة (كل النظام): ','Undated cases (all data): ')+r.undated)+'</p>';
+}
+const srCss='.sr-tabs,.sr-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0}.sr-btn{padding:10px 14px;border-radius:10px;border:1px solid #dce5f2;background:#fff;color:#17396d;font:inherit;font-weight:700;cursor:pointer}.sr-btn.active{background:#17396d;color:white;border-color:#17396d}.sr-title h1{color:#15396f;margin:10px 0 4px;font-size:23px}.sr-title p,.sr-note{font-size:12px;line-height:1.7;color:#53667e}.sr-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.sr-kpi{padding:14px;border-radius:12px;min-width:0;overflow-wrap:anywhere}.sr-kpi span{display:block;font-size:12px}.sr-kpi strong{display:block;font-size:clamp(17px,2.5vw,26px);margin-top:7px}.sr-block{border:1px solid #e0e7f0;background:white;border-radius:14px;padding:14px;margin:12px 0;min-width:0}.sr-block h2{font-size:16px;color:#15396f;margin:0 0 10px}.sr-target,.sr-item{display:flex;justify-content:space-between;align-items:center;gap:12px}.sr-target strong{font-size:25px;color:#198249}.sr-track{height:10px;border-radius:12px;background:#e9eef4;overflow:hidden;margin:10px 0}.sr-track div{height:100%;background:#26a469;border-radius:12px}.sr-chart{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;direction:ltr;text-align:center}.sr-col{min-width:0;font-size:10px;overflow-wrap:anywhere}.sr-barbox{height:110px;display:flex;align-items:flex-end;justify-content:center;background:#f4f7fc;border-radius:6px;margin:4px 0}.sr-bar{width:65%;background:#3159a5;border-radius:5px 5px 0 0}.sr-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sr-item{padding:7px 0;border-bottom:1px solid #edf0f5;font-size:13px}.sr-insights{padding-inline-start:20px;font-size:13px;line-height:1.7}.sr-insights li{margin:8px 0}.sr-scroll{overflow-x:auto}.sr-scroll table{width:100%;border-collapse:collapse;min-width:480px}.sr-scroll td,.sr-scroll th{padding:8px;border-bottom:1px solid #e5ebf3;font-size:12px;text-align:start;white-space:nowrap}.sr-scroll th{color:#53667e;background:#f4f7fb}#reports.sr-show> :not(#pawSmartTabs):not(#pawSmartReport){display:none!important}#pawSmartReport[hidden],#pawSmartTabs[hidden]{display:none!important}@media(max-width:780px){.sr-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sr-two{grid-template-columns:1fr}.sr-block{padding:10px}.sr-kpi{padding:10px}}';
+function srInstall(){
+ const host=el('reports');if(!host)return;
+ if(!el('pawSmartTabs')){const tabs=document.createElement('div');tabs.id='pawSmartTabs';tabs.className='sr-tabs';host.prepend(tabs);}
+ if(!el('pawSmartReport')){const pane=document.createElement('section');pane.id='pawSmartReport';pane.hidden=true;el('pawSmartTabs').after(pane);}
+ if(!el('pawSmartStyle')){const style=document.createElement('style');style.id='pawSmartStyle';style.textContent=srCss;document.head.appendChild(style);}
+}
+function srExportData(r){
+ const conv=v=>v==null?'':typeof v==='bigint'?Number(F.format(v)):v;
+ const rows=srSummary(r),summary={name:t('الملخص','Summary'),rows:[[t('المؤشر','Metric'),t('القيمة (د.ك للمبالغ)','Value (DK for amounts)')],...rows.map(x=>[x[0],conv(x[1])]),[t('المنهجية','Method'),srMethod()]],pctCells:rows.flatMap((x,i)=>x[2]==='pct'?[{r:i+1,c:1}]:[])};
+ const tables=srTables(r).map(x=>({name:x.name,rows:[x.header,...x.rows.map(row=>row.map(conv))],pctCells:x.rows.flatMap((row,i)=>(x.pctCols||[]).map(c=>({r:i+1,c})))}));
+ return [summary,...tables];
+}
+function srExportExcel(){
+ if(!srAllowed()||!srLast)return;
+ if(!window.XLSX){toast(t('مكتبة Excel غير متاحة.','Excel library unavailable.'));return;}
+ const X=window.XLSX,wb=X.utils.book_new();
+ for(const sheet of srExportData(srLast)){const ws=X.utils.aoa_to_sheet(sheet.rows);for(const c of sheet.pctCells){const key=X.utils.encode_cell(c);if(ws[key]?.t==='n')ws[key].z='0.0%';}ws['!cols']=sheet.rows[0].map((_,i)=>({wch:i===0?40:22}));X.utils.book_append_sheet(wb,ws,sheet.name.slice(0,31));}
+ X.writeFile(wb,'PawApp-Executive-TEST-'+srLast.month+'.xlsx');
+}
+function srPrint(){
+ if(!srAllowed()||!srLast)return;
+ const w=window.open('','_blank');if(!w){toast(t('اسمحي بفتح نافذة الطباعة.','Allow the print window to open.'));return;}
+ const lang=window.PawI18n?.language==='en'?'en':'ar';
+ w.document.open();w.document.write('<!doctype html><html lang="'+lang+'" dir="'+(lang==='en'?'ltr':'rtl')+'"><head><meta charset="utf-8"><title>PawApp Executive TEST '+html(srLast.month)+'</title><style>'+srCss+' body{font:13px Arial,sans-serif;color:#17345e;margin:16px} .sr-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.sr-scroll{overflow:visible}.sr-scroll table{min-width:0}.sr-scroll td,.sr-scroll th{white-space:normal}.sr-block{break-inside:auto}.sr-kpi,tr,.sr-chart{break-inside:avoid} @page{size:A4;margin:12mm}@media print{body{margin:0}.sr-print-button{display:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><button class="sr-btn sr-print-button" onclick="window.print()">'+html(t('طباعة / حفظ PDF','Print / Save as PDF'))+'</button>'+srReportHtml(srLast)+'</body></html>');w.document.close();w.focus();
+}
+function renderSmartReports(){
+ srInstall();const host=el('reports'),tabs=el('pawSmartTabs'),pane=el('pawSmartReport');if(!host||!tabs||!pane)return;
+ if(!srAllowed()){tabs.hidden=true;pane.hidden=true;pane.replaceChildren();host.classList.remove('sr-show');srLast=null;srTab='accounting';return;}
+ tabs.hidden=false;tabs.innerHTML='<button type="button" data-sr-tab="accounting" class="sr-btn '+(srTab==='accounting'?'active':'')+'">'+html(t('تقرير المحاسب','Accountant report'))+'</button><button type="button" data-sr-tab="smart" class="sr-btn '+(srTab==='smart'?'active':'')+'">'+html(t('التقارير الذكية','Smart Reports'))+'</button>';
+ tabs.querySelectorAll('[data-sr-tab]').forEach(b=>b.onclick=()=>{srTab=b.dataset.srTab;renderSmartReports();});
+ host.classList.toggle('sr-show',srTab==='smart');pane.hidden=srTab!=='smart';
+ if(pane.hidden||!host.classList.contains('active')||!snapshot||!model){pane.replaceChildren();srLast=null;return;}
+ const today=localDate();
+ if(!srMonth){const dates=(snapshot.cases||[]).map(c=>epDate(c.service_date)).filter(d=>d&&d<=today).sort();srMonth=dates.some(d=>d.slice(0,7)===today.slice(0,7))?today.slice(0,7):(dates.at(-1)||today).slice(0,7);}
+ srLast=srBuild(snapshot,model,srMonth,today,targetError?null:targetRows,epAdmin()?epTargetRows:null);
+ pane.innerHTML='<div class="sr-controls"><label>'+html(t('الشهر','Month'))+' <input id="srMonth" type="month" min="2000-01" max="'+today.slice(0,7)+'" value="'+html(srMonth)+'"></label><button id="srRefresh" type="button" class="sr-btn">'+html(t('تحديث','Refresh'))+'</button><button id="srExcel" type="button" class="sr-btn active">'+html(t('تصدير Excel','Export Excel'))+'</button><button id="srPdf" type="button" class="sr-btn">'+html(t('طباعة / حفظ PDF','Print / Save PDF'))+'</button></div>'+srReportHtml(srLast);
+ el('srMonth').onchange=e=>{if(/^\d{4}-(0[1-9]|1[0-2])$/.test(e.target.value)&&e.target.value<=today.slice(0,7)){srMonth=e.target.value;renderSmartReports();}else e.target.value=srMonth;};
+ el('srRefresh').onclick=async()=>{try{await refresh();}catch(e){toast(t('تعذر تحديث التقرير','Unable to refresh report'));}};
+ el('srExcel').onclick=srExportExcel;el('srPdf').onclick=srPrint;
+}
+
+function render(){if(!snapshot)return;hydrate();renderDashboard();renderProviders();renderProvider();renderCases();renderFollowups();try{renderCalendar();}catch(e){console.warn('Calendar rendering unavailable',e);}try{renderEmployeePerformance();}catch(e){console.warn('Employee performance unavailable',e);}try{renderSmartReports();}catch(e){console.warn('Smart reports unavailable',e);}if(el('crm')?.classList.contains('active')&&typeof window.renderCRM==='function')window.renderCRM();try{window.PawMarketingRender?.(snapshot,model);}catch(e){console.warn('Marketing render unavailable',e);}}
 function dialog(){if(el('financeActionModal'))return;document.body.insertAdjacentHTML('beforeend','<div id="financeActionModal" class="modalBg"><div class="modal"><div class="modalHead"><h3 id="financeActionTitle"></h3><button class="close" onclick="closeModal(\'financeActionModal\')">×</button></div><div id="financeActionBody"></div><div id="financeActionError" class="hint" style="color:#b42318;margin:10px 0" role="alert"></div><button id="financeActionSave" class="btn primary" style="width:100%" onclick="pawFinanceSaveAction()"><!--paw-i18n-->حفظ وتحديث الحسابات</button></div></div>');}
 // Form intake is a separate, deliberately minimal flow: do not resubmit
 // the entire case and accidentally overwrite information from customer forms.
@@ -1204,10 +1310,10 @@ window.openProviderCRM=async function(id){
  renderProvider();
 };window.providerCases=window.openProviderCRM;
 window.showPage=async function(id){if(id==='admin'&&!window.pawIsAdmin()){toast('Admin only');return;}await legacyShowPage(id);
- if(['dashboard','providers','followups','cases','providerdetail','marketing','smartcalendar','admin'].includes(id)){
+ if(['dashboard','providers','followups','cases','providerdetail','marketing','smartcalendar','admin','reports'].includes(id)){
    try{await refresh();}catch(e){console.warn('Finance snapshot refresh failed',e);toast('تعذر تحديث الحسابات — جربي تحديث الصفحة');}
  }
- if(id==='admin')renderEmployeePerformance();if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();
+ if(id==='reports')renderSmartReports();if(id==='admin')renderEmployeePerformance();if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();
 };
-setup();calInstall();epInstall();await refresh();if(typeof fillProviders==='function')fillProviders();if(typeof fillStaff==='function')fillStaff();window.PAW_FINANCE_READY=true;window.PAW_FINANCE_VERSION='finance-v3';
+setup();calInstall();epInstall();srInstall();await refresh();if(typeof fillProviders==='function')fillProviders();if(typeof fillStaff==='function')fillStaff();window.PAW_FINANCE_READY=true;window.PAW_FINANCE_VERSION='finance-v3';
 };

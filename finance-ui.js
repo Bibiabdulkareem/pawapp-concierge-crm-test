@@ -1316,4 +1316,17 @@ window.showPage=async function(id){if(id==='admin'&&!window.pawIsAdmin()){toast(
  if(id==='reports')renderSmartReports();if(id==='admin')renderEmployeePerformance();if(id==='dashboard')renderDashboard();if(id==='providers')renderProviders();if(id==='cases')renderCases();if(id==='followups')renderFollowups();
 };
 setup();calInstall();epInstall();srInstall();await refresh();if(typeof fillProviders==='function')fillProviders();if(typeof fillStaff==='function')fillStaff();window.PAW_FINANCE_READY=true;window.PAW_FINANCE_VERSION='finance-v3';
+try {
+ window.PawDashboardAssistant?.({
+  allowed:()=>srAllowed()&&!!window.PAWAPP_AUTH?.session,
+  today:localDate,cash,refresh,
+  goalPercent:(earned,goal)=>epGoalStats(earned,goal).percent,
+  report:month=>{
+   const today=localDate();
+   if(!srAllowed()||!window.PAWAPP_AUTH?.session||!snapshot||!model||!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)||month<'2000-01'||month>today.slice(0,7))throw Error('Report unavailable');
+   return srBuild(snapshot,model,month,today,targetError?null:targetRows,epAdmin()?epTargetRows:null);
+  }
+ });
+}catch(e){console.warn('TEST dashboard assistant unavailable',e);}
+
 };

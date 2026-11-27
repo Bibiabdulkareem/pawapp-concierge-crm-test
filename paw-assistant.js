@@ -6,16 +6,61 @@ const t=(ar,en)=>window.PawI18n?.t(ar,en)??ar;
 const e=id=>document.getElementById(id);
 const make=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt)n.textContent=txt;return n;};
 const questions=[
- ['summary','ملخص الشهر','Monthly summary'],['earned','كم حصة PawApp؟','Earned PawApp share'],
- ['collected','كم تم تحصيله؟','Collected share'],['target','كم باقي على الهدف؟','Monthly target'],
- ['provider','أعلى مقدم خدمة','Top provider'],['staff','أداء الموظفات','Employee performance'],
+ ['summary','ملخص أداء الشركة هذا الشهر','Company performance summary'],['earned','كم حصة PawApp؟','Earned PawApp share'],
+ ['collected','كم تم تحصيله؟','Collected share'],['target','كم تبقى على الهدف الشهري؟','How far from the monthly target?'],
+ ['provider','أكثر شركة تحقق لنا إيرادات','Top provider by earned share'],['services','أكثر خدمة عليها طلب','Most requested service'],['staff','أداء الموظفات','Employee performance'],
  ['customers','العملاء الجدد والمتكررون','New and returning customers'],['review','شنو يحتاج متابعة؟','What needs review?']
 ];
-const css=make('style');css.textContent=
- '#pawAssistantLaunch{position:fixed;right:18px;bottom:86px;width:74px;height:66px;z-index:44;border:0;background:none;cursor:pointer;padding:0;overflow:hidden;mix-blend-mode:multiply;isolation:auto}#pawAssistantLaunch[hidden]{display:none!important}#pawAssistantLaunch img{display:block;position:absolute;width:154%;height:auto;max-width:none;left:-27%;top:-49%;pointer-events:none}#pawAssistantLaunch:focus-visible{outline:3px solid #0c3b78;outline-offset:3px;border-radius:12px}'+
- '#pawAssistantDialog{width:min(650px,100%);max-width:100%;max-height:90dvh;margin:auto;border:0;border-radius:20px;padding:0;background:#f4f7fb;color:#10233d;box-shadow:0 15px 45px #082b5940}#pawAssistantDialog::backdrop{background:#082b5966}#pawAssistantDialog .pa-head{display:flex;align-items:center;gap:12px;background:#0c3b78;color:white;padding:16px}#pawAssistantDialog h2{flex:1;margin:0;font-size:18px}#pawAssistantDialog .pa-close{border:0;background:#ffffff22;color:white;border-radius:10px;width:42px;height:42px;font-size:24px;cursor:pointer}'+
- '#pawAssistantDialog .pa-main{padding:18px;display:grid;gap:12px}#pawAssistantDialog .pa-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}#pawAssistantDialog .pa-grid button{background:white;border:1px solid #d9e2ec;border-radius:12px;padding:12px;text-align:start;color:#0c3b78;font-weight:650;cursor:pointer}#pawAssistantDialog .pa-grid button[aria-pressed=true]{background:#e9f1ff;border-color:#0c3b78}#pawAssistantDialog .pa-result{background:white;border:1px solid #e3e9f0;border-radius:14px;padding:15px;white-space:pre-line;line-height:1.7;overflow-wrap:anywhere}#pawAssistantDialog label,#pawAssistantDialog form{display:flex;gap:8px;align-items:center}#pawAssistantDialog input{min-width:0;background:white;color:#10233d;border:1px solid #d9e2ec;border-radius:10px;padding:10px}#pawAssistantDialog form input{flex:1;width:0}#pawAssistantDialog .pa-note{font-size:12px;color:#6f8094;margin:0;line-height:1.55}'+
- '@media(min-width:900px){#pawAssistantLaunch{right:28px;bottom:22px;width:94px;height:84px}#pawAssistantDialog{position:fixed;inset:0 0 0 auto;margin:0;width:min(500px,100%);height:100dvh;max-height:100dvh;border-radius:20px 0 0 20px}}@media(max-width:600px){#pawAssistantDialog{inset:0;margin:0;width:100%;height:100dvh;max-height:100dvh;border-radius:0}#pawAssistantDialog .pa-main{padding:14px;padding-bottom:max(20px,env(safe-area-inset-bottom))}#pawAssistantDialog .pa-head{padding-top:max(14px,env(safe-area-inset-top))}#pawAssistantDialog .pa-grid button{font-size:13px}}';
+
+const css=make('style');
+css.textContent=
+'#pawAssistantLaunch{position:fixed;right:18px;bottom:86px;width:74px;height:66px;z-index:44;border:0;background:none;cursor:pointer;padding:0;overflow:hidden;mix-blend-mode:multiply;isolation:auto}#pawAssistantLaunch[hidden]{display:none!important}#pawAssistantLaunch img{display:block;position:absolute;width:154%;height:auto;max-width:none;left:-27%;top:-49%;pointer-events:none}#pawAssistantLaunch:focus-visible{outline:3px solid #0c3b78;outline-offset:3px;border-radius:12px}'+
+`#pawAssistantDialog{--pa-navy:#082b59;--pa-blue:#0c3b78;--pa-yellow:#ffd400;position:fixed;inset:0 0 0 auto;width:min(470px,100%);max-width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;border-radius:24px 0 0 24px;padding:0;background:#fbfcff;color:var(--pa-navy);box-shadow:-12px 0 50px #082b592a;overflow:hidden;font-family:inherit}
+#pawAssistantDialog[open]{display:flex;flex-direction:column}
+#pawAssistantDialog::backdrop{background:#10233d3d}
+#pawAssistantDialog *,#pawAssistantDialog *::before,#pawAssistantDialog *::after{box-sizing:border-box}
+#pawAssistantDialog .pa-head{position:relative;flex:none;display:flex;align-items:center;justify-content:center;gap:14px;padding:26px 46px 15px;background:radial-gradient(ellipse at 50% 18%,#fff4d5 0%,#fbfcff 70%);text-align:start}
+#pawAssistantDialog .pa-close{position:absolute;top:12px;inset-inline-end:12px;border:0;background:transparent;color:var(--pa-navy);border-radius:50%;width:38px;height:38px;font-size:27px;line-height:1;cursor:pointer}
+#pawAssistantDialog .pa-avatar{position:relative;flex:none;width:84px;height:84px;border-radius:50%;background:#fff1b8;border:3px solid var(--pa-yellow);overflow:hidden;box-shadow:0 4px 12px #c99b001c}
+#pawAssistantDialog .pa-avatar img{position:absolute;width:154%;height:auto;max-width:none;left:-27%;top:-40%;mix-blend-mode:multiply;pointer-events:none}
+#pawAssistantDialog .pa-brand{min-width:0}
+#pawAssistantDialog h2{font-size:28px;line-height:1.1;letter-spacing:-.6px;font-weight:850;color:var(--pa-navy);margin:0 0 5px}
+#pawAssistantDialog .pa-subtitle{margin:0;font-size:13px;font-weight:750}
+#pawAssistantDialog .pa-main{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:14px;padding:4px 20px 18px;scrollbar-width:thin}
+#pawAssistantDialog .pa-greeting{background:#f0f2fa;border:1px solid #e9edf7;border-radius:17px;padding:15px 16px;line-height:1.7;font-size:14px;box-shadow:0 3px 9px #0c3b7808}
+#pawAssistantDialog .pa-greeting strong{display:block;font-size:15px;margin-bottom:2px}
+#pawAssistantDialog .pa-greeting p{margin:0}
+#pawAssistantDialog .pa-period{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:650;color:#64748b}
+#pawAssistantDialog .pa-period input{min-width:0;max-width:65%;padding:6px 8px;border:1px solid #e0e6ef;border-radius:10px;background:white;color:var(--pa-navy);font-size:12px}
+#pawAssistantDialog .pa-question-title{font-size:14px;font-weight:800;margin:0 0 8px}
+#pawAssistantDialog .pa-grid{display:grid;grid-template-columns:1fr;gap:8px}
+#pawAssistantDialog .pa-grid button{display:flex;align-items:center;gap:10px;width:100%;border:1px solid #edf0f6;border-radius:15px;padding:9px 11px;background:#fff;box-shadow:0 3px 8px #12386c0d;text-align:start;color:var(--pa-navy);font-size:13px;font-weight:750;cursor:pointer;min-height:46px}
+#pawAssistantDialog .pa-grid button:hover,#pawAssistantDialog .pa-grid button[aria-pressed=true]{background:#eef4ff;border-color:#a8c5ee}
+#pawAssistantDialog .pa-symbol{display:grid;place-items:center;flex:none;width:31px;height:31px;border-radius:50%;background:var(--pa-icon-bg,#e5efff);color:var(--pa-icon-color,#1760c6)}
+#pawAssistantDialog .pa-symbol svg{width:18px;height:18px}
+#pawAssistantDialog .pa-qtext{flex:1;min-width:0;line-height:1.4}
+#pawAssistantDialog .pa-chevron{flex:none;color:var(--pa-navy);font-size:19px;font-weight:500;line-height:1}
+#pawAssistantDialog .pa-more{margin-top:9px}
+#pawAssistantDialog .pa-more summary{cursor:pointer;color:#42628c;font-size:12px;font-weight:700;padding:4px 2px}
+#pawAssistantDialog .pa-more .pa-grid{margin-top:8px}
+#pawAssistantDialog .pa-result{background:white;border:1px solid #dce7f7;border-radius:15px;padding:14px;white-space:pre-line;font-size:13px;line-height:1.7;overflow-wrap:anywhere;box-shadow:0 3px 10px #0c3b7809}
+#pawAssistantDialog .pa-result[hidden]{display:none}
+#pawAssistantDialog .pa-footer{flex:none;background:#fbfcff;border-top:1px solid #eaf0f8;padding:12px 20px max(12px,env(safe-area-inset-bottom))}
+#pawAssistantDialog form{display:flex;align-items:center;gap:9px;margin:0}
+#pawAssistantDialog .pa-input-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:0;background:white;border:1px solid #dce5f2;border-radius:28px;padding:4px 12px;box-shadow:0 3px 9px #0c3b7809}
+#pawAssistantDialog .pa-input-wrap svg{width:20px;height:20px;color:#eab600;flex:none}
+#pawAssistantDialog form input{flex:1;width:0;min-width:0;border:0;background:transparent;color:var(--pa-navy);padding:9px 0;outline:none;font-size:16px}
+#pawAssistantDialog .pa-input-wrap:focus-within{outline:2px solid #91acd0}
+#pawAssistantDialog form input::placeholder{color:#7c8798;font-size:13px}
+#pawAssistantDialog .pa-send{display:grid;place-items:center;flex:none;width:44px;height:44px;border:0;border-radius:50%;background:var(--pa-navy);color:white;cursor:pointer}
+#pawAssistantDialog .pa-send svg{width:21px;height:21px}
+#pawAssistantDialog .pa-note{font-size:10px;color:#68788e;line-height:1.45;margin:8px 0 0}
+#pawAssistantDialog button:focus-visible,#pawAssistantDialog summary:focus-visible{outline:2px solid #1760c6;outline-offset:2px}
+@media(min-width:900px){#pawAssistantLaunch{right:28px;bottom:22px;width:94px;height:84px}}
+@media(max-width:600px){#pawAssistantDialog{inset:0;margin:0;width:100%;border-radius:0}#pawAssistantDialog .pa-head{flex-direction:column;text-align:center;gap:8px;padding: max(18px,env(safe-area-inset-top)) 44px 12px}#pawAssistantDialog .pa-avatar{width:96px;height:96px}#pawAssistantDialog .pa-head h2{font-size:27px}#pawAssistantDialog .pa-close{top:max(10px,env(safe-area-inset-top))}#pawAssistantDialog .pa-main{padding:4px 15px 14px;gap:11px}#pawAssistantDialog .pa-footer{padding-inline:15px}#pawAssistantDialog .pa-grid button{min-height:44px}}
+@media(max-height:670px) and (max-width:600px){#pawAssistantDialog .pa-avatar{width:67px;height:67px}#pawAssistantDialog .pa-head{gap:4px;padding-bottom:8px}#pawAssistantDialog .pa-head h2{font-size:23px}#pawAssistantDialog .pa-greeting{padding:10px 12px}#pawAssistantDialog .pa-main{gap:9px}}
+@media(prefers-reduced-motion:reduce){#pawAssistantDialog *{scroll-behavior:auto!important}}
+`;
 document.head.append(css);
 const launch=make('button');launch.id='pawAssistantLaunch';launch.type='button';launch.hidden=true;
 // Original Dr. Boo artwork from the PawApp Pop Up Play project.
@@ -35,6 +80,7 @@ function response(key,r){
  case 'collected':lines=[t('المحصّل حسب نموذج النظام: ','Collected per system model: ')+money(r.total.pawCollected),t('الحصة المتبقية: ','Remaining share: ')+money(r.remaining)];if(r.excess)lines.push(t('المحصّل يتجاوز المكتسب؛ يلزم مراجعة.','Collected exceeds earned; review needed.'));break;
  case 'target':lines=r.target?[t('الهدف: ','Target: ')+money(r.goal),t('المتبقي: ','Remaining: ')+money(r.target.remaining),t('نسبة الإنجاز: ','Achievement: ')+(Number.isFinite(r.target.percent)?r.target.percent.toFixed(1)+'%':'—')]: [t('بيانات الهدف غير متاحة.','Target unavailable.')];break;
  case 'provider':lines=top&&top.paw>0n?[top.name||t('غير محدد','Unspecified'),t('الحصة المكتسبة: ','Earned share: ')+money(top.paw),t('العمليات المكتملة: ','Completed cases: ')+top.cases.size]:[none];break;
+ case 'services':{const svc=r.services?.[0];lines=svc&&svc.cases.size?[svc.name||t('غير محددة','Unspecified'),t('عدد الطلبات غير الملغاة: ','Non-cancelled requests: ')+svc.cases.size,t('المكتملة: ','Completed: ')+svc.completed]:[none];break;}
  case 'staff':lines=r.staff.length?r.staff.map(g=>(g.name||t('غير معيّن','Unassigned'))+' · '+g.completed+' '+t('مكتملة','completed')+' · '+money(g.fee)+' · '+g.followOverdue+' '+t('متابعة متأخرة','overdue')+(r.employeeGoalsAvailable&&g.goal>0n?' · '+api.goalPercent(g.fee,g.goal).toFixed(1)+'% '+t('من الهدف','of target'):'')):[none];break;
  case 'customers':lines=[t('عملاء جدد حسب أول خدمة مسجلة: ','New recorded customers: ')+r.stats.fresh.size,t('عملاء متكررون: ','Returning customers: ')+r.stats.returning.size,t('عمليات دون رقم صالح: ','Cases without valid phone: ')+r.stats.unknownPhone];break;
  case 'review':lines=[t('عمليات تحتاج مراجعة مالية: ','Cases requiring finance review: ')+r.issues,t('عمليات غير مؤرخة (كل النظام): ','Undated cases (all data): ')+r.undated,t('حصة غير محصلة: ','Uncollected share: ')+money(r.remaining)];break;
@@ -49,6 +95,7 @@ function classify(q){
  if(/net profit|صافي الربح|صافي ربح/.test(q))return '';
  if(/target|goal|هدف|تارغت|تارقت/.test(q))return 'target';
  if(/employee|staff|موظف/.test(q))return 'staff';
+ if(/most requested|popular service|top service|اكثر خدمة|اكثر الخدمات|خدمة عليها طلب/.test(q))return 'services';
  if(/top provider|provider|clinic|عياد|شرك|مقدم خدمة/.test(q))return 'provider';
  if(/customer|client|عميل|عملاء|زبون/.test(q))return 'customers';
  if(/review|follow.up|overdue|متابع|مراجعة/.test(q))return 'review';
@@ -61,28 +108,56 @@ function mark(){dlg.querySelectorAll('[data-pa-key]').forEach(b=>b.setAttribute(
 async function ask(key){
  if(!api.allowed()||!dlg.open)return;
  selected=key;mark();const ticket=++serial;
- e('paResult').textContent=t('جاري تحديث بيانات TEST…','Refreshing TEST data…');
+ showResult(t('جاري تحديث بيانات TEST…','Refreshing TEST data…'));
  try{await api.refresh();if(ticket!==serial||!dlg.open||!api.allowed())return;answer=response(key,api.report(month));}
  catch(err){if(ticket!==serial||!dlg.open||!api.allowed())return;answer=t('تعذر تحديث البيانات؛ لا يمكن عرض رقم موثوق الآن.','Refresh failed; no reliable figure can be shown now.');}
- e('paResult').textContent=answer;
+ showResult(answer);
 }
+
+const paIcons={
+ summary:'<path d="M4 19V5m0 14h16M8 15v-4m4 4V7m4 8v-6m4 6V4"/>',
+ target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="m12 12 7-7m-1-3v4h4"/>',
+ provider:'<path d="M3 9h18l-2-5H5zM5 9v11h14V9M9 20v-6h6v6M3 9c0 4 4 4 4 0 0 4 5 4 5 0 0 4 5 4 5 0 0 4 4 4 4 0"/>',
+ services:'<circle cx="6" cy="8" r="2"/><circle cx="11" cy="5" r="2"/><circle cx="17" cy="7" r="2"/><circle cx="20" cy="12" r="2"/><path d="M7 18c-2-3 2-8 5-8s7 5 5 8c-1 2-4 0-5 0s-4 2-5 0Z"/>',
+ earned:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v5c0 4 14 4 14 0V6M5 11v5c0 4 14 4 14 0v-5"/>',
+ collected:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m8 12 3 3 5-6"/>',
+ staff:'<circle cx="9" cy="7" r="3"/><path d="M3 20v-3a6 6 0 0 1 12 0v3M17 4a3 3 0 0 1 0 6m1 4a5 5 0 0 1 3 5"/>',
+ customers:'<circle cx="10" cy="8" r="4"/><path d="M3 21v-2a7 7 0 0 1 14 0v2m3-11v6m-3-3h6"/>',
+ review:'<circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v.1"/>',
+ sparkle:'<path d="m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5L12 2z"/>',
+ send:'<path d="m3 11 18-8-8 18-2-8-8-2zM11 13 21 3"/>'
+};
+function paSvg(key){const n=make('span');n.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paIcons[key]+'</svg>';return n.firstChild;}
+function showResult(value){const result=e('paResult');if(!result)return;result.hidden=false;result.textContent=value;}
 function draw(){
  launch.setAttribute('aria-label',t('مساعد PawApp','PawApp assistant'));launch.title=t('مساعد PawApp','PawApp assistant');
  if(!dlg.open)return;
  dlg.dir=document.documentElement.dir||'rtl';
- const header=make('header','pa-head'),title=make('h2','',''+t('مساعد PawApp','PawApp assistant'));title.id='paTitle';
- const close=make('button','pa-close','×');close.type='button';close.setAttribute('aria-label',t('إغلاق','Close'));close.onclick=()=>dlg.close();header.append(title,close);
- const body=make('div','pa-main'),intro=make('p','',t('شنو تبين تعرفين عن أداء PawApp؟','What would you like to know about PawApp?'));intro.style.margin='0';
- const label=make('label','',t('شهر التقرير','Report month')),period=make('input');period.type='month';period.min='2000-01';period.max=api.today().slice(0,7);period.value=month;label.append(period);
+ const header=make('header','pa-head'),avatar=make('div','pa-avatar'),photo=mascot.cloneNode(true);photo.alt='';avatar.append(photo);
+ const brand=make('div','pa-brand'),title=make('h2','','Paw AI');title.id='paTitle';title.dir='ltr';
+ brand.append(title,make('p','pa-subtitle',t('المساعد الذكي للإدارة','Smart management assistant')));
+ const close=make('button','pa-close','×');close.type='button';close.setAttribute('aria-label',t('إغلاق','Close'));close.onclick=()=>dlg.close();header.append(avatar,brand,close);
+ const body=make('div','pa-main'),greeting=make('div','pa-greeting');
+ greeting.append(make('strong','',t('هلا فيج! 👋','Hello! 👋')),make('p','',t('اسأليني عن أداء الشركة، الإيرادات، العملاء، الشركات، أو التقارير اللي تحتاجينها.','Ask me about company performance, revenue, customers, providers, or your reports.')));
+ const label=make('label','pa-period',t('شهر التقرير','Report month')),period=make('input');period.type='month';period.min='2000-01';period.max=api.today().slice(0,7);period.value=month;label.append(period);
  period.onchange=()=>{if(/^\d{4}-(0[1-9]|1[0-2])$/.test(period.value)&&period.value>=period.min&&period.value<=period.max){month=period.value;if(selected)ask(selected);}else period.value=month;};
- const grid=make('div','pa-grid');
- for(const [key,ar,en] of questions){const b=make('button','',t(ar,en));b.type='button';b.dataset.paKey=key;b.onclick=()=>ask(key);grid.append(b);}
- const form=make('form'),input=make('input');input.type='text';input.maxLength=160;input.placeholder=t('اكتبي سؤالاً عن المؤشرات…','Ask about report metrics…');input.setAttribute('aria-label',input.placeholder);
- const send=make('button','btn primary',t('اسأل','Ask'));send.type='submit';form.append(input,send);
- form.onsubmit=event=>{event.preventDefault();const key=classify(input.value);if(key){ask(key);}else{serial++;selected='';mark();answer=t('حالياً أجاوب عن المؤشرات الموجودة في القائمة للشهر المختار فقط. غيّري الشهر من الأعلى إذا لزم.','Currently I answer the listed metrics for the selected month only. Change the month above if needed.');e('paResult').textContent=answer;}};
- const result=make('div','pa-result',answer||t('اختاري سؤالاً لعرض النتيجة من TEST.','Choose a question to view the TEST result.'));result.id='paResult';result.setAttribute('role','status');result.setAttribute('aria-live','polite');
- const note=make('p','pa-note',t('TEST · أسئلة تحليلية محددة للقراءة فقط. الأرقام حسب تاريخ الخدمة وليست صافي ربح أو إثباتاً بنكياً.','TEST · Supported analytics questions, read-only. Figures use service date, not net profit or bank evidence.'));
- body.append(intro,label,grid,form,result,note);dlg.replaceChildren(header,body);mark();
+ const section=make('section'),grid=make('div','pa-grid'),extra=make('div','pa-grid'),more=make('details','pa-more');
+ const palette={target:['#fff4ce','#b78100'],provider:['#f3e8ff','#8836b2'],services:['#e2efff','#1760c6'],collected:['#e3f5eb','#16834f'],review:['#fff0dc','#b9760c']};
+ const primary=['summary','target','provider','services'];
+ function questionButton(key,ar,en){const b=make('button');b.type='button';b.dataset.paKey=key;b.onclick=()=>ask(key);
+ const icon=make('span','pa-symbol');icon.append(paSvg(key));if(palette[key]){icon.style.setProperty('--pa-icon-bg',palette[key][0]);icon.style.setProperty('--pa-icon-color',palette[key][1]);}
+ const arrow=make('span','pa-chevron',dlg.dir==='rtl'?'‹':'›');arrow.setAttribute('aria-hidden','true');b.append(icon,make('span','pa-qtext',t(ar,en)),arrow);return b;}
+ for(const key of primary){const q=questions.find(x=>x[0]===key);if(q)grid.append(questionButton(...q));}
+ for(const q of questions){if(!primary.includes(q[0]))extra.append(questionButton(...q));}
+ more.append(make('summary','',t('المزيد من الأسئلة','More questions')),extra);more.open=!!selected&&!primary.includes(selected);
+ section.append(make('h3','pa-question-title',t('أسئلة مقترحة:','Suggested questions:')),grid,more);
+ const result=make('div','pa-result',answer);result.id='paResult';result.hidden=!answer;result.setAttribute('role','status');result.setAttribute('aria-live','polite');
+ body.append(greeting,label,section,result);
+ const footer=make('footer','pa-footer'),form=make('form'),wrap=make('div','pa-input-wrap'),input=make('input');input.type='text';input.maxLength=160;input.placeholder=t('اكتبي سؤالك هنا…','Type your question here…');input.setAttribute('aria-label',input.placeholder);wrap.append(input,paSvg('sparkle'));
+ const send=make('button','pa-send');send.type='submit';send.setAttribute('aria-label',t('إرسال السؤال','Send question'));send.append(paSvg('send'));form.append(wrap,send);
+ form.onsubmit=event=>{event.preventDefault();const query=input.value.trim();if(!query)return;const key=classify(query);input.value='';if(key){ask(key);}else{serial++;selected='';mark();answer=t('حالياً أجاوب عن المؤشرات الموجودة في القائمة للشهر المختار فقط. غيّري الشهر من الأعلى إذا لزم.','Currently I answer the listed metrics for the selected month only. Change the month above if needed.');showResult(answer);}};
+ const note=make('p','pa-note',t('TEST · للقراءة فقط. الأرقام حسب تاريخ الخدمة، وليست صافي ربح أو إثباتاً بنكياً.','TEST · Read-only. Figures use service date, not net profit or bank evidence.'));
+ footer.append(form,note);dlg.replaceChildren(header,body,footer);mark();
 }
 launch.onclick=()=>{if(!api.allowed()||!window.PAW_FINANCE_READY)return;month=api.today().slice(0,7);selected='';answer='';dlg.showModal();draw();visible();dlg.querySelector('.pa-close').focus();};
 dlg.addEventListener('close',()=>{serial++;selected='';answer='';dlg.replaceChildren();visible();if(!launch.hidden)launch.focus();});

@@ -1114,5 +1114,27 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-p="providers"]'
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
+<style id="pawFixedBottomNav">
+/* TEST: one fixed viewport navigation, independent from page scrolling. */
+html,body{max-width:100%;overflow-x:clip}
+body{--paw-nav-height:calc(62px + env(safe-area-inset-bottom,0px))}
+body>.bottom{position:fixed!important;inset:auto 0 0 0!important;width:100%!important;max-width:100%!important;margin:0!important;box-sizing:border-box;z-index:60;display:flex!important;flex-wrap:wrap;justify-content:center;align-content:center;align-items:stretch;gap:2px!important;height:auto!important;min-height:58px;padding:4px 10px max(6px,env(safe-area-inset-bottom,0px))!important;background:white;border-top:1px solid #e3e9f0!important;border-bottom:0!important;box-shadow:0 -5px 18px #16395715!important;overflow:visible!important;overscroll-behavior:none}
+body>.bottom .nav{flex:1 1 70px!important;min-width:0!important;max-width:150px;white-space:normal;overflow-wrap:anywhere;min-height:44px;line-height:1.15;display:flex;align-items:center;justify-content:center;gap:5px;padding:6px 3px}
+body>.bottom .nav b{flex:none}
+body .main{padding-bottom:calc(var(--paw-nav-height) + 32px)!important;min-width:0}
+body .fab{bottom:calc(var(--paw-nav-height) + 12px)!important}
+body #pawAssistantLaunch{bottom:calc(var(--paw-nav-height) + 12px)!important}
+@media(min-width:900px){body .main{padding-top:18px!important}body>.bottom .nav{flex-direction:row;font-size:11px}}
+@media(max-width:899px){body>.bottom{padding-inline:5px!important;gap:1px!important}body>.bottom .nav{flex:0 0 calc((100% - 4px)/5)!important;max-width:none;min-height:42px;flex-direction:column;gap:2px;font-size:9px;padding:3px 1px}body>.bottom .nav[data-p="newcase"]{display:none}body>.bottom .nav b{font-size:16px}body .main{padding-bottom:calc(var(--paw-nav-height) + 30px)!important}}
+</style>
+<script>
+(function(){
+ const nav=document.querySelector('nav.bottom');if(!nav)return;
+ if(nav.parentElement!==document.body)document.body.appendChild(nav);
+ const sync=()=>document.body.style.setProperty('--paw-nav-height',Math.ceil(nav.getBoundingClientRect().height)+'px');
+ if(typeof ResizeObserver==='function')new ResizeObserver(sync).observe(nav);
+ window.addEventListener('resize',sync,{passive:true});document.addEventListener('paw-language-change',sync);sync();
+})();
+</script>
 </body>
 </html>

@@ -94,6 +94,7 @@ function classify(q){
  if(/last month|previous month|yesterday|today|الشهر الماضي|الشهر اللي طاف|امس|اليوم|الاسبوع|week|\b20\d{2}\b/.test(q))return '';
  if(/net profit|صافي الربح|صافي ربح/.test(q))return '';
  if(/target|goal|هدف|تارغت|تارقت/.test(q))return 'target';
+ if(/summary|overview|ملخص/.test(q))return 'summary';
  if(/employee|staff|موظف/.test(q))return 'staff';
  if(/most requested|popular service|top service|اكثر خدمة|اكثر الخدمات|خدمة عليها طلب/.test(q))return 'services';
  if(/top provider|provider|clinic|عياد|شرك|مقدم خدمة/.test(q))return 'provider';
@@ -101,7 +102,6 @@ function classify(q){
  if(/review|follow.up|overdue|متابع|مراجعة/.test(q))return 'review';
  if(/collect|تحصيل|محصل|استلم|تم دفعه|تم تحصيله/.test(q))return 'collected';
  if(/earn|share|حصة|حصه|عمول|ربح/.test(q))return 'earned';
- if(/summary|overview|ملخص|تقرير/.test(q))return 'summary';
  return '';
 }
 function mark(){dlg.querySelectorAll('[data-pa-key]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.paKey===selected)));}
@@ -128,7 +128,7 @@ const paIcons={
  send:'<path d="m3 11 18-8-8 18-2-8-8-2zM11 13 21 3"/>'
 };
 function paSvg(key){const n=make('span');n.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paIcons[key]+'</svg>';return n.firstChild;}
-function showResult(value){const result=e('paResult');if(!result)return;result.hidden=false;result.textContent=value;}
+function showResult(value){const result=e('paResult');if(!result)return;result.hidden=false;result.textContent=value;result.scrollIntoView({block:'nearest',behavior:'auto'});}
 function draw(){
  launch.setAttribute('aria-label',t('مساعد PawApp','PawApp assistant'));launch.title=t('مساعد PawApp','PawApp assistant');
  if(!dlg.open)return;

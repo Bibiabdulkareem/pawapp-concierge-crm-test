@@ -26,7 +26,7 @@
     await script('finance-core.js?v=3.24-'+Date.now());
     await script('accountant-format-hotfix.js?v=20261104-1');
     await script('finance-ui.js?v=3.24-'+Date.now());
-    try{await script('paw-assistant.js?v=20261126-2');}catch(e){console.warn('Optional dashboard assistant unavailable',e);}
+    try{await script('paw-assistant.js?v=20261127-design1');}catch(e){console.warn('Optional dashboard assistant unavailable',e);}
     await script('app.js?v=3.24-'+Date.now());
     const start=Date.now();
     while(typeof window.renderAdminAccess!=='function'||typeof window.downloadTestBackup!=='function'){

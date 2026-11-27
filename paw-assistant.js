@@ -15,7 +15,12 @@ const questions=[
 const css=make('style');
 css.textContent=
 '#pawAssistantLaunch{position:fixed;inset-inline-start:18px;bottom:calc(86px + env(safe-area-inset-bottom,0px));--pa-launch-width:74px;--pa-launch-height:66px;z-index:44;display:flex;flex-direction:column;align-items:center;gap:5px;width:max-content;max-width:calc(100vw - 36px);border:0;background:none;cursor:pointer;padding:0;overflow:visible}#pawAssistantLaunch[hidden]{display:none!important}#pawAssistantLaunch .pa-launch-label{position:relative;display:block;background:#0c3b78;color:white;border-radius:12px;padding:6px 9px;white-space:nowrap;font-size:11px;font-weight:750;line-height:1.4;box-shadow:0 3px 10px #082b5926}#pawAssistantLaunch .pa-launch-label::after{content:"";position:absolute;bottom:-4px;left:calc(50% - 4px);width:8px;height:8px;background:#0c3b78;transform:rotate(45deg);border-radius:1px}#pawAssistantLaunch .pa-launch-art{position:relative;display:block;width:var(--pa-launch-width);height:var(--pa-launch-height);overflow:hidden;mix-blend-mode:multiply}#pawAssistantLaunch img{display:block;position:absolute;width:154%;height:auto;max-width:none;left:-27%;top:-49%;pointer-events:none}#pawAssistantLaunch:focus-visible{outline:3px solid #0c3b78;outline-offset:3px;border-radius:12px}html[dir="ltr"] body:has(#pawAssistantLaunch:not([hidden])) .fab{left:auto;right:14px}@media(max-width:899px){html[dir="ltr"] body:has(#pawAssistantLaunch:not([hidden])) .fab{right:12px}}'+
-`#pawAssistantDialog{--pa-navy:#082b59;--pa-blue:#0c3b78;--pa-yellow:#ffd400;position:fixed;inset:0 0 0 auto;width:min(470px,100%);max-width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;border-radius:24px 0 0 24px;padding:0;background:#fbfcff;color:var(--pa-navy);box-shadow:-12px 0 50px #082b592a;overflow:hidden;font-family:inherit}
+ `#pawAssistantLaunch{opacity:.84;transition:opacity .2s ease}
+#pawAssistantLaunch.pa-scrolling{opacity:.32}
+#pawAssistantLaunch:focus-visible,#pawAssistantLaunch:active{opacity:1}
+@media(hover:hover) and (pointer:fine){#pawAssistantLaunch:not(.pa-scrolling):hover{opacity:1}}
+@media(prefers-reduced-motion:reduce){#pawAssistantLaunch{transition:none}}
+#pawAssistantDialog{--pa-navy:#082b59;--pa-blue:#0c3b78;--pa-yellow:#ffd400;position:fixed;inset:0 0 0 auto;width:min(470px,100%);max-width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;border-radius:24px 0 0 24px;padding:0;background:#fbfcff;color:var(--pa-navy);box-shadow:-12px 0 50px #082b592a;overflow:hidden;font-family:inherit}
 #pawAssistantDialog[open]{display:flex;flex-direction:column}
 #pawAssistantDialog::backdrop{background:#10233d3d}
 #pawAssistantDialog *,#pawAssistantDialog *::before,#pawAssistantDialog *::after{box-sizing:border-box}
@@ -162,6 +167,14 @@ function draw(){
 launch.onclick=()=>{if(!api.allowed()||!window.PAW_FINANCE_READY)return;month=api.today().slice(0,7);selected='';answer='';dlg.showModal();draw();visible();dlg.querySelector('.pa-close').focus();};
 dlg.addEventListener('close',()=>{serial++;selected='';answer='';dlg.replaceChildren();visible();if(!launch.hidden)launch.focus();});
 document.addEventListener('paw-language-change',()=>{serial++;answer='';draw();if(dlg.open&&selected)ask(selected);});
+// Keep the floating mascot readable without obscuring dashboard content during scrolling.
+let paScrollTimer=0;
+window.addEventListener('scroll',()=>{
+ if(launch.hidden||dlg.open)return;
+ launch.classList.add('pa-scrolling');
+ clearTimeout(paScrollTimer);
+ paScrollTimer=setTimeout(()=>launch.classList.remove('pa-scrolling'),180);
+},{passive:true,capture:true});
 const observer=new MutationObserver(visible);observer.observe(e('dashboard'),{attributes:true,attributeFilter:['class']});observer.observe(document.body,{attributes:true,attributeFilter:['data-paw-role']});document.querySelectorAll('.modalBg').forEach(n=>observer.observe(n,{attributes:true,attributeFilter:['class']}));
 draw();visible();
 };
